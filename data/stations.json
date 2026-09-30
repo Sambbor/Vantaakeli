@@ -1,0 +1,75 @@
+{
+ "t": 1790796722984,
+ "stations": [
+  {
+   "id": 1004,
+   "name": "Tie 4 Helsinki, Jakomäki",
+   "road": 4,
+   "lon": 25.065093,
+   "lat": 60.251833
+  },
+  {
+   "id": 1005,
+   "name": "Tie 4 Kerava, Kytömaa_JK",
+   "road": 4,
+   "lon": 25.124371,
+   "lat": 60.426274
+  },
+  {
+   "id": 1011,
+   "name": "Tie 7 Sipoo, Sipoonlahti",
+   "road": 7,
+   "lon": 25.325135,
+   "lat": 60.28135
+  },
+  {
+   "id": 1034,
+   "name": "Tie 3 Helsinki, Pirkkola",
+   "road": 3,
+   "lon": 24.905725,
+   "lat": 60.228845
+  },
+  {
+   "id": 1036,
+   "name": "Tie 45 Vantaa, Ilola",
+   "road": 45,
+   "lon": 24.997117,
+   "lat": 60.320603
+  },
+  {
+   "id": 1041,
+   "name": "Tie 3 Vantaa, Keimola",
+   "road": 3,
+   "lon": 24.825599,
+   "lat": 60.326306
+  },
+  {
+   "id": 1084,
+   "name": "Tie 50 Vantaa, Suutarila",
+   "road": 50,
+   "lon": 24.998631,
+   "lat": 60.287591
+  },
+  {
+   "id": 1085,
+   "name": "Tie 50 Vantaa, Suutarila",
+   "road": 50,
+   "lon": 25.015549,
+   "lat": 60.284854
+  },
+  {
+   "id": 1115,
+   "name": "Tie 7 Helsinki, Itäsalmi",
+   "road": 7,
+   "lon": 25.166158,
+   "lat": 60.261944
+  },
+  {
+   "id": 1117,
+   "name": "Tie 148, Sipoo Brobölentie",
+   "road": 148,
+   "lon": 25.261519,
+   "lat": 60.364585
+  }
+ ]
+}
