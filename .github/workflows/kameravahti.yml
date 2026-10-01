@@ -1,0 +1,29 @@
+name: Kameravahti (varjotila)
+on:
+  schedule:
+    - cron: '2,17,32,47 14-23,0-6 * * *'   # 15 min välein illasta aamuun (UTC); skripti rajaa ajon klo 18–08 Suomen aikaa
+  workflow_dispatch:                       # käsin käynnistys ajaa myös päivällä (testaus)
+permissions:
+  contents: write
+concurrency: kameravahti
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Kuvankäsittelykirjasto
+        run: python3 -c "import PIL" 2>/dev/null || python3 -m pip install --quiet --break-system-packages pillow || (sudo apt-get update -qq && sudo apt-get install -y -qq python3-pil)
+      - name: Tarkista kamerat
+        run: python3 collector/camwatch.py
+        env:
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
+      - name: Tallenna havainnot säilöön
+        run: |
+          git config user.name "keli-bot"
+          git config user.email "keli-bot@users.noreply.github.com"
+          git add data/cam 2>/dev/null || exit 0
+          git diff --cached --quiet && exit 0
+          git commit -m "Kameravahti $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4; do git pull --rebase --autostash && git push && exit 0; sleep $((i*5)); done
+          exit 1
