@@ -5,34 +5,38 @@
 // Lähteet: Fintraffic / Digitraffic ja Ilmatieteen laitos (CC BY 4.0).
 
 // ===== LIUKKAUSSÄÄNNÖT (sama koodi sivulla ja keruussa – muuta molempiin ja nosta RULES_VERSION) =====
-const RULES_VERSION = 'v1';
+// v2 (talvitesti 2.10.2026): märkä tie kuivuu kastepiste-eron mukaan (kostea yö ei kuivaa tietä), vain vesisade tai
+// lämpimälle tielle sulava lumi kastelee, havaittu liukkaus jatkuu ennusteessa, kuuran riski pienenee kovalla pakkasella,
+// aseman Sade-varoitus (4) ei enää tarkoita liukasta havaintoa.
+const RULES_VERSION = 'v2';
 const clamp01 = v => Math.max(0, Math.min(1, v));
 const DT_SLIP = {FROST:0.6, ICE:0.85, PARTLY_ICY:0.7, SNOW:0.6, SLUSH:0.6, SNOW_AND_ICE:0.85, SLIPPERY:0.7, VERY_SLIPPERY:0.9};
 function dtSlip(f){ const r = f && f.forecastConditionReason; if(!r) return 0;
   return Math.max(DT_SLIP[r.roadCondition]||0, DT_SLIP[r.frictionCondition]||0, r.freezingRainCondition ? 0.9 : 0, r.winterSlipperiness ? 0.6 : 0); }
-// Riskikomponentit yhdelle tunnille. x = {tr, td, tf, moist, snow, frz, precip, ws, dt}
+// Riskikomponentit yhdelle tunnille. x = {tr, td, tf, moist, snow, frz, precip, ws, dt, obs}
 function slipRisk(x){
   const c = [];
   if(x.tr == null || isNaN(x.tr)) return {p:null, why:'ei tienpintatietoa', parts:c};
   const m = x.tr - (x.tf || 0);
+  if(x.obs > 0.02) c.push([x.obs, 'havaittu liukkaus']);
   if(x.frz && x.tr <= 0.5) c.push([1, 'jäätävä sade']);
   if(x.snow >= 0.05) c.push([clamp01(0.4 + x.snow/0.6) * (x.tr <= 2 ? 1 : 0.6), x.tr > 0.5 ? 'lumi / sohjo' : 'lumisade']);
   if(x.moist > 0){ const p = x.moist * clamp01((1 - m)/1.5); if(p > 0.02) c.push([p, 'märkä tie jäätyy']); }
-  if(x.tr <= 0.5 && x.td != null && !isNaN(x.td)){ const p = clamp01((x.td - x.tr + 0.8)/1.3) * (m <= 0.3 ? 1 : 0.3) * (x.precip ? 0.5 : 1) * (x.ws != null && x.ws >= 5 ? 0.6 : 1); if(p > 0.02) c.push([p, 'kuura']); }
+  if(x.tr <= 0.5 && x.td != null && !isNaN(x.td)){ const cold = x.tr >= -8 ? 1 : clamp01(1 - (-8 - x.tr)/12);
+    const p = clamp01((x.td - x.tr + 0.8)/1.3) * (m <= 0.3 ? 1 : 0.3) * (x.precip ? 0.5 : 1) * (x.ws != null && x.ws >= 5 ? 0.6 : 1) * cold; if(p > 0.02) c.push([p, 'kuura']); }
   if(x.dt) c.push([x.dt, 'tiesääennuste (Digitraffic)']);
   const best = c.reduce((a,b)=>b[0]>a[0]?b:a, [0, '']);
   return {p:best[0], why:best[1], parts:c};
 }
 const hourHel = t => Number(new Date(t).toLocaleString('fi-FI', {hour:'2-digit', hour12:false, timeZone:'Europe/Helsinki'})) % 24;
 const isNight = t => { const h = hourHel(t); return h >= 18 || h < 8; };
-function snowRate(r){
-  const P = r.Precipitation1h || 0; if(P <= 0) return 0;
-  const sym = Math.round(r.WeatherSymbol3), T = r.Temperature;
-  const frac = (sym>=41 && sym<=53) ? 1 : (sym>=71 && sym<=83) ? 0.5 : (sym>=21 && sym<=33) ? 0 : (T<=0 ? 1 : T<=1.5 ? 0.5 : 0);
-  return P * frac * (T <= -5 ? 1.5 : 1);
-}
+function snowFrac(r){ const sym = Math.round(r.WeatherSymbol3), T = r.Temperature;
+  return (sym>=41 && sym<=53) ? 1 : (sym>=71 && sym<=83) ? 0.5 : (sym>=21 && sym<=33) ? 0 : (T<=0 ? 1 : T<=1.5 ? 0.5 : 0); }
+function snowRate(r){ const P = r.Precipitation1h || 0; if(P <= 0) return 0; return P * snowFrac(r) * (r.Temperature <= -5 ? 1.5 : 1); }
 const rainSym = s => s >= 21 && s <= 33;
-// Aseman liukkaussarja. o = {now, rows: FMI-tunnit, trNow, fc: tiekohdan ennusteet (Digitraffic), tf0, wetNow, dewNow, bias: opittu korjaus}
+// Märän tien kuivuminen (1/h): ei juuri kuivu, kun tienpinta on kastepisteessä; nopeasti, kun ero on yli 3 °C. Jäätynyt kuivuu hitaammin.
+function dryRate(tr, td){ const k = (tr == null || td == null || isNaN(td)) ? 0.25 : 1/12 + (1/2.5 - 1/12) * clamp01((tr - td - 0.5)/2.5); return tr != null && tr < 0 ? k * 0.5 : k; }
+// Aseman liukkaussarja. o = {now, rows: FMI-tunnit, trNow, fc: tiekohdan ennusteet (Digitraffic), tf0, wetNow, slipNow: liukasta nyt (havainto), dewNow, bias: opittu korjaus}
 function slipSeriesCore(o){
   const {now, rows, trNow, tf0, wetNow, dewNow, bias} = o;
   const fcs = (o.fc||[]).filter(f=>f.roadTemperature!=null).map(f=>({t: f.type==='OBSERVATION' ? now : new Date(f.time).getTime(), v:f.roadTemperature, f})).sort((a,b)=>a.t-b.t);
@@ -44,7 +48,7 @@ function slipSeriesCore(o){
     for(let i=1;i<fcs.length;i++){ const a = fcs[i-1], b = fcs[i]; if(t <= b.t) return a.v + (b.v-a.v)*Math.max(0,(t-a.t))/(b.t-a.t || 1); } return fcs[fcs.length-1].v; };
   const fcList = (o.fc||[]).filter(f=>f.type!=='OBSERVATION');
   const fObs = (o.fc||[]).find(f=>f.type==='OBSERVATION');
-  let cumP = 0; const out = [];
+  let cumP = 0, wet = wetNow || 0, lead0 = 0, obsOn = !!o.slipNow; const out = [];
   rows.forEach((r, h) => {
     const t = new Date(r.t).getTime(), lead = Math.max(0, (t - now)/36e5);
     const P = r.Precipitation1h || 0; cumP += P;
@@ -52,18 +56,24 @@ function slipSeriesCore(o){
     if(tr != null){ tr += off0 * Math.max(0, 1 - lead/12); }
     else if(base != null){ ext = true; tr = r.Temperature - ((r.TotalCloudCover ?? 100) < 30 && isNight(t) ? 1.5 : 0.3); }
     if(tr != null && bias && !ext){ const b = bias[isNight(t) ? 'night' : 'day']; if(b && b.n >= 12){ corr = b.mean * Math.min(1, lead/6); tr += corr; } }
-    const prev2 = rows.slice(Math.max(0,h-2), h).reduce((a,x)=>a+(x.Precipitation1h||0), 0);
-    const moist = Math.max(wetNow * Math.exp(-lead/2.5), P >= 0.05 ? 1 : 0, prev2 >= 0.1 ? 0.7 : 0);
-    const tf = (tf0||0) * Math.exp(-(lead/10) - cumP/1.5);
     const td = r.DewPoint != null ? r.DewPoint + tdOff0 * Math.max(0, 1 - lead/6) : null;
+    // märkyys: kuivuu tunti tunnilta, vesisade (tai lämpimällä tiellä sulava lumi) kastelee
+    wet *= Math.exp(-dryRate(tr, td) * (lead - lead0)); lead0 = lead;
+    const liq = tr != null && tr > 0.5 ? P : P * (1 - snowFrac(r));
+    if(liq >= 0.05) wet = 1;
+    const tf = (tf0||0) * Math.exp(-(lead/10) - cumP/1.5);
+    if(tr != null && tr > 1) obsOn = false;   // havaittu liukkaus sulaa
     const fNear = fcList.find(f=>Math.abs(new Date(f.time).getTime() - t) <= 60*60e3);
-    const x = {tr, td, tf, moist, snow: snowRate(r), frz: rainSym(Math.round(r.WeatherSymbol3)) && P >= 0.05, precip: P >= 0.05, ws: r.WindSpeedMS, dt: lead < 1 ? dtSlip(fObs) : dtSlip(fNear)};
+    const x = {tr, td, tf, moist: wet, snow: snowRate(r), frz: rainSym(Math.round(r.WeatherSymbol3)) && P >= 0.05, precip: P >= 0.05, ws: r.WindSpeedMS,
+      dt: lead < 1 ? dtSlip(fObs) : dtSlip(fNear), obs: obsOn ? Math.exp(-lead/4) : 0};
     const res = slipRisk(x);
     out.push({t, lead, ext, x, corr, ...res, idx: res.p == null ? null : Math.round(res.p*100)});
   });
   return out;
 }
-const obsSlippery = o => [5,6,7,9].includes(o.keli) || (o.warn != null && o.warn >= 2) || (o.fric != null && o.fric < 0.45) || (o.ice||0) > 0 || (o.snow||0) > 0.2;
+// VAROITUS: 0 OK, 1 Varo, 2 Häly, 3 Kuura, 4 Sade – vakavuusjärjestys ei ole numerojärjestys (Sade on pelkkä sadetieto)
+const WARN_RANK = {0:0, 4:1, 1:2, 3:3, 2:4};
+const obsSlippery = o => [5,6,7,9].includes(o.keli) || o.warn === 2 || o.warn === 3 || (o.fric != null && o.fric < 0.45) || (o.ice||0) > 0 || (o.snow||0) > 0.2;
 const WET_KELI = [2,3,4,8,9];
 // ===== /LIUKKAUSSÄÄNNÖT =====
 
@@ -138,7 +148,7 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
     const lanes = [1,2,3,4].filter(n => v['TIE_' + n] != null); if(!lanes.length) continue;
     const lane = lanes.reduce((a, n) => v['TIE_' + n] < v['TIE_' + a] ? n : a, lanes[0]);
     const keli = [v['KELI_' + lane], ...[1,2,3,4].map(n => v['KELI_' + n])].find(x => x != null && x > 0) ?? null;
-    const warn = Math.max(...[1,2,3,4].map(n => v['VAROITUS_' + n]).filter(x => x != null), -1);
+    const warn = [1,2,3,4].map(n => v['VAROITUS_' + n]).filter(x => x != null).reduce((a, x) => (WARN_RANK[x] ?? 0) > (WARN_RANK[a] ?? -1) ? x : a, -1);
     const fr = ['KITKA1_LUKU','KITKA2_LUKU'].map(k => v[k]).filter(x => x != null);
     let seg = null, sd = Infinity; for(const [id, lines] of Object.entries(geo)){ if(!fcById[id]) continue; const d = distTo([st.lon, st.lat], lines); if(d < sd){ sd = d; seg = id; } }
     if(sd > 3000) seg = null;
@@ -149,7 +159,8 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
     const water = v.VEDEN_MÄÄRÄ1 ?? v.VEDEN_MÄÄRÄ2 ?? null, snow = v.LUMEN_MÄÄRÄ1 ?? v.LUMEN_MÄÄRÄ2 ?? null, ice = v.JÄÄN_MÄÄRÄ1 ?? v.JÄÄN_MÄÄRÄ2 ?? null;
     // sama liukkausennuste kuin sivulla (sääntöversio RULES_VERSION)
     const wetNow = (water != null && water > 0.03) || (snow||0) > 0 || (ice||0) > 0 || WET_KELI.includes(keli) ? 1 : 0;
-    const ser = fmiRows.length ? slipSeriesCore({now, rows: fmiRows.slice(0, 14), trNow: tr, fc: F, tf0: Math.min(0, tf ?? 0), wetNow, dewNow: v.KASTEPISTE, bias: learn && learn.bias && learn.bias[s.id]}) : [];
+    const slipNow = obsSlippery({keli, warn: warn < 0 ? null : warn, fric: fr.length ? Math.min(...fr) : null, ice, snow});
+    const ser = fmiRows.length ? slipSeriesCore({now, rows: fmiRows.slice(0, 14), trNow: tr, fc: F, tf0: Math.min(0, tf ?? 0), wetNow, slipNow, dewNow: v.KASTEPISTE, bias: learn && learn.bias && learn.bias[s.id]}) : [];
     const at = L => ser.find(c => Math.abs(c.lead - L) < 0.5) || null;
     const i2 = at(2), i6 = at(6), i12 = at(12);
     rows.push({t: iso(now), st: s.id, tr, ta: v.ILMA, td: v.KASTEPISTE, tf,
@@ -189,7 +200,7 @@ export function parseCsv(txt){
 }
 export function learnFromRows(rows){
   const bySt = {}; rows.forEach(o => { (bySt[o.st] = bySt[o.st] || []).push(o); });
-  const bias = {}, verif = {hit:0, miss:0, fa:0, cn:0, stored:0, retro:0}, perSt = {};
+  const bias = {}, verif = {hit:0, miss:0, fa:0, cn:0, stored:0, retro:0, byRv:{}}, perSt = {};
   const SALT_BINS = [['alle 2 h', 0, 120], ['2–6 h', 120, 360], ['6–12 h', 360, 720], ['12–24 h', 720, 1440], ['ei suolausta 24 h', 1440, Infinity]];
   const salt = SALT_BINS.map(b => ({bin: b[0], n: 0, slip: 0}));
   for(const [id, arr] of Object.entries(bySt)){
@@ -206,18 +217,18 @@ export function learnFromRows(rows){
       if(o.tr != null && o.tr <= 0.5 && wet){ const m = o.salt_min == null ? Infinity : o.salt_min; const k = SALT_BINS.findIndex(b => m >= b[1] && m < b[2]); if(k >= 0){ salt[k].n++; if(sl) salt[k].slip++; } }
       const later = find(o.tt + 6 * 36e5); if(!later || later.tr == null) continue;
       if(o.fc6 != null) acc[isNight(later.tt) ? 'night' : 'day'].push(later.tr - o.fc6);
-      let pr = null;
-      if(o.idx6 != null){ pr = o.idx6 >= 50; verif.stored++; }
+      let pr = null, ver = 'jälkikäteen';
+      if(o.idx6 != null){ pr = o.idx6 >= 50; verif.stored++; ver = o.rv || '?'; }
       else if(o.fc6 != null){
         const wetN = wet ? 1 : 0;
         const x = {tr: o.fc6 + ((o.tr != null && o.fc_obs != null) ? (o.tr - o.fc_obs) * 0.5 : 0), td: o.f6_td, tf: Math.min(0, o.tf||0) * Math.exp(-0.6 - (o.f6_p||0)/1.5),
-          moist: Math.max(wetN * Math.exp(-6/2.5), (o.f6_p||0) >= 0.05 ? 1 : 0), snow: snowRate({Precipitation1h: o.f6_p||0, WeatherSymbol3: o.f6_sym||0, Temperature: o.f6_t}),
+          moist: Math.max(wetN * Math.exp(-6/2.5), (o.f6_p||0) * (1 - snowFrac({WeatherSymbol3: o.f6_sym||0, Temperature: o.f6_t})) >= 0.05 ? 1 : 0), snow: snowRate({Precipitation1h: o.f6_p||0, WeatherSymbol3: o.f6_sym||0, Temperature: o.f6_t}),
           frz: rainSym(Math.round(o.f6_sym||0)) && (o.f6_p||0) >= 0.05, precip: (o.f6_p||0) >= 0.05, ws: null, dt: DT_SLIP[o.c6]||0};
         pr = slipRisk(x).p >= 0.5; verif.retro++;
       }
       if(pr == null) continue;
       const ob = obsSlippery(later), k = pr && ob ? 'hit' : !pr && ob ? 'miss' : pr ? 'fa' : 'cn';
-      verif[k]++; ps[k]++;
+      verif[k]++; ps[k]++; const bv = verif.byRv[ver] = verif.byRv[ver] || {hit:0, miss:0, fa:0, cn:0}; bv[k]++;
     }
     const stat = a => a.length >= 3 ? {n: a.length, mean: Math.round(a.reduce((x, y) => x + y, 0) / a.length * 100) / 100} : (a.length ? {n: a.length, mean: Math.round(a.reduce((x, y) => x + y, 0) / a.length * 100) / 100} : null);
     const med = a => a.length ? Math.round(a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)] * 100) / 100 : 0;
