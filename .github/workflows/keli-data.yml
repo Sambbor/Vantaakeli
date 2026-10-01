@@ -1,7 +1,7 @@
 name: Keliaineiston keruu
 on:
   schedule:
-    - cron: '17 * * * *'   # kerran tunnissa (UTC), GitHub voi viivästää ajoa muutamia minuutteja
+    - cron: '17,47 * * * *'   # 30 min välein (UTC); GitHub voi viivästää ajoa muutamia minuutteja
   workflow_dispatch:        # käsin käynnistys: Actions → Keliaineiston keruu → Run workflow
 permissions:
   contents: write
@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - run: node collector/collect.mjs
       - name: Tallenna aineisto säilöön
         run: |
