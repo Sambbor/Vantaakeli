@@ -212,7 +212,9 @@ def main():
         else:
             if base is not None and f['bright'] - base >= RULES['jump_base'] and (pv is None or f['bright'] - pv >= RULES['jump_prev']):
                 flag, reason = True, 'tien alue vaaleni: %d %% (tavallisesti %d %%)' % (round(f['bright'] * 100), round(base * 100))
-            elif f['white'] >= RULES['abs_white'] and (base is None or base < 0.15):
+            elif base is not None and f['white'] >= RULES['abs_white'] and base < 0.15 and (pv is None or f['bright'] - pv >= RULES['jump_prev']):
+                # pelkkä valkoisuus ei riitä: kuvasuunnalla pitää olla jo tavallinen taso (vähintään tunti historiaa),
+                # muuten vaaleat tiemerkinnät tai vaalea asfaltti antaisivat turhia havaintoja
                 flag, reason = True, 'valkoista tien alueella %d %%' % round(f['white'] * 100)
             rec['status'] = 'muutos' if flag else 'ok'
             hist.append([round(now), f['bright'], f['white']])
@@ -257,7 +259,7 @@ def main():
                 ev = {'id': pid + '-' + str(round(now)), 'preset': pid, 'cam': c['cam'], 'name': c['name'], 'dir': c['dir'], 'road': c['road'],
                       'night': night_key, 'start': iso(now), 'last': iso(now), 'n': 1, 'status': 'havaittu', 'open': True,
                       'reason': reason, 'bright': f['bright'], 'bright_max': f['bright'], 'base': base, 'prev': pv, 'mode': f['mode'],
-                      'fc': fcx, 'st': stx, 'surprise': bool(fcx and fcx['normal'])}
+                      'fc': fcx, 'st': stx, 'surprise': bool(fcx and fcx['normal']), 'test': not night}
                 if fcx and fcx.get('tr') is not None and fcx['tr'] >= 2:
                     ev['note'] = 'tienpinta ennusteessa +%.1f °C – voi olla märän tien heijastus' % fcx['tr']
                 if img_count + 2 <= MAX_IMG_PER_NIGHT:
