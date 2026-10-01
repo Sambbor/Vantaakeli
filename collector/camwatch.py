@@ -9,14 +9,14 @@ havainto ja tallennetaan pikkukuvat. Varjotilassa ketään ei hälytetä – tul
 Tiedostot: data/cam/latest.json, data/cam/events.json, data/cam/state.json, data/cam/log-YYYY-MM.csv,
 data/cam/img/YYYY-MM-DD/*.jpg. Lähteet: Fintraffic / Digitraffic (CC BY 4.0).
 """
-import io, json, math, os, sys, time, urllib.request
+import gzip, io, json, math, os, sys, time, urllib.request
 from datetime import datetime, timezone
 from statistics import median
 from zoneinfo import ZoneInfo
 from PIL import Image
 
 DT = 'https://tie.digitraffic.fi'
-HDR = {'Digitraffic-User': 'Vantaa-urakka-keliennuste', 'User-Agent': 'vantaa-kameravahti/1'}
+HDR = {'Digitraffic-User': 'Vantaa-urakka-keliennuste', 'User-Agent': 'vantaa-kameravahti/1', 'Accept-Encoding': 'gzip'}   # Digitraffic vaatii gzip-pakkauksen
 BBOX = (24.55, 60.15, 25.45, 60.50)
 CONTRACT = 301
 OUT = 'data/cam'
@@ -35,6 +35,8 @@ def get(url, raw=False, timeout=40):
     req = urllib.request.Request(url, headers=HDR)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         b = r.read()
+        if r.headers.get('Content-Encoding', '').lower() == 'gzip' or b[:2] == b'\x1f\x8b':
+            b = gzip.decompress(b)
     return b if raw else json.loads(b)
 
 
