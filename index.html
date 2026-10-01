@@ -298,6 +298,20 @@ body.wall .tabs{display:none}
 }
 .sm{display:none}
 
+/* Kameravahti */
+.cw{padding:12px 14px;font-size:14px}
+.cw-ev{display:grid;grid-template-columns:minmax(0,auto) 1fr;gap:12px;border-top:1px solid var(--line);padding:12px 0}
+.cw-ev:first-of-type{border-top:0}
+.cw-imgs{display:flex;gap:6px}
+.cw-imgs figure{margin:0;width:180px;max-width:42vw}
+.cw-imgs img{width:100%;border-radius:4px;display:block;background:var(--soft)}
+.cw-imgs figcaption{font-size:11.5px;color:var(--muted);margin-top:2px}
+.cw-ev h4{margin:0 0 4px;font:700 16px var(--f-display)}
+.cw-ev p{margin:2px 0}
+.cw-night{font:700 14px var(--f-display);margin:12px 0 2px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.cw-sur{color:var(--bad);font-weight:600} .cw-conf{color:var(--muted)}
+@media (max-width:700px){ .cw-ev{grid-template-columns:1fr} .cw-imgs figure{width:50%;max-width:none} }
+
 /* Liukkausennuste */
 :root{--s0:#e3f3e8;--s1:#fbe7a1;--s2:#f3a55a;--s3:#c0392b}
 @media (prefers-color-scheme: dark){ :root{--s0:#1d3326;--s1:#6b5a1c;--s2:#9a5320;--s3:#c9463a} }
@@ -539,6 +553,11 @@ body.wall .tabs{display:none}
   <section id="stations" class="hide-wall" data-tab="asemat">
     <div class="sec-h"><h2>Tiesääasemat nyt</h2><span class="note">Urakka-alueen asemat, viimeisin mittaus · trendi = tienpinnan muutos °C/h · 24 h -käyrä: tienpinta ja kastepiste</span></div>
     <div class="panel scroll" id="stations-body"><div class="status">Ladataan…</div></div>
+  </section>
+
+  <section id="camwatch" class="hide-wall" data-tab="kamerat">
+    <div class="sec-h"><h2>Kameravahti <span class="pill p-na" style="vertical-align:4px">varjotila</span></h2><span class="note">Urakan kelikamerat tarkistetaan yöllä klo 18–08 15 min välein · ei vielä hälytä – havainnot arvioidaan aamulla</span></div>
+    <div class="panel cw" id="cw-body"><div class="status">Ladataan…</div></div>
   </section>
 
   <section id="cams" data-tab="kamerat">
@@ -1283,6 +1302,61 @@ function renderSlipModel(){
   el.innerHTML = h + '<p class="muted" style="margin-top:8px">Virhe = aseman mittaama tienpinta miinus 6 tuntia aiemmin annettu tiesääennuste (positiivinen = ennuste oli liian kylmä). Liukas havainto = keli kuura, lumi, jää tai sohjo, varoitus vähintään häly, kitka alle 0,45 tai jäätä tai lunta tiellä. Keruu tallentaa 30 min välein asemat ja kerran tunnissa kaikkien urakan tiekohtien ennusteet.</p>';
 }
 
+
+// ======================================================================
+// KAMERAVAHTI (vaihe 0, varjotila): GitHub Actions kirjoittaa data/cam/latest.json ja events.json
+// ======================================================================
+const cw = {t:0, latest:null, events:null, err:null};
+async function loadCamWatch(force){
+  if(!force && cw.t && Date.now() - cw.t < 5*60e3){ renderCamWatch(); return; }
+  cw.t = Date.now();
+  const q = '?'+Math.floor(Date.now()/6e4);
+  try{
+    const [l, e] = await Promise.all([fetch('data/cam/latest.json'+q, {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }),
+      fetch('data/cam/events.json'+q, {cache:'no-store'}).then(r=>r.ok ? r.json() : [])]);
+    cw.latest = l; cw.events = e; cw.err = null;
+  }catch(err){ cw.latest = null; cw.events = null; cw.err = err.message; }
+  renderCamWatch();
+}
+const pctTxt = v => v == null ? '–' : Math.round(v*100)+' %';
+function renderCamWatch(){
+  const el = $('#cw-body'); if(!el) return;
+  if(!cw.latest){
+    el.innerHTML = '<p><b>Kameravahti ei ole vielä käynnissä</b> (data/cam/latest.json'+(cw.err?': '+esc(cw.err):'')+').</p><p class="muted">Vahti käynnistyy, kun säilöön lisätään <code>collector/camwatch.py</code> ja <code>.github/workflows/kameravahti.yml</code>. Se tarkistaa kamerat vain klo 18–08.</p>';
+    return;
+  }
+  const L = cw.latest, age = ageMin(L.t), hl = hourOf(Date.now()), nightNow = hl >= 18 || hl < 8;
+  let h = '<p>Viimeisin tarkistus <b>'+fmtDT(L.t)+'</b> ('+ageTxt(age)+' sitten): '+L.analyzed+' kuvaa, '
+    + (L.unusable.length ? '<span title="'+esc(L.unusable.map(u=>u.name+' '+u.dir+': '+u.why).join('\n'))+'">'+L.unusable.length+' ei kelpaa</span>' : 'kaikki kelpasivat')
+    + ', <b>'+L.flagged+' muutosta</b>.'+(nightNow && age > 45 ? ' <span class="err">Tarkistus on myöhässä – GitHubin ajastus voi viivästyä.</span>' : '')+(!nightNow ? ' <span class="muted">Seuraava tarkistuskierros alkaa klo 18.</span>' : '')+'</p>';
+  const evs = (cw.events||[]).slice().sort((a,b)=>b.start.localeCompare(a.start));
+  const nights = [...new Set(evs.map(e=>e.night))].slice(0, 3);
+  if(!evs.length) h += '<p class="muted">Ei havaittuja muutoksia viimeisen kahden viikon aikana.</p>';
+  for(const n of nights){
+    const list = evs.filter(e=>e.night === n);
+    h += '<div class="cw-night">Yö '+new Date(n+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'})+' · '+list.length+' havaintoa</div>';
+    for(const e of list){
+      const fc = e.fc, st = e.st;
+      const fcTxt = fc ? (e.surprise ? '<span class="cw-sur">Ennuste ei luvannut liukkautta</span> (keli '+esc((OVERALL[fc.cond]||['?'])[0].toLowerCase())+', tie '+n1(fc.tr)+' → '+n1(fc.tr2)+' °C 2 h) – vahti olisi ollut ennustetta aiemmin.'
+        : '<span class="cw-conf">Ennuste jo varoitti</span> ('+esc((fc.reasons||[]).map(r=>tr(r)).join(', ') || (OVERALL[fc.cond]||['?'])[0].toLowerCase())+', tie '+n1(fc.tr)+' °C).') : 'Ei tiesääennustetta kameran lähellä.';
+      h += '<div class="cw-ev"><div class="cw-imgs">'
+        + (e.img_prev ? '<figure><img loading="lazy" src="data/'+esc(e.img_prev)+'" alt="Vertailukuva"><figcaption>'+(e.img_prev_t?fmtT(e.img_prev_t):'ennen')+'</figcaption></figure>' : '')
+        + (e.img ? '<figure><img loading="lazy" src="data/'+esc(e.img)+'" alt="Havaintokuva"><figcaption>'+fmtT(e.start)+' havainto</figcaption></figure>' : '')
+        + '</div><div><h4>'+fmtT(e.start)+(e.last !== e.start ? '–'+fmtT(e.last) : '')+' · '+esc(e.name)+(e.dir?' → '+esc(e.dir):'')+(e.road?' <small class="muted">tie '+e.road+'</small>':'')+'</h4>'
+        + '<p><span class="pill p-'+(e.status==='vahvistettu'?'bad':'warn')+'">'+esc(e.status)+'</span> '+esc(e.reason)+(e.n>1?' · '+e.n+' peräkkäistä kuvaa':'')+(e.mode==='ir'?' · yökuva (mustavalko)':'')+'</p>'
+        + '<p>'+fcTxt+'</p>'
+        + (st ? '<p class="muted">Lähin asema '+esc(st.name)+': tie '+n1(st.tr)+' °C, keli '+esc(String(st.keli ?? '–').toLowerCase())+'.</p>' : '')
+        + (e.note ? '<p class="muted">Huom: '+esc(e.note)+'</p>' : '')
+        + '</div></div>';
+    }
+  }
+  const pr = (L.presets||[]).slice().sort((a,b)=>(b.bright||0)-(a.bright||0));
+  h += '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Kaikki kuvasuunnat (viimeisin tarkistus)</summary><div class="scroll"><table><thead><tr><th>Kamera</th><th>Tien vaaleus</th><th>Tavallisesti</th><th>30 min sitten</th><th>Kuva</th><th>Tila</th></tr></thead><tbody>'
+    + pr.map(r=>'<tr><td class="name">'+esc(r.name)+'<small>'+esc(r.dir||'')+'</small></td><td class="num">'+pctTxt(r.bright)+'</td><td class="num">'+pctTxt(r.base)+'</td><td class="num">'+pctTxt(r.prev)+'</td><td>'+(r.mode==='ir'?'yö (mv)':r.mode?'väri':'–')+'</td><td>'+(r.status==='muutos'?'<span class="pill p-warn">muutos</span>':r.status==='ok'?'<span class="pill p-ok">ok</span>':'<span class="pill p-na">'+esc(r.status||'–')+'</span>')+'</td></tr>').join('')
+    + '</tbody></table></div><p class="muted" style="margin-top:6px">Vaaleus = kuinka suuri osa kuvan alaosan keskiosasta (tien alue) on vaaleaa. Muutos kirjataan, kun vaaleus nousee vähintään 20 prosenttiyksikköä yli tavallisen tason ja 10 yli puolen tunnin takaisen kuvan. Kahden peräkkäisen muutoksen jälkeen havainto on "vahvistettu".</p></details>';
+  el.innerHTML = h;
+}
+
 // ---------- Renderöinti: kamerat ----------
 function renderRoadFilter(){
   const sel = $('#roadfilter'); const cur = sel.value;
@@ -1598,6 +1672,7 @@ function applyTabs(){
   }, 0);
   if(curTab === 'asemat' && !wall && state.stations.length) ensureMg();
   if(curTab === 'liukkaus' && state.stations.length) setTimeout(()=>loadObsData(), 0);
+  if(curTab === 'kamerat') setTimeout(()=>loadCamWatch(), 0);
 }
 function showTab(t, keepScroll){
   if(!TAB_IDS.includes(t)) return; const changed = t !== curTab; curTab = t;
@@ -2527,6 +2602,7 @@ function applyData(meta, d, errs, snapshot){
   renderModels(); renderActions(); renderBrief(); renderWorks(); fillProbeStations();
   renderSummary(); renderMap(); renderRoadFc(); renderChart(); renderHourly(); renderStations(); renderRoadFilter(); renderCams(); renderSlip();
   if(curTab === 'liukkaus' && !snapshot) loadObsData();
+  if(curTab === 'kamerat' && !snapshot) loadCamWatch(true);
   if(snapshot) return;
   loadRadar(); loadWarnings(); loadTraffic(); analyzeRadarType();
   if(curTab === 'asemat') ensureMg();
