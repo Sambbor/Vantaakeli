@@ -1343,7 +1343,7 @@ function renderCamWatch(){
         + (e.img_prev ? '<figure><img loading="lazy" src="data/'+esc(e.img_prev)+'" alt="Vertailukuva"><figcaption>'+(e.img_prev_t?fmtT(e.img_prev_t):'ennen')+'</figcaption></figure>' : '')
         + (e.img ? '<figure><img loading="lazy" src="data/'+esc(e.img)+'" alt="Havaintokuva"><figcaption>'+fmtT(e.start)+' havainto</figcaption></figure>' : '')
         + '</div><div><h4>'+fmtT(e.start)+(e.last !== e.start ? '–'+fmtT(e.last) : '')+' · '+esc(e.name)+(e.dir?' → '+esc(e.dir):'')+(e.road?' <small class="muted">tie '+e.road+'</small>':'')+'</h4>'
-        + '<p><span class="pill p-'+(e.status==='vahvistettu'?'bad':'warn')+'">'+esc(e.status)+'</span> '+esc(e.reason)+(e.n>1?' · '+e.n+' peräkkäistä kuvaa':'')+(e.mode==='ir'?' · yökuva (mustavalko)':'')+'</p>'
+        + '<p><span class="pill p-'+(e.status==='vahvistettu'?'bad':'warn')+'">'+esc(e.status)+'</span> '+esc(e.reason)+(e.n>1?' · '+e.n+' peräkkäistä kuvaa':'')+(e.test?' · <span class="muted">testiajo päivällä</span>':'')+(e.mode==='ir'?' · yökuva (mustavalko)':'')+'</p>'
         + '<p>'+fcTxt+'</p>'
         + (st ? '<p class="muted">Lähin asema '+esc(st.name)+': tie '+n1(st.tr)+' °C, keli '+esc(String(st.keli ?? '–').toLowerCase())+'.</p>' : '')
         + (e.note ? '<p class="muted">Huom: '+esc(e.note)+'</p>' : '')
