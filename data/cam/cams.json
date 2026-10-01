@@ -1,0 +1,435 @@
+{
+ "t": 1790868716.6460357,
+ "cams": [
+  {
+   "cam": "C01513",
+   "preset": "C0151301",
+   "name": "Tie 101 Helsinki, Pakila",
+   "dir": "Kehä 1 Itään",
+   "road": 101,
+   "lon": 24.948435,
+   "lat": 60.244449,
+   "url": "https://weathercam.digitraffic.fi/C0151301.jpg"
+  },
+  {
+   "cam": "C01513",
+   "preset": "C0151302",
+   "name": "Tie 101 Helsinki, Pakila",
+   "dir": "Kehä I Länteen",
+   "road": 101,
+   "lon": 24.948435,
+   "lat": 60.244449,
+   "url": "https://weathercam.digitraffic.fi/C0151302.jpg"
+  },
+  {
+   "cam": "C01513",
+   "preset": "C0151303",
+   "name": "Tie 101 Helsinki, Pakila",
+   "dir": "Tie 45 Tuusulaan",
+   "road": 101,
+   "lon": 24.948435,
+   "lat": 60.244449,
+   "url": "https://weathercam.digitraffic.fi/C0151303.jpg"
+  },
+  {
+   "cam": "C01513",
+   "preset": "C0151309",
+   "name": "Tie 101 Helsinki, Pakila",
+   "dir": "Tie 45 Tienpinta",
+   "road": 101,
+   "lon": 24.948435,
+   "lat": 60.244449,
+   "url": "https://weathercam.digitraffic.fi/C0151309.jpg"
+  },
+  {
+   "cam": "C01523",
+   "preset": "C0152301",
+   "name": "Tie 4 Helsinki, Tattarisuo",
+   "dir": "Lahteen",
+   "road": 4,
+   "lon": 25.06072,
+   "lat": 60.247251,
+   "url": "https://weathercam.digitraffic.fi/C0152301.jpg"
+  },
+  {
+   "cam": "C01523",
+   "preset": "C0152302",
+   "name": "Tie 4 Helsinki, Tattarisuo",
+   "dir": "Helsinkiin",
+   "road": 4,
+   "lon": 25.06072,
+   "lat": 60.247251,
+   "url": "https://weathercam.digitraffic.fi/C0152302.jpg"
+  },
+  {
+   "cam": "C01523",
+   "preset": "C0152309",
+   "name": "Tie 4 Helsinki, Tattarisuo",
+   "dir": "Tienpinta",
+   "road": 4,
+   "lon": 25.06072,
+   "lat": 60.247251,
+   "url": "https://weathercam.digitraffic.fi/C0152309.jpg"
+  },
+  {
+   "cam": "C01532",
+   "preset": "C0153201",
+   "name": "Tie 4 Vantaa Leppäkorpi",
+   "dir": "Lahteen",
+   "road": 4,
+   "lon": 25.114463,
+   "lat": 60.360185,
+   "url": "https://weathercam.digitraffic.fi/C0153201.jpg"
+  },
+  {
+   "cam": "C01532",
+   "preset": "C0153202",
+   "name": "Tie 4 Vantaa Leppäkorpi",
+   "dir": "Helsinkiin",
+   "road": 4,
+   "lon": 25.114463,
+   "lat": 60.360185,
+   "url": "https://weathercam.digitraffic.fi/C0153202.jpg"
+  },
+  {
+   "cam": "C01532",
+   "preset": "C0153203",
+   "name": "Tie 4 Vantaa Leppäkorpi",
+   "dir": "Leppäkorventie länsi",
+   "road": 4,
+   "lon": 25.114463,
+   "lat": 60.360185,
+   "url": "https://weathercam.digitraffic.fi/C0153203.jpg"
+  },
+  {
+   "cam": "C01532",
+   "preset": "C0153204",
+   "name": "Tie 4 Vantaa Leppäkorpi",
+   "dir": "Leppäkorventie itä",
+   "road": 4,
+   "lon": 25.114463,
+   "lat": 60.360185,
+   "url": "https://weathercam.digitraffic.fi/C0153204.jpg"
+  },
+  {
+   "cam": "C01532",
+   "preset": "C0153209",
+   "name": "Tie 4 Vantaa Leppäkorpi",
+   "dir": "Tienpinta",
+   "road": 4,
+   "lon": 25.114463,
+   "lat": 60.360185,
+   "url": "https://weathercam.digitraffic.fi/C0153209.jpg"
+  },
+  {
+   "cam": "C01533",
+   "preset": "C0153300",
+   "name": "Tie 3 Vantaa, Klaukkalan liittymä",
+   "dir": "Tie 3",
+   "road": 3,
+   "lon": 24.808415,
+   "lat": 60.354587,
+   "url": "https://weathercam.digitraffic.fi/C0153300.jpg"
+  },
+  {
+   "cam": "C01535",
+   "preset": "C0153501",
+   "name": "Tie 101 Helsinki Pirkkola",
+   "dir": "Kehä I Itään",
+   "road": 101,
+   "lon": 24.899751,
+   "lat": 60.235281,
+   "url": "https://weathercam.digitraffic.fi/C0153501.jpg"
+  },
+  {
+   "cam": "C01535",
+   "preset": "C0153502",
+   "name": "Tie 101 Helsinki Pirkkola",
+   "dir": "Kehä I Länteen",
+   "road": 101,
+   "lon": 24.899751,
+   "lat": 60.235281,
+   "url": "https://weathercam.digitraffic.fi/C0153502.jpg"
+  },
+  {
+   "cam": "C01535",
+   "preset": "C0153503",
+   "name": "Tie 101 Helsinki Pirkkola",
+   "dir": "Tie 3 Hämeenlinnaan",
+   "road": 101,
+   "lon": 24.899751,
+   "lat": 60.235281,
+   "url": "https://weathercam.digitraffic.fi/C0153503.jpg"
+  },
+  {
+   "cam": "C01535",
+   "preset": "C0153504",
+   "name": "Tie 101 Helsinki Pirkkola",
+   "dir": "Tie 3 Helsinkiin",
+   "road": 101,
+   "lon": 24.899751,
+   "lat": 60.235281,
+   "url": "https://weathercam.digitraffic.fi/C0153504.jpg"
+  },
+  {
+   "cam": "C01535",
+   "preset": "C0153509",
+   "name": "Tie 101 Helsinki Pirkkola",
+   "dir": "Tienpinta",
+   "road": 101,
+   "lon": 24.899751,
+   "lat": 60.235281,
+   "url": "https://weathercam.digitraffic.fi/C0153509.jpg"
+  },
+  {
+   "cam": "C01555",
+   "preset": "C0155500",
+   "name": "Tie 170 Helsinki Vuosaari, Itäväylä",
+   "dir": "Tie 170 - Kehä III -liittymä",
+   "road": 170,
+   "lon": 25.14726,
+   "lat": 60.245129,
+   "url": "https://weathercam.digitraffic.fi/C0155500.jpg"
+  },
+  {
+   "cam": "C01573",
+   "preset": "C0157300",
+   "name": "Tie 50 Vantaa Martinlaakso",
+   "dir": "Kehä III",
+   "road": 50,
+   "lon": 24.834897,
+   "lat": 60.287664,
+   "url": "https://weathercam.digitraffic.fi/C0157300.jpg"
+  },
+  {
+   "cam": "C01574",
+   "preset": "C0157400",
+   "name": "Tie 50 Vantaa Hämeenlinnanväylä",
+   "dir": "Kehä III",
+   "road": 50,
+   "lon": 24.857657,
+   "lat": 60.292353,
+   "url": "https://weathercam.digitraffic.fi/C0157400.jpg"
+  },
+  {
+   "cam": "C01575",
+   "preset": "C0157500",
+   "name": "Tie 50 Vantaa Tuupakka",
+   "dir": "Kehä III",
+   "road": 50,
+   "lon": 24.883598,
+   "lat": 60.297772,
+   "url": "https://weathercam.digitraffic.fi/C0157500.jpg"
+  },
+  {
+   "cam": "C01576",
+   "preset": "C0157600",
+   "name": "Tie 50 Vantaa Kalliosola",
+   "dir": "Kehä III",
+   "road": 50,
+   "lon": 24.915988,
+   "lat": 60.296991,
+   "url": "https://weathercam.digitraffic.fi/C0157600.jpg"
+  },
+  {
+   "cam": "C01577",
+   "preset": "C0157700",
+   "name": "Tie 50 Vantaa Lentoasema",
+   "dir": "Kehä III",
+   "road": 50,
+   "lon": 24.959519,
+   "lat": 60.294819,
+   "url": "https://weathercam.digitraffic.fi/C0157700.jpg"
+  },
+  {
+   "cam": "C01578",
+   "preset": "C0157800",
+   "name": "Tie 50 Vantaa Tuusulanväylä",
+   "dir": "Kehä III",
+   "road": 50,
+   "lon": 24.9804,
+   "lat": 60.287801,
+   "url": "https://weathercam.digitraffic.fi/C0157800.jpg"
+  },
+  {
+   "cam": "C01579",
+   "preset": "C0157900",
+   "name": "Tie 50 Vantaa Suutarila",
+   "dir": "Kehä III",
+   "road": 50,
+   "lon": 25.013957,
+   "lat": 60.285747,
+   "url": "https://weathercam.digitraffic.fi/C0157900.jpg"
+  },
+  {
+   "cam": "C01580",
+   "preset": "C0158000",
+   "name": "Tie 50 Vantaa, Tikkurila",
+   "dir": "Kehä III, Vantaa, Tikkurila",
+   "road": 50,
+   "lon": 25.028912,
+   "lat": 60.282826,
+   "url": "https://weathercam.digitraffic.fi/C0158000.jpg"
+  },
+  {
+   "cam": "C01581",
+   "preset": "C0158101",
+   "name": "Tie 50 Vantaa Lahdenväylä",
+   "dir": "Kehä III",
+   "road": 50,
+   "lon": 25.087171,
+   "lat": 60.27422,
+   "url": "https://weathercam.digitraffic.fi/C0158101.jpg"
+  },
+  {
+   "cam": "C01582",
+   "preset": "C0158200",
+   "name": "Tie 50 Vantaa Porvoonväylä",
+   "dir": "Kehä III",
+   "road": 50,
+   "lon": 25.12546,
+   "lat": 60.257352,
+   "url": "https://weathercam.digitraffic.fi/C0158200.jpg"
+  },
+  {
+   "cam": "C01587",
+   "preset": "C0158700",
+   "name": "Tie 100 Helsinki Hakamäentie, Kivihaka, Masto",
+   "dir": "Hakamäentie, masto",
+   "road": 100,
+   "lon": 24.898843,
+   "lat": 60.207997,
+   "url": "https://weathercam.digitraffic.fi/C0158700.jpg"
+  },
+  {
+   "cam": "C01590",
+   "preset": "C0159000",
+   "name": "Tie 100 Helsinki Hakamäentie, Ilmala",
+   "dir": "Hakamäentie, Ilmala",
+   "road": 100,
+   "lon": 24.907594,
+   "lat": 60.208315,
+   "url": "https://weathercam.digitraffic.fi/C0159000.jpg"
+  },
+  {
+   "cam": "C01650",
+   "preset": "C0165000",
+   "name": "Tie 7 Helsinki, Landbo",
+   "dir": "Tie 7",
+   "road": 7,
+   "lon": 25.20937,
+   "lat": 60.266368,
+   "url": "https://weathercam.digitraffic.fi/C0165000.jpg"
+  },
+  {
+   "cam": "C01651",
+   "preset": "C0165100",
+   "name": "Tie 7 Sipoo, Sipoonlahti",
+   "dir": "Tie 7",
+   "road": 7,
+   "lon": 25.325135,
+   "lat": 60.28135,
+   "url": "https://weathercam.digitraffic.fi/C0165100.jpg"
+  },
+  {
+   "cam": "C01655",
+   "preset": "C0165500",
+   "name": "Tie 3 Vantaa, Keimola",
+   "dir": "Tie 3",
+   "road": 3,
+   "lon": 24.821251,
+   "lat": 60.331489,
+   "url": "https://weathercam.digitraffic.fi/C0165500.jpg"
+  },
+  {
+   "cam": "C01656",
+   "preset": "C0165600",
+   "name": "Tie 3 Vantaa, Kivistö pohjoinen",
+   "dir": "Tie",
+   "road": 3,
+   "lon": 24.840088,
+   "lat": 60.31483,
+   "url": "https://weathercam.digitraffic.fi/C0165600.jpg"
+  },
+  {
+   "cam": "C01657",
+   "preset": "C0165700",
+   "name": "Tie 3 Vantaa, Kivistö eteläinen",
+   "dir": "Tie 3",
+   "road": 3,
+   "lon": 24.844821,
+   "lat": 60.308403,
+   "url": "https://weathercam.digitraffic.fi/C0165700.jpg"
+  },
+  {
+   "cam": "C01658",
+   "preset": "C0165801",
+   "name": "Tie 148, Sipoo",
+   "dir": "Keravalle",
+   "road": 148,
+   "lon": 25.261519,
+   "lat": 60.364585,
+   "url": "https://weathercam.digitraffic.fi/C0165801.jpg"
+  },
+  {
+   "cam": "C01658",
+   "preset": "C0165802",
+   "name": "Tie 148, Sipoo",
+   "dir": "Porvooseen",
+   "road": 148,
+   "lon": 25.261519,
+   "lat": 60.364585,
+   "url": "https://weathercam.digitraffic.fi/C0165802.jpg"
+  },
+  {
+   "cam": "C01658",
+   "preset": "C0165809",
+   "name": "Tie 148, Sipoo",
+   "dir": "Tienpinta",
+   "road": 148,
+   "lon": 25.261519,
+   "lat": 60.364585,
+   "url": "https://weathercam.digitraffic.fi/C0165809.jpg"
+  },
+  {
+   "cam": "C01680",
+   "preset": "C0168000",
+   "name": "Tie 100 Helsinki Hakamäentie, Kivihaan tunneli, länsi",
+   "dir": "Kivihaan tunneli, länsi",
+   "road": 100,
+   "lon": 24.896018,
+   "lat": 60.20815,
+   "url": "https://weathercam.digitraffic.fi/C0168000.jpg"
+  },
+  {
+   "cam": "C01713",
+   "preset": "C0171301",
+   "name": "Tie 4 Kerava, Kytömaa",
+   "dir": "Lahteen",
+   "road": 4,
+   "lon": 25.124371,
+   "lat": 60.426274,
+   "url": "https://weathercam.digitraffic.fi/C0171301.jpg"
+  },
+  {
+   "cam": "C01713",
+   "preset": "C0171302",
+   "name": "Tie 4 Kerava, Kytömaa",
+   "dir": "Helsinkiin",
+   "road": 4,
+   "lon": 25.124371,
+   "lat": 60.426274,
+   "url": "https://weathercam.digitraffic.fi/C0171302.jpg"
+  },
+  {
+   "cam": "C01713",
+   "preset": "C0171309",
+   "name": "Tie 4 Kerava, Kytömaa",
+   "dir": "Tienpinta",
+   "road": 4,
+   "lon": 25.124371,
+   "lat": 60.426274,
+   "url": "https://weathercam.digitraffic.fi/C0171309.jpg"
+  }
+ ]
+}
