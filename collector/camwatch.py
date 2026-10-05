@@ -29,7 +29,7 @@ ROI = (0.15, 0.50, 0.85, 0.92)
 RULES = {'roi': ROI, 'bright_L': 150, 'white_L': 165, 'white_sat': 30, 'jump_base': 0.20, 'jump_prev': 0.10, 'abs_white': 0.35,
          'unusable_mean': 12, 'stale_min': 60,
          # aluetapahtuma: vähintään 5 kuvasuuntaa ja 25 % kelvollisista samassa ajossa; avoimeen aluetapahtumaan liitetään myöhemmät muutokset
-         'region_min': 5, 'region_share': 0.25, 'twilight_sun': (-7, 8), 'img_keep_days': 15, 'version': 'kv1'}
+         'region_min': 5, 'region_share': 0.25, 'twilight_sun': (-7, 8), 'img_keep_days': 15, 'warm_tr': 3.0, 'confirm': 2, 'version': 'kv2'}
 M_LAT = 111320.0
 M_LON = 111320.0 * math.cos(math.radians(60.3))
 WINTER = {'FROST', 'ICE', 'PARTLY_ICY', 'SNOW', 'SLUSH', 'SNOW_AND_ICE', 'SLIPPERY', 'VERY_SLIPPERY'}
@@ -217,12 +217,16 @@ def main():
     except Exception as e:
         print('asemadata:', e)
 
+    ids = {x['id'] for x in stations}
+    all_tr = [v[k]['value'] for i, v in st_vals.items() if i in ids for k in ('TIE_1', 'TIE_2', 'TIE_3', 'TIE_4') if k in v and v[k].get('value') is not None]
+    area_tr = min(all_tr) if all_tr else None
     state = load(OUT + '/state.json', {})
     events = load(OUT + '/events.json', [])
     night_key = (datetime.fromtimestamp(now - 8 * 3600, TZ)).strftime('%Y-%m-%d')   # yö nimetään illan päivämäärällä
     img_count = sum(1 for e in events if e.get('night') == night_key for k in ('img', 'img_prev') if e.get(k)) \
         + sum(1 for e in events if e.get('night') == night_key for im in e.get('imgs', []) for k in ('img', 'img_prev') if im.get(k))
     rows, out, unusable, cands = [], [], [], []
+    warm_skipped = 0
     for c in cams:
         pid = c['preset']
         st = state.setdefault(pid, {'hist': []})
@@ -296,9 +300,18 @@ def main():
             stx = {'id': near[0]['id'], 'name': near[0]['name'], 'tr': min(tr) if tr else None,
                    'keli': (keli or {}).get('sensorValueDescriptionFi') or (keli or {}).get('value')}
         rec['fc'], rec['st'] = fcx, stx
+        # lämpöraja: kun tienpinta on sekä ennusteessa että asemalla yli warm_tr, lunta tai jäätä ei voi olla (ajovalot, märän tien heijastus)
+        temps = [t for t in ((fcx or {}).get('tr'), (fcx or {}).get('tr2'), (stx or {}).get('tr')) if t is not None]
+        if not temps and area_tr is not None:
+            temps = [area_tr]   # ei ennustetta eikä asemaa lähellä: käytetään urakan kylmintä asemaa
+        if flag and temps and min(temps) > RULES['warm_tr']:
+            flag = False
+            rec['status'] = 'lämmin tie, ei kirjata'
+            warm_skipped += 1
         if flag:
-            cands.append({'pid': pid, 'c': c, 'img': img, 'f': f, 'reason': reason, 'base': base, 'pv': pv, 'fc': fcx, 'st': stx})
+            cands.append({'pid': pid, 'c': c, 'img': img, 'f': f, 'reason': reason, 'base': base, 'pv': pv, 'fc': fcx, 'st': stx, 'rec': rec})
         else:
+            st.pop('pend', None)
             for e in events:
                 if e.get('preset') == pid and e.get('open'):
                     e['open'] = False; e['end'] = iso(now)
@@ -389,9 +402,16 @@ def main():
             if ev and now - parse_t(ev['last']) <= 40 * 60:
                 ev['last'] = iso(now); ev['n'] += 1; ev['status'] = 'vahvistettu'; ev['bright_max'] = max(ev['bright_max'], f['bright'])
                 continue
+            # vahvistus ennen kirjausta: yksittäinen vaalea kuva (ohi ajava auto) ei riitä, muutoksen pitää näkyä kahdessa peräkkäisessä kuvassa
+            pend = state[pid].get('pend')
+            if not pend or now - pend > 40 * 60:
+                state[pid]['pend'] = round(now)
+                cd['rec']['status'] = 'odottaa vahvistusta'
+                continue
+            state[pid].pop('pend', None)
             fcx = cd['fc']
             ev = {'id': pid + '-' + str(round(now)), 'preset': pid, 'cam': c['cam'], 'name': c['name'], 'dir': c['dir'], 'road': c['road'],
-                  'night': night_key, 'start': iso(now), 'last': iso(now), 'n': 1, 'status': 'havaittu', 'open': True,
+                  'night': night_key, 'start': iso(pend), 'last': iso(now), 'n': 2, 'status': 'vahvistettu', 'open': True,
                   'reason': cd['reason'], 'bright': f['bright'], 'bright_max': f['bright'], 'base': cd['base'], 'prev': cd['pv'], 'mode': f['mode'],
                   'fc': fcx, 'st': cd['st'], 'surprise': bool(fcx and fcx['normal']), 'test': not night, 'sun': sun}
             notes = []
@@ -420,7 +440,7 @@ def main():
             f.write(','.join(str(x).replace(',', ' ') for x in r) + '\n')
     pruned = prune_images(now)
     save(OUT + '/latest.json', {'t': iso(now), 'night': night, 'mode': 'varjotila', 'rules': RULES, 'n': len(cams),
-                                'analyzed': len(rows), 'unusable': unusable, 'flagged': len(cands), 'sun': sun, 'light': lnote,
+                                'analyzed': len(rows), 'unusable': unusable, 'flagged': len(cands), 'warm_skipped': warm_skipped, 'sun': sun, 'light': lnote,
                                 'region': ({'id': reg['id'], 'count': reg['count']} if reg and reg.get('last') == iso(now) else None), 'presets': out})
     print('Kameravahti %s: %d kuvaa, %d ei kelpaa, %d muutosta%s%s' % (iso(now), len(rows), len(unusable), len(cands),
           ' (aluetapahtuma %d kuvasuuntaa)' % reg['count'] if reg and reg.get('last') == iso(now) else '',
