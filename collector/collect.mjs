@@ -86,7 +86,9 @@ const FMI_POINT = '60.30,24.97';
 const SEG_ROADS = new Set([3,4,7,45,50,100,101,103,130,135,138,140,145,148,152,170,1371,1375,1494,1521,1533]);
 const COLS = ['t','st','tr','ta','td','tf','salt','water','snow','ice','fric','keli','warn','ws','seg','fc_obs','fc2','fc4','fc6','fc12','c2','c4','c6','c12',
   'f2_t','f2_td','f2_p','f2_cc','f2_sym','f6_t','f6_td','f6_p','f6_cc','f6_sym','f12_t','f12_td','f12_p','f12_cc','f12_sym',
-  'salt_min','plow_min','idx2','idx6','idx12','why2','why6','why12','rv'];
+  'salt_min','plow_min','idx2','idx6','idx12','why2','why6','why12','rv',
+  // pidemmän tielämpöarvion oppimista varten: FMI +24 h sekä MEPS-mallin tämän tunnin pilvisyys, säteily ja maanpinnan lämpötila
+  'f24_t','f24_cc','mp_cc','mp_rg','mp_rlw','mp_tg'];
 const SEG_COLS = ['t','seg','road','obs_tr','obs_c','fc2','fc4','fc6','fc12','c2','c4','c6','c12','st','st_d'];
 const PLOW = ['PLOUGHING_AND_SLUSH_REMOVAL','PLOUGHING_OF_SLUSH_DITCH','LOWERING_OF_SNOWBANKS','REMOVAL_OF_BULGE_ICE','TRANSFER_OF_SNOW'];
 const M_LAT = 111320, M_LON = 111320 * Math.cos(60.3 * Math.PI / 180);
@@ -143,12 +145,14 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
   const ids = new Set(stations.map(s => s.id));
   const bb = 'xMin=' + BBOX[0] + '&yMin=' + BBOX[1] + '&xMax=' + BBOX[2] + '&yMax=' + BBOX[3];
   const now = Date.now();
-  const [data, secs, fcs, fmiTxt, routes] = await Promise.all([
+  const [data, secs, fcs, fmiTxt, mepsTxt, routes] = await Promise.all([
     get(DT + '/api/weather/v1/stations/data'),
     get(DT + '/api/weather/v1/forecast-sections?' + bb).catch(() => null),
     get(DT + '/api/weather/v1/forecast-sections/forecasts?' + bb).catch(() => null),
     getText('https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::forecast::edited::weather::scandinavia::point::simple&latlon=' + FMI_POINT
-      + '&parameters=Temperature,DewPoint,Precipitation1h,TotalCloudCover,WeatherSymbol3,WindSpeedMS&timestep=60&endtime=' + iso(now + 14 * 36e5)).catch(() => ''),
+      + '&parameters=Temperature,DewPoint,Precipitation1h,TotalCloudCover,WeatherSymbol3,WindSpeedMS&timestep=60&endtime=' + iso(now + 25 * 36e5)).catch(() => ''),
+    getText('https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::forecast::meps::surface::point::simple&latlon=' + FMI_POINT
+      + '&parameters=TotalCloudCover,RadiationGlobal,RadiationLW,GroundTemperature&timestep=60&starttime=' + iso(Math.floor(now / 36e5) * 36e5) + '&endtime=' + iso(Math.floor(now / 36e5) * 36e5 + 36e5)).catch(() => ''),
     // suolaukset ja auraukset 24 h ajalta (rajapinnan enimmäisikkuna)
     get(DT + '/api/maintenance/v1/tracking/routes?domain=state-roads&' + bb + '&endFrom=' + iso(now - 24 * 36e5 + 60e3) + '&endBefore=' + iso(now)
       + ['SALTING', ...PLOW].map(t => '&taskId=' + t).join('')).catch(() => null)
@@ -159,6 +163,8 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
     const t = new Date(m[1]).getTime(); (fmi[t] = fmi[t] || {t: m[1]})[m[2]] = parseFloat(m[3]); }
   const h0 = Math.floor(now / 36e5) * 36e5;
   const fmiRows = Object.values(fmi).filter(r => new Date(r.t).getTime() >= h0).sort((a, b) => a.t < b.t ? -1 : 1);
+  const mp = {};   // MEPS: lähin tunti
+  for(const m of (mepsTxt || '').matchAll(/<BsWfs:ParameterName>([^<]+)<\/BsWfs:ParameterName>\s*<BsWfs:ParameterValue>([^<]*)</g)){ const v = parseFloat(m[2]); if(mp[m[1]] == null && !isNaN(v)) mp[m[1]] = v; }
   const fmiAt = lead => { const t = Math.floor((now + lead * 36e5) / 36e5) * 36e5; return fmi[t] || fmi[t + 36e5] || {}; };
   // tiekohdat
   const geo = {}, road = {};
@@ -187,7 +193,7 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
     if(sd > 3000) seg = null;
     const F = seg ? fcById[seg] : []; const by = name => F.find(f => f.forecastName === name) || null;
     const obs = F.find(f => f.type === 'OBSERVATION');
-    const f2 = fmiAt(2), f6 = fmiAt(6), f12 = fmiAt(12);
+    const f2 = fmiAt(2), f6 = fmiAt(6), f12 = fmiAt(12), f24 = fmiAt(24);
     const tr = v['TIE_' + lane], tf = v['JÄÄTYMISPISTE_' + lane] ?? v.JÄÄTYMISPISTE_1 ?? null;
     const water = v.VEDEN_MÄÄRÄ1 ?? v.VEDEN_MÄÄRÄ2 ?? null, snow = v.LUMEN_MÄÄRÄ1 ?? v.LUMEN_MÄÄRÄ2 ?? null, ice = v.JÄÄN_MÄÄRÄ1 ?? v.JÄÄN_MÄÄRÄ2 ?? null;
     // sama liukkausennuste kuin sivulla (sääntöversio RULES_VERSION)
@@ -205,7 +211,8 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
       f6_t: f6.Temperature, f6_td: f6.DewPoint, f6_p: f6.Precipitation1h, f6_cc: f6.TotalCloudCover, f6_sym: f6.WeatherSymbol3,
       f12_t: f12.Temperature, f12_td: f12.DewPoint, f12_p: f12.Precipitation1h, f12_cc: f12.TotalCloudCover, f12_sym: f12.WeatherSymbol3,
       salt_min: minutesSince(st, t => t === 'SALTING'), plow_min: minutesSince(st, t => PLOW.includes(t)),
-      idx2: i2 && i2.idx, idx6: i6 && i6.idx, idx12: i12 && i12.idx, why2: i2 && i2.why, why6: i6 && i6.why, why12: i12 && i12.why, rv: RULES_VERSION});
+      idx2: i2 && i2.idx, idx6: i6 && i6.idx, idx12: i12 && i12.idx, why2: i2 && i2.why, why6: i6 && i6.why, why12: i12 && i12.why, rv: RULES_VERSION,
+      f24_t: f24.Temperature, f24_cc: f24.TotalCloudCover, mp_cc: mp.TotalCloudCover, mp_rg: mp.RadiationGlobal, mp_rlw: mp.RadiationLW, mp_tg: mp.GroundTemperature});
     stPos.push(st);
   }
   // tiekohdat (tieosittainen oppiminen): ennusteet ja lähin asema
