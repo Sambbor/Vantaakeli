@@ -132,6 +132,26 @@ async function collectMet(fs, hourly){
   return M;
 }
 
+// ---- MEPS- ja ECMWF-mallien lämpötilaennusteet +6/+12/+24 h talteen kerran tunnissa → data/models-YYYY-MM.csv.
+// Näillä verrataan talven aikana, mikä malli osuu Vantaalla parhaiten ja miten tielämpö seuraa kutakin mallia.
+const MODEL_COLS = ['t','meps6_t','meps12_t','meps24_t','ec6_t','ec12_t','ec24_t'];
+export function modelAt(txt, target){   // lähin kelvollinen arvo enintään 90 min päästä
+  let best = null;
+  for(const m of (txt || '').matchAll(/<BsWfs:Time>([^<]+)<\/BsWfs:Time>\s*<BsWfs:ParameterName>Temperature<\/BsWfs:ParameterName>\s*<BsWfs:ParameterValue>([^<]*)</g)){
+    const v = parseFloat(m[2]), d = Math.abs(new Date(m[1]).getTime() - target); if(isNaN(v) || d > 90 * 60e3) continue;
+    if(!best || d < best.d) best = {d, v}; }
+  return best ? best.v : null;
+}
+async function collectModels(fs, getText){
+  const now = Date.now(), q = id => 'https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=' + id + '&latlon=' + FMI_POINT
+    + '&parameters=Temperature&timestep=60&endtime=' + iso(now + 26 * 36e5);
+  const [meps, ec] = await Promise.all([getText(q('fmi::forecast::meps::surface::point::simple')).catch(() => ''), getText(q('ecmwf::forecast::surface::point::simple')).catch(() => '')]);
+  const row = {t: iso(now)};
+  for(const L of [6, 12, 24]){ row['meps' + L + '_t'] = modelAt(meps, now + L * 36e5); row['ec' + L + '_t'] = modelAt(ec, now + L * 36e5); }
+  if(MODEL_COLS.slice(1).every(k => row[k] == null)) throw new Error('ei arvoja');
+  await appendCsv(fs, 'data/models-' + new Date().toISOString().slice(0, 7) + '.csv', MODEL_COLS, [row]);
+}
+
 export async function collectRows(get, getText, cachedStations, learn, withSegments){
   // 1. Urakan asemat (välimuisti 7 vrk)
   let stations = cachedStations;
@@ -306,6 +326,7 @@ async function main(){
   await appendCsv(fs, 'data/obs-' + month + '.csv', COLS, rows);
   if(withSegments) await appendCsv(fs, 'data/seg-' + month + '.csv', SEG_COLS, segRows);
   try{ await collectMet(fs, withSegments); }catch(e){ console.error('MET-ennuste jäi hakematta: ' + e.message); }
+  if(withSegments){ try{ await collectModels(fs, getText); }catch(e){ console.error('MEPS/ECMWF-tallennus jäi väliin: ' + e.message); } }
   let idx = {months: []}; try{ idx = JSON.parse(await fs.readFile('data/index.json', 'utf8')); }catch(e){}
   if(!idx.months.includes(month)) idx.months.push(month);
   // oppiminen viimeisen 60 vrk aineistosta
