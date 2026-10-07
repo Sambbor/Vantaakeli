@@ -97,6 +97,39 @@ const distTo = (p, lines) => { let m = Infinity; for(const l of lines){ if(l.len
 const reason = f => { const r = f && f.forecastConditionReason; if(!r) return ''; return r.freezingRainCondition ? 'ICE' : (r.roadCondition && !['DRY','MOIST','WET'].includes(r.roadCondition) ? r.roadCondition : (r.frictionCondition || '')); };
 const r1 = v => v == null || isNaN(v) ? null : Math.round(v * 10) / 10;
 
+// ---- Norjan ilmatieteen laitoksen ennuste (MET Norway, CC BY 4.0) Vantaan pisteeseen → data/met.json, sivu lukee sen.
+// Käyttöehdot: tunnistettava User-Agent ja välimuisti, siksi haku tehdään täällä enintään kerran 50 minuutissa eikä selaimesta.
+const MET_URL = 'https://api.met.no/weatherapi/locationforecast/2.0/complete?lat=60.3&lon=24.97';
+const MET_UA = 'Vantaa-urakka-keliennuste/1 github.com/Sambbor/Vantaakeli';
+const MET_COLS = ['t','updated','m6_t','m6_t10','m6_t90','m6_p','m12_t','m12_t10','m12_t90','m12_p','m24_t','m24_t10','m24_t90','m24_p'];
+export function metRows(j){
+  const out = [];
+  for(const x of (j.properties && j.properties.timeseries) || []){
+    const d = x.data.instant.details, n1h = x.data.next_1_hours, n6 = x.data.next_6_hours; if(d.air_temperature == null) continue;
+    const n = n1h || n6, nd = (n && n.details) || {};
+    out.push({t: x.time, h: n1h ? 1 : 6, T: d.air_temperature, T10: d.air_temperature_percentile_10 ?? null, T90: d.air_temperature_percentile_90 ?? null,
+      Td: d.dew_point_temperature ?? null, ws: d.wind_speed ?? null, gust: d.wind_speed_of_gust ?? null, cc: d.cloud_area_fraction ?? null,
+      P: nd.precipitation_amount ?? null, Pmin: nd.precipitation_amount_min ?? null, Pmax: nd.precipitation_amount_max ?? null, pop: nd.probability_of_precipitation ?? null,
+      sym: (n && n.summary && n.summary.symbol_code) || null});
+  }
+  return out;
+}
+async function collectMet(fs, hourly){
+  let old = null; try{ old = JSON.parse(await fs.readFile('data/met.json', 'utf8')); }catch(e){}
+  if(!hourly && old && Date.now() - new Date(old.fetched).getTime() < 50 * 60e3) return old;   // tunnin ensimmäinen ajo hakee aina, toinen vain jos edellinen jäi väliin
+  const r = await fetch(MET_URL, {headers: {'User-Agent': MET_UA}}); if(!r.ok) throw new Error('MET HTTP ' + r.status);
+  const j = await r.json(), rows = metRows(j).filter(x => new Date(x.t).getTime() <= Date.now() + 72 * 36e5);
+  const M = {fetched: new Date().toISOString(), updated: j.properties.meta.updated_at, source: 'MET Norway Locationforecast 2.0 (CC BY 4.0)', rows};
+  await fs.writeFile('data/met.json', JSON.stringify(M));
+  if(hourly){   // talteen +6/+12/+24 h, jotta mallien osuvuutta voidaan verrata talven aikana
+    const now = Date.now(), at = L => rows.find(x => Math.abs(new Date(x.t).getTime() - (now + L * 36e5)) <= 30 * 60e3) || {};
+    const row = {t: iso(now), updated: M.updated};
+    for(const L of [6, 12, 24]){ const x = at(L); row['m'+L+'_t'] = x.T; row['m'+L+'_t10'] = x.T10; row['m'+L+'_t90'] = x.T90; row['m'+L+'_p'] = x.P; }
+    await appendCsv(fs, 'data/met-' + new Date().toISOString().slice(0, 7) + '.csv', MET_COLS, [row]);
+  }
+  return M;
+}
+
 export async function collectRows(get, getText, cachedStations, learn, withSegments){
   // 1. Urakan asemat (välimuisti 7 vrk)
   let stations = cachedStations;
@@ -265,6 +298,7 @@ async function main(){
   const month = new Date().toISOString().slice(0, 7);
   await appendCsv(fs, 'data/obs-' + month + '.csv', COLS, rows);
   if(withSegments) await appendCsv(fs, 'data/seg-' + month + '.csv', SEG_COLS, segRows);
+  try{ await collectMet(fs, withSegments); }catch(e){ console.error('MET-ennuste jäi hakematta: ' + e.message); }
   let idx = {months: []}; try{ idx = JSON.parse(await fs.readFile('data/index.json', 'utf8')); }catch(e){}
   if(!idx.months.includes(month)) idx.months.push(month);
   // oppiminen viimeisen 60 vrk aineistosta
