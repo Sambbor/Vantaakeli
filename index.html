@@ -309,6 +309,7 @@ body.wall .tabs{display:none}
 .cw-ev h4{margin:0 0 4px;font:700 16px var(--f-display)}
 .cw-ev p{margin:2px 0}
 .cw-night{font:700 14px var(--f-display);margin:12px 0 2px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.msum{padding:12px 14px;border-bottom:1px solid var(--line)} .msum h3{margin:0 0 6px;font:700 16px var(--f-display)} .msum ul{margin:0;padding-left:18px} .msum li{margin:3px 0}
 .cw-sur{color:var(--bad);font-weight:600} .cw-conf{color:var(--muted)}
 .cw-ev.reg .cw-imgs{flex-wrap:wrap} .cw-ev.reg .cw-imgs figure{width:150px}
 .cw-ev.reg details{margin-top:4px} .cw-ev.reg summary{cursor:pointer;color:var(--muted)} .cw-ev.reg ul{margin:4px 0 0;padding-left:18px;font-size:14px}
@@ -527,7 +528,7 @@ body.wall .tabs{display:none}
   </section>
 
   <section id="models" class="hide-wall" data-tab="ennuste">
-    <div class="sec-h"><h2>Ennusteen varmuus</h2><span class="note">Mallivertailu Vantaan pisteessä: FMI:n meteorologin ennuste, MEPS ja ECMWF</span></div>
+    <div class="sec-h"><h2>Ennusteen varmuus</h2><span class="note">Mallivertailu Vantaan pisteessä: FMI:n meteorologin ennuste, MEPS, ECMWF ja Norjan MET</span></div>
     <div class="panel scroll" id="models-body"><div class="status">Ladataan…</div></div>
   </section>
 
@@ -2239,7 +2240,37 @@ async function loadModel(m){
   const now = Date.now()-36e5;
   return {id:m.id, name:m.name, rows: rows.filter(r=>new Date(r.t).getTime() >= now && isFinite(r.Temperature))};
 }
-async function loadModels(){ const res = await Promise.all(MODELS.map(m=>loadModel(m).catch(()=>null))); return res.filter(Boolean); }
+// Norjan ilmatieteen laitoksen ennuste: GitHubin keruu hakee sen tiedostoon data/met.json (käyttöehdot edellyttävät välimuistia)
+async function loadMet(){
+  const M = await fetch('data/met.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+  if(!M.rows || Date.now() - new Date(M.fetched).getTime() > 4*36e5) return null;   // yli 4 h vanha: ei käytetä
+  const now = Date.now()-36e5, end = Date.now()+60*36e5;
+  const rows = M.rows.filter(r=>{ const t = new Date(r.t).getTime(); return t >= now && t <= end; })
+    .map(r=>({t:r.t, Temperature:r.T, DewPoint:r.Td, P:r.P == null ? NaN : r.P, dtH:r.h, T10:r.T10, T90:r.T90, Pmin:r.Pmin, Pmax:r.Pmax, pop:r.pop}));
+  return rows.length ? {id:'met', name:'MET Norja', rows, fetched:M.fetched} : null;
+}
+async function loadModels(){ const res = await Promise.all([...MODELS.map(m=>loadModel(m).catch(()=>null)), loadMet().catch(()=>null)]); return res.filter(Boolean); }
+// Päivystäjän tiivistelmä: mitä mallit sanovat seuraavasta vuorokaudesta ja kuinka varmaa nollan alitus on
+function modelSummary(){
+  const t0 = Date.now(), ms = allModels().map(m=>({...m, rows:m.rows.filter(r=>{ const h = (new Date(r.t).getTime()-t0)/36e5; return h >= -1 && h <= 24; })})).filter(m=>m.rows.length >= 4);
+  if(ms.length < 2) return '';
+  const dayOf = t => new Date(t).toLocaleDateString('fi-FI',{weekday:'short',timeZone:TZ}), hh = t => (dayOf(t) !== dayOf(t0) ? dayOf(t)+' ' : '')+'klo '+String(hourOf(t)).padStart(2,'0'), rng = a => { const lo = Math.min(...a), hi = Math.max(...a); return {lo, hi}; };
+  const span = ts => { const a = ts.map(t=>new Date(t).getTime()), lo = Math.min(...a), hi = Math.max(...a); return hi-lo < 36e5 ? 'noin '+hh(lo) : hh(lo)+' – '+hh(hi); };
+  const li = [];
+  const frz = ms.map(m=>m.rows.find(r=>r.Temperature <= 0)).filter(Boolean), mins = rng(ms.map(m=>Math.min(...m.rows.map(r=>r.Temperature))));
+  li.push(frz.length ? '<b>Ilma pakkaselle '+frz.length+'/'+ms.length+' mallissa</b>, alkaa '+span(frz.map(r=>r.t))+' · alin lämpötila '+n1(mins.lo)+' … '+n1(mins.hi)+' °C'
+    : '<b>Ei pakkasta yhdessäkään mallissa</b> · alin lämpötila '+n1(mins.lo)+' … '+n1(mins.hi)+' °C');
+  const lim = Number(($('#snowlimit')||{}).value) || 3;
+  const sn = ms.map(m=>({first:m.rows.find(r=>(r.snow||0) >= 0.1), tot:m.rows.reduce((a,r)=>a+(r.snow||0),0)})), snowy = sn.filter(x=>x.first);
+  if(snowy.length){ const tot = rng(sn.map(x=>x.tot)); li.push('<b>Lumisadetta '+snowy.length+'/'+ms.length+' mallissa</b>, alkaa '+span(snowy.map(x=>x.first.t))+' · kertymä '+n1(tot.lo)+'–'+n1(tot.hi)+' cm / 24 h · aurauksen lähtöraja '+n1(lim)+' cm ylittyy '+sn.filter(x=>x.tot >= lim).length+'/'+ms.length+' mallissa'); }
+  else { const pr = rng(ms.map(m=>m.rows.reduce((a,r)=>a+(isFinite(r.P)?r.P:0),0))); li.push('<b>Ei lumisadetta</b> · sadetta '+n1(pr.lo)+'–'+n1(pr.hi)+' mm / 24 h'); }
+  const met = ms.find(m=>m.id==='met');
+  if(met){ const band = met.rows.filter(r=>r.T10 != null && r.T90 != null);
+    if(band.length){ const near = band.filter(r=>r.T10 <= 0 && r.T90 >= 0), sure = band.filter(r=>r.T90 < 0), cold = band.reduce((a,r)=>r.Temperature < a.Temperature ? r : a, band[0]);
+      li.push('<b>Nollan alitus (MET Norjan haarukka 10–90 %):</b> '+(sure.length ? 'varma '+span(sure.map(r=>r.t))+(near.length ? ', rajatapaus '+span(near.map(r=>r.t)) : '') : near.length ? 'rajatapaus '+span(near.map(r=>r.t))+' – pakkanen mahdollinen mutta ei varma' : 'ei todennäköinen')
+        + ' · kylmin hetki '+hh(cold.t)+': '+n1(cold.Temperature)+' °C (haarukka '+n1(cold.T10)+' … '+n1(cold.T90)+' °C)'); } }
+  return '<div class="msum"><h3>Seuraavat 24 h – '+ms.length+' mallia</h3><ul>'+li.map(x=>'<li>'+x+'</li>').join('')+'</ul></div>';
+}
 const snowFromTP = (T, P) => !(P>0) ? 0 : P * (T<=0 ? 1 : T<=1.5 ? 0.5 : 0) * (T<=-5 ? 1.5 : 1);
 function allModels(){
   const ed = {id:'fmi', name:'FMI (meteorologi)', rows: state.fmi.map(r=>({t:r.t, Temperature:r.Temperature, DewPoint:r.DewPoint, P:r.Precipitation1h, snow:snowOf(r)}))};
@@ -2275,14 +2306,14 @@ function renderModels(){
   const st = state.periodStats = periodStats();
   const ms = allModels();
   if(ms.length < 2){ el.innerHTML = '<div class="status">Vertailumalleja ei saatu haettua – näytetään vain FMI:n ennuste.</div>'; return; }
-  let h = '<table><thead><tr><th>Jakso</th><th>Varmuus</th>'+ms.map(m=>'<th>'+esc(m.name)+'<br><small>ilma min · sade · lumi</small></th>').join('')+'<th>Yhteenveto</th></tr></thead><tbody>';
+  let h = modelSummary() + '<table><thead><tr><th>Jakso</th><th>Varmuus</th>'+ms.map(m=>'<th>'+esc(m.name)+'<br><small>ilma min · sade · lumi</small></th>').join('')+'<th>Yhteenveto</th></tr></thead><tbody>';
   for(const p of st){
     const [vl, vc] = VER[p.v];
     h += '<tr><td class="name">'+p.label+'</td><td><span class="badge b-'+vc+'">'+vl+'</span></td>'
       + p.per.map(x=>x.ok ? '<td class="num">'+n1(x.minT)+' °C · '+(isFinite(x.P)?n1(x.P)+' mm':'–')+' · '+(x.snow>=0.1?'<b>'+n1(x.snow)+' cm</b>':'0')+'</td>' : '<td class="muted">–</td>').join('')
       + '<td>'+(p.n?'pakkasta '+p.frz+'/'+p.n+' mallissa, sadetta ≥ 0,5 mm '+p.wet+'/'+p.n+(isFinite(p.spread)?' · min-lämpötilojen ero '+n1(p.spread)+' °C':''):'')+'</td></tr>';
   }
-  el.innerHTML = h + '</tbody></table><div class="status">Varmuus perustuu mallien erimielisyyteen: alimpien lämpötilojen ero ≤ 1 °C ja yksimielisyys sateesta = hyvä; ero yli 2,5 °C tai erimielisyys sekä sateesta että pakkasesta = heikko. Tämä on mallivertailu, ei parviennuste. Mallien lumi on arvioitu lämpötilan ja sademäärän perusteella.</div>';
+  el.innerHTML = h + '</tbody></table><div class="status">Varmuus perustuu mallien erimielisyyteen: alimpien lämpötilojen ero ≤ 1 °C ja yksimielisyys sateesta = hyvä; ero yli 2,5 °C tai erimielisyys sekä sateesta että pakkasesta = heikko. Tämä on mallivertailu, ei parviennuste. Mallien lumi on arvioitu lämpötilan ja sademäärän perusteella. MET Norja: Norjan ilmatieteen laitos (CC BY 4.0), haetaan keruun kautta kerran tunnissa; haarukka kertoo, mille välille lämpötila osuu 80 %:n todennäköisyydellä.</div>';
 }
 function modelSnowAgreement(hours){
   const t0 = new Date(state.fmi.length ? state.fmi[0].t : Date.now()).getTime();
@@ -2572,7 +2603,7 @@ function updateSources(ctx){
   setSrc('cams','Kamerat', !camData ? 'bad' : (presets.length && fresh/presets.length < 0.8 ? 'warn' : 'ok'), camData ? fresh+'/'+presets.length+' tuoreita' : 'ei saatu', 'Kuvat alle 30 min vanhoja');
   setSrc('fmi','FMI-ennuste', fmi && fmi.length ? 'ok' : 'bad', fmi && fmi.length ? 'haettu '+fmtT((srcCache.fmi||{}).t || Date.now()) : 'ei saatu', 'Ilmatieteen laitoksen pisteennuste · haetaan 30 min välein');
   const nm = (models||[]).length;
-  setSrc('models','Mallivertailu', nm === 2 ? 'ok' : nm ? 'warn' : 'bad', (nm+ (fmi && fmi.length ? 1 : 0))+'/3 mallia', 'FMI, MEPS, ECMWF');
+  setSrc('models','Mallivertailu', nm === 3 ? 'ok' : nm ? 'warn' : 'bad', (nm+ (fmi && fmi.length ? 1 : 0))+'/4 mallia', 'FMI, MEPS, ECMWF, MET Norja'+(nm < 3 ? ' – puuttuu: '+['meps','ecmwf','met'].filter(k=>!(models||[]).some(m=>m.id===k)).join(', ') : ''));
   const wl = works && works.routes.reduce((a,r)=>!a||r.end>a?r.end:a, null);
   setSrc('works','Toteumat', works ? 'ok' : 'bad', works ? works.routes.length+' kpl'+(wl ? ' · viim. '+fmtT(wl) : '') : 'ei saatu', 'Harja-toteumat, talvihoidon tehtävät');
   if(!state.src.radar) setSrc('radar','Sadetutka','warn','ladataan…','');
