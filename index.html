@@ -1719,7 +1719,15 @@ function computeActions(){
     const where = Math.round(rt.cover*100)+' % '+(rt.onRoads?'urakan teistä':'alueesta');
     const base = 'Tutkakuva klo '+fmtT(rt.t)+' (Vihdin tutka): sadetta '+where+' – '+radarTypeText(rt)+'.';
     if(rainSh >= 0.3 && coldSt.length) acts.push({sev:'bad', title:'Vesisadetta jäiselle tielle', when:'nyt', lines:[base, 'Tienpinta ≤ +0,5 °C asemilla: '+coldSt.map(s=>esc(s.name)+' '+n1(svv(s,'TIE_1'))).join(', ')+'. Jäätävän sateen riski – liukkaudentorjunta heti.']});
-    else if(snowSh >= 0.3) acts.push({sev:'warn', title:'Lumisadetta nyt (tutka)', when: where, lines:[base, sh('wetsnow') > sh('drysnow') ? 'Märkä lumi: sohjoutumisen ja jäätymisen riski, kun tienpinta jäähtyy.' : 'Kuiva lumi: pöllyää ja kinostuu tuulessa.']});
+    else if(snowSh >= 0.3){
+      // Tutkan sadetyyppi kuvaa sadetta säteen korkeudella (satoja metrejä–km). Lumi kirjataan vain, jos maanpinnalla on edellytykset:
+      // jokin asema mittaa lunta tai räntää, tai ilma on asemilla enintään +2 °C. Muuten lumi sulaa vedeksi ennen maata.
+      const gs = groundPrecip();
+      if(gs.snow.length || (gs.minAir != null && gs.minAir <= 2))
+        acts.push({sev:'warn', title:'Lumisadetta nyt (tutka)', when: where, lines:[base,
+          gs.snow.length ? 'Asemat mittaavat lunta tai räntää: '+gs.snow.map(s=>esc(s.name)).join(', ')+'.' : 'Ilma asemilla alimmillaan '+n1(gs.minAir)+' °C – lumi voi tulla maahan asti.',
+          sh('wetsnow') > sh('drysnow') ? 'Märkä lumi: sohjoutumisen ja jäätymisen riski, kun tienpinta jäähtyy.' : 'Kuiva lumi: pöllyää ja kinostuu tuulessa.']});
+    }
     else if(sh('graupel')+sh('hail') >= 0.2) acts.push({sev:'info', title:'Rakeita tai lumirakeita (tutka)', when: where, lines:[base]});
   }
 
@@ -1761,7 +1769,8 @@ function renderBrief(){
   }
   const bad = state.stations.filter(s=>!stationIssues(s).ok);
   if(bad.length) L.push('HUOM: '+bad.length+' asemaa ilman käyttökelpoista tienpintatietoa ('+bad.map(s=>s.name).join(', ')+').');
-  if(state.radarType && state.radarType.wet) L.push('TUTKA '+fmtT(state.radarType.t)+': sadetta '+Math.round(state.radarType.cover*100)+' % '+(state.radarType.onRoads?'urakan teistä':'alueesta')+' – '+radarTypeText(state.radarType)+'.');
+  if(state.radarType && state.radarType.wet){ const gs = groundPrecip(), warm = !gs.snow.length && gs.minAir != null && gs.minAir > 2;
+    L.push('TUTKA '+fmtT(state.radarType.t)+': sadetta '+Math.round(state.radarType.cover*100)+' % '+(state.radarType.onRoads?'urakan teistä':'alueesta')+' – '+(warm ? 'maassa vesisadetta tai poutaa (ilma vähintään '+n1(gs.minAir)+' °C, tutkan lumiluokitus koskee ylempiä ilmakerroksia)' : radarTypeText(state.radarType))+'.'); }
   const ff = firstFreeze(); if(ff.length) L.push('ENSIMMÄISENÄ PAKKASELLE: '+ff.slice(0,3).map(e=>segLabel(e.s)+' '+(e.f.type==='OBSERVATION'?'nyt':'klo '+fmtT(e.f.time))).join('; ')+'.');
   if(state.road && state.road.length){
     const f = state.road.filter(g=>!g.obs); const mn = f.reduce((a,g)=>!a||g.min<a.min?g:a, null);
@@ -2627,6 +2636,11 @@ async function analyzeRadarType(){
     }catch(e){ state.radarType = null; setSrc('radar','Sadetutka','warn','sadetyyppiä ei voitu analysoida'); renderSrc(); return; }
   }
   state.radarType = null; setSrc('radar','Sadetutka','bad','tutkakuvia ei saatu'); renderSrc();
+}
+// Maanpinnan sadetieto asemilta: SADE 1–3 vesisade, 4–6 lumi/räntä; ilman alin lämpötila
+function groundPrecip(){
+  const st = okStations(), sade = s => svv(s,'SADE'), air = st.map(s=>svv(s,'ILMA')).filter(v=>v!=null);
+  return {snow: st.filter(s=>{ const v = sade(s); return v!=null && v>=4 && v<=6; }), rain: st.filter(s=>{ const v = sade(s); return v!=null && v>=1 && v<=3; }), minAir: air.length ? Math.min(...air) : null};
 }
 function radarTypeText(rt){
   if(!rt || !rt.wet) return '';
