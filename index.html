@@ -454,6 +454,11 @@ body.wall .tabs{display:none}
     <div class="panel slip-first" id="slip-first"></div>
   </section>
 
+  <section id="scorecard" class="hide-wall" data-tab="liukkaus">
+    <div class="sec-h"><h2>Talven tuloskortti</h2><span class="note">Viikoittain: osuiko liukkausennuste, kuinka tarkkoja tie- ja säämallit olivat, mitä kameravahti näki</span></div>
+    <div class="panel" id="sc-body"><div class="status">Ladataan…</div></div>
+  </section>
+
   <section id="slipmodel" class="hide-wall" data-tab="liukkaus">
     <div class="sec-h"><h2>Mallin opettaminen</h2><span class="note">Oma aineisto kerätään tunneittain GitHubiin · osumatarkkuus lasketaan kerätystä aineistosta</span></div>
     <div class="panel slip-model" id="slip-data"><div class="status">Aineistoa ei ole vielä haettu.</div></div>
@@ -1332,8 +1337,43 @@ async function loadObsData(){
     const L = await fetch('data/learn.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
     slip.learn = L; slip.data = true; slip.dataErr = null;
   }catch(e){ slip.learn = null; slip.data = null; slip.dataErr = e.message; }
-  renderSlipModel(); renderSlip();
+  slip.sc = await fetch('data/scorecard.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  renderSlipModel(); renderSlip(); renderScorecard();
 }
+// ---- Talven tuloskortti (keruu laskee data/scorecard.json kerran tunnissa)
+function renderScorecard(){
+  const el = $('#sc-body'); if(!el) return;
+  const S = slip.sc;
+  if(!S || !S.weeks || !S.weeks.length){ el.innerHTML = '<p class="muted">Tuloskortti ei ole vielä valmis (data/scorecard.json). Keruu laskee sen kerran tunnissa, kun <code>collector/collect.mjs</code> on päivitetty.</p>'; return; }
+  const wk = w => 'vko '+Number(w.split('-W')[1]), mae = x => x ? n1(x.mae)+' °C' : '–';
+  const best = (w, L) => { const e = Object.entries(w.models||{}).map(([k,v])=>[k, v[L]]).filter(([k,v])=>v && v.n >= 5).sort((a,b)=>a[1].mae-b[1].mae); return e.length ? esc(e[0][0])+' '+n1(e[0][1].mae)+' °C' : '–'; };
+  const rows = S.weeks.slice().reverse();
+  let h = '<div class="scroll"><table><thead><tr><th>Viikko</th><th>Yöt</th><th>Liukkaita öitä</th><th>Oma ennuste: ajoissa / ohi / turhat h</th><th>Tieennuste 6 h, virhe</th><th>Paras säämalli 12 h</th><th>Kameravahti</th></tr></thead><tbody>'
+    + rows.map(w=>'<tr><td class="name">'+wk(w.week)+'</td><td class="num">'+w.nights+'</td><td class="num">'+(w.slipNights ? '<b>'+w.slipNights+'</b> <small class="muted">('+w.stNights+' asemayötä)</small>' : '0')+'</td>'
+      + '<td>'+(w.stNights ? '<span class="pill p-ok">'+w.warned+'</span> / <span class="pill p-'+(w.missed?'bad':'na')+'">'+w.missed+'</span> / '+w.falseHours+(w.leadAvg!=null ? ' <small class="muted">ennakko '+n1(w.leadAvg)+' h</small>' : '') : (w.falseHours ? '– / – / '+w.falseHours : '–'))+'</td>'
+      + '<td class="num">'+mae(w.road && w.road.fc6)+'</td><td>'+best(w, 12)+'</td>'
+      + '<td>'+(w.cam.events || w.cam.regional ? w.cam.events+(w.cam.events===1?' havainto (':' havaintoa (')+w.cam.confirmed+' vahv.)'+(w.cam.regional ? ', '+w.cam.regional+' laaja' : '') : '–')+'</td></tr>').join('') + '</tbody></table></div>';
+  // säämallit koko jaksolta
+  const agg = {}; for(const w of S.weeks) for(const [m, v] of Object.entries(w.models||{})) for(const [L, x] of Object.entries(v)) if(x){ const a = ((agg[m] = agg[m] || {})[L] = agg[m][L] || {n:0, s:0, b:0}); a.n += x.n; a.s += x.mae*x.n; a.b += x.bias*x.n; }
+  const ms = Object.keys(agg).sort((a,b)=>((agg[a][12]||{s:1e9,n:1}).s/(agg[a][12]||{n:1}).n)-((agg[b][12]||{s:1e9,n:1}).s/(agg[b][12]||{n:1}).n));
+  const cell = a => a && a.n ? n1(a.s/a.n)+' °C <small class="muted">('+(a.b/a.n>0?'+':'')+n1(a.b/a.n)+')</small>' : '–';
+  if(ms.length) h += '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Säämallien osuvuus koko jaksolla (ilman lämpötila Vantaalla)</summary><div class="scroll"><table><thead><tr><th>Malli</th><th>6 h</th><th>12 h</th><th>24 h</th></tr></thead><tbody>'
+    + ms.map(m=>'<tr><td class="name">'+esc(m)+'</td>'+[6,12,24].map(L=>'<td class="num">'+cell(agg[m][L])+'</td>').join('')+'</tr>').join('') + '</tbody></table></div>'
+    + '<p class="muted">Keskimääräinen virhe asemien mittaamaan ilman lämpötilaan; suluissa harha (+ = ennuste liian lämmin). Järjestys 12 h virheen mukaan.</p></details>';
+  // opittu tielämpö
+  const L = S.learned || {};
+  h += '<h3 style="margin:14px 0 4px;font-size:17px">Opittu tielämpö (koekäytössä, ei vaikuta ennusteeseen)</h3>';
+  if(L.status !== 'vertailu') h += '<p class="muted">'+esc(L.note || 'Aineisto kertyy.')+(L.days ? ' Säteilytietoa nyt '+n1(L.days)+' vrk.' : '')+'</p>';
+  else {
+    h += '<p>Viimeisin viikko ('+L.testN+' havaintoa, opetus '+L.trainN+' riviä, '+n1(L.days)+' vrk aineistoa): opittu ero <b>'+mae(L.learned)+'</b>, kiinteä sääntö <b>'+mae(L.rule)+'</b> – '
+      + (L.better ? '<span class="pill p-ok">opittu parempi</span>' : '<span class="pill p-na">sääntö parempi tai yhtä hyvä</span>')+(L.minTr!=null && L.minTr > 0 ? ' <span class="muted">· testiviikolla ei pakkasta, tulos ei vielä kerro talvesta</span>' : '')+'</p>'
+      + '<div class="scroll"><table><thead><tr><th>Asema</th><th>Opittu</th><th>Sääntö</th><th>Yöllä opittu</th><th>Yöllä sääntö</th></tr></thead><tbody>'
+      + (L.perSt||[]).map(p=>'<tr><td class="name">'+esc(p.name)+(p.own?'':' <small class="muted">(yhteinen malli)</small>')+'</td><td class="num">'+mae(p.learned)+'</td><td class="num">'+mae(p.rule)+'</td><td class="num">'+mae(p.nightL)+'</td><td class="num">'+mae(p.nightR)+'</td></tr>').join('')
+      + '</tbody></table></div><p class="muted">'+esc(L.note||'')+'</p>';
+  }
+  el.innerHTML = h + '<p class="muted" style="margin-top:8px">Päivitetty '+fmtDT(S.updated)+'. Liukas yö = jokin asema mittasi liukasta klo 18–08. Ajoissa = liukkausindeksi ≥ 50 jo 2–12 h ennen. Turha = indeksi ≥ 50 ilman liukasta havaintoa tunnin sisällä (asematunteja).</p>';
+}
+
 function renderSlipModel(){
   const el = $('#slip-data'); if(!el) return;
   const L = slip.learn;
