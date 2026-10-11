@@ -90,6 +90,7 @@ const COLS = ['t','st','tr','ta','td','tf','salt','water','snow','ice','fric','k
   // pidemmän tielämpöarvion oppimista varten: FMI +24 h sekä MEPS-mallin tämän tunnin pilvisyys, säteily ja maanpinnan lämpötila
   'f24_t','f24_cc','mp_cc','mp_rg','mp_rlw','mp_tg'];
 const SEG_COLS = ['t','seg','road','obs_tr','obs_c','fc2','fc4','fc6','fc12','c2','c4','c6','c12','st','st_d'];
+const SAND = ['LINE_SANDING', 'SPOT_SANDING'];
 const PLOW = ['PLOUGHING_AND_SLUSH_REMOVAL','PLOUGHING_OF_SLUSH_DITCH','LOWERING_OF_SNOWBANKS','REMOVAL_OF_BULGE_ICE','TRANSFER_OF_SNOW'];
 const M_LAT = 111320, M_LON = 111320 * Math.cos(60.3 * Math.PI / 180);
 const iso = t => new Date(t).toISOString().replace(/\.\d+Z$/, 'Z');
@@ -152,6 +153,43 @@ async function collectModels(fs, getText){
   await appendCsv(fs, 'data/models-' + new Date().toISOString().slice(0, 7) + '.csv', MODEL_COLS, [row]);
 }
 
+// ---- Yön yhteenveto (klo 18–08 Suomen aikaa) → data/night.json ja valmiista öistä data/nights/YYYY-MM-DD.json
+const helUtc = (y, m, d, h) => [2, 3].map(o => Date.UTC(y, m - 1, d, h - o)).find(t => hourHel(t) === h) ?? Date.UTC(y, m - 1, d, h - 2);
+const helDate = t => new Date(t).toLocaleDateString('sv-SE', {timeZone: 'Europe/Helsinki'});   // YYYY-MM-DD
+export function nightSummary(all, stations, works, camEvents, now){
+  const hNow = hourHel(now), evening = helDate(hNow < 18 ? now - 18 * 36e5 : now);   // illan päivämäärä
+  const [y, m, d] = evening.split('-').map(Number), from = helUtc(y, m, d, 18), next = helDate(from + 12 * 36e5).split('-').map(Number), to = helUtc(next[0], next[1], next[2], 8);
+  const rows = all.filter(o => o.tt >= from - 13 * 36e5 && o.tt <= to + 36e5);
+  const inN = o => o.tt >= from && o.tt <= to, out = [];
+  let falseH = new Set();
+  for(const st of stations){
+    const a = rows.filter(o => o.st === st.id).sort((p, q) => p.tt - q.tt), n = a.filter(inN); if(!n.length) continue;
+    const trs = n.filter(o => o.tr != null), mn = trs.reduce((b, o) => !b || o.tr < b.tr ? o : b, null), ta = n.filter(o => o.ta != null).map(o => o.ta);
+    const slip = n.filter(o => obsSlippery(o)), first = slip[0] || null;
+    let lead = null, dt = false;
+    if(first){
+      for(const L of [12, 6, 2]){ if(a.some(o => Math.abs(o.tt + L * 36e5 - first.tt) <= 45 * 60e3 && o['idx' + L] != null && o['idx' + L] >= 50)){ lead = L; break; } }
+      dt = a.some(o => o.tt < first.tt && o.tt >= first.tt - 13 * 36e5 && ['c2', 'c6', 'c12'].some(k => o[k] && o[k] !== ''));
+    }
+    for(const o of a) for(const L of [2, 6]){ const tgt = o.tt + L * 36e5; if(tgt < from || tgt > to || o['idx' + L] == null || o['idx' + L] < 50) continue;
+      if(!a.some(x => Math.abs(x.tt - tgt) <= 60 * 60e3 && obsSlippery(x))) falseH.add(st.id + '|' + Math.floor(tgt / 36e5)); }
+    out.push({id: st.id, name: st.name, road: st.road, n: n.length, trMin: mn ? mn.tr : null, trMinT: mn ? iso(mn.tt) : null, taMin: ta.length ? Math.min(...ta) : null,
+      slipFirst: first ? iso(first.tt) : null, slipRows: slip.length, keli: first ? first.keli : null, lead, dtWarned: dt,
+      saltMin: n.some(o => o.salt_min != null && o.salt_min <= 30) });
+  }
+  const W = {salt: [], plow: [], sand: []};
+  for(const w of works || []){ if(w.end < from || w.end > to) continue;
+    if(w.tasks.includes('SALTING')) W.salt.push(w.end); if(w.tasks.some(t => PLOW.includes(t))) W.plow.push(w.end); if(w.tasks.some(t => SAND.includes(t))) W.sand.push(w.end); }
+  const wk = a => a.length ? {n: a.length, first: iso(Math.min(...a)), last: iso(Math.max(...a))} : {n: 0};
+  const ev = (camEvents || []).filter(e => e.night === evening);
+  const slipSt = out.filter(s => s.slipFirst), coldest = out.filter(s => s.trMin != null).sort((p, q) => p.trMin - q.trMin)[0] || null;
+  return {night: evening, from: iso(from), to: iso(to), complete: now >= to, updated: iso(now), rv: RULES_VERSION, stations: out,
+    summary: {stations: out.length, coldest: coldest && {name: coldest.name, tr: coldest.trMin, t: coldest.trMinT}, slipStations: slipSt.length,
+      warned: slipSt.filter(s => s.lead != null).length, missed: slipSt.filter(s => s.lead == null).length, falseHours: falseH.size},
+    works: {salt: wk(W.salt), plow: wk(W.plow), sand: wk(W.sand), note: 'Harja-toteumat 24 h ajalta, vain suolaus, auraus ja hiekoitus; paikallaan seisovan koneen kirjaukset pois'},
+    cam: {events: ev.filter(e => e.kind !== 'alue').length, confirmed: ev.filter(e => e.kind !== 'alue' && e.status === 'vahvistettu').length, regional: ev.filter(e => e.kind === 'alue').length}};
+}
+
 export async function collectRows(get, getText, cachedStations, learn, withSegments){
   // 1. Urakan asemat (välimuisti 7 vrk)
   let stations = cachedStations;
@@ -175,7 +213,7 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
       + '&parameters=TotalCloudCover,RadiationGlobal,RadiationLW,GroundTemperature&timestep=60&starttime=' + iso(Math.floor(now / 36e5) * 36e5) + '&endtime=' + iso(Math.floor(now / 36e5) * 36e5 + 36e5)).catch(() => ''),
     // suolaukset ja auraukset 24 h ajalta (rajapinnan enimmäisikkuna)
     get(DT + '/api/maintenance/v1/tracking/routes?domain=state-roads&' + bb + '&endFrom=' + iso(now - 24 * 36e5 + 60e3) + '&endBefore=' + iso(now)
-      + ['SALTING', ...PLOW].map(t => '&taskId=' + t).join('')).catch(() => null)
+      + ['SALTING', ...PLOW, ...SAND].map(t => '&taskId=' + t).join('')).catch(() => null)
   ]);
   // FMI tunneittain (nykyisestä tunnista alkaen)
   const fmi = {};
@@ -247,7 +285,7 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
       fc2: by('2h') && by('2h').roadTemperature, fc4: by('4h') && by('4h').roadTemperature, fc6: by('6h') && by('6h').roadTemperature, fc12: by('12h') && by('12h').roadTemperature,
       c2: reason(by('2h')), c4: reason(by('4h')), c6: reason(by('6h')), c12: reason(by('12h')), st: nst && nst.id, st_d: nst ? Math.round(nd) : null});
   }
-  return {stations, rows, segRows};
+  return {stations, rows, segRows, works};
 }
 
 // ---- Oppiminen kerätystä aineistosta → data/learn.json (sivu lukee tämän)
@@ -319,15 +357,17 @@ async function main(){
   let cached = null;
   try{ const m = JSON.parse(await fs.readFile('data/stations.json', 'utf8')); if(Date.now() - m.t < 7 * 864e5) cached = m.stations; }catch(e){}
   let learn = null; try{ learn = JSON.parse(await fs.readFile('data/learn.json', 'utf8')); }catch(e){}
-  const withSegments = new Date().getUTCMinutes() < 30;   // tiekohdat kerran tunnissa
-  const {stations, rows, segRows} = await collectRows(get, getText, cached, learn, withSegments);
+  let idx = {months: []}; try{ idx = JSON.parse(await fs.readFile('data/index.json', 'utf8')); }catch(e){}
+  // tuntitallennukset (tiekohdat, MET, MEPS/ECMWF): aina kun edellisestä on yli 50 min, vaikka GitHub viivästäisi ajoa
+  const withSegments = !idx.hourlyT || Date.now() - new Date(idx.hourlyT).getTime() >= 50 * 60e3;
+  const {stations, rows, segRows, works} = await collectRows(get, getText, cached, learn, withSegments);
   if(!cached) await fs.writeFile('data/stations.json', JSON.stringify({t: Date.now(), stations}, null, 1));
   const month = new Date().toISOString().slice(0, 7);
   await appendCsv(fs, 'data/obs-' + month + '.csv', COLS, rows);
   if(withSegments) await appendCsv(fs, 'data/seg-' + month + '.csv', SEG_COLS, segRows);
   try{ await collectMet(fs, withSegments); }catch(e){ console.error('MET-ennuste jäi hakematta: ' + e.message); }
   if(withSegments){ try{ await collectModels(fs, getText); }catch(e){ console.error('MEPS/ECMWF-tallennus jäi väliin: ' + e.message); } }
-  let idx = {months: []}; try{ idx = JSON.parse(await fs.readFile('data/index.json', 'utf8')); }catch(e){}
+  if(withSegments) idx.hourlyT = new Date().toISOString();
   if(!idx.months.includes(month)) idx.months.push(month);
   // oppiminen viimeisen 60 vrk aineistosta
   const all = [];
@@ -336,6 +376,12 @@ async function main(){
   const L = learnFromRows(all.filter(o => o.tt >= since));
   L.updated = new Date().toISOString();
   await fs.writeFile('data/learn.json', JSON.stringify(L));
+  try{   // yön yhteenveto
+    let cam = []; try{ cam = JSON.parse(await fs.readFile('data/cam/events.json', 'utf8')); }catch(e){}
+    const N = nightSummary(all, stations, works, cam, Date.now());
+    await fs.writeFile('data/night.json', JSON.stringify(N));
+    if(N.complete){ await fs.mkdir('data/nights', {recursive: true}); await fs.writeFile('data/nights/' + N.night + '.json', JSON.stringify(N)); }
+  }catch(e){ console.error('Yön yhteenveto jäi tekemättä: ' + e.message); }
   idx.updated = L.updated; idx.stations = stations.length; idx.lastRows = rows.length; idx.lastSegRows = segRows.length; idx.rv = RULES_VERSION;
   await fs.writeFile('data/index.json', JSON.stringify(idx, null, 1));
   console.log('Tallennettu ' + rows.length + ' asemariviä' + (withSegments ? ', ' + segRows.length + ' tiekohtaa' : '') + ' (' + month + '), oppimisaineistossa ' + L.n + ' riviä');
