@@ -1197,8 +1197,10 @@ function renderMg(){
 // v2 (talvitesti 2.10.2026): märkä tie kuivuu kastepiste-eron mukaan (kostea yö ei kuivaa tietä), vain vesisade tai
 // lämpimälle tielle sulava lumi kastelee, havaittu liukkaus jatkuu ennusteessa, kuuran riski pienenee kovalla pakkasella,
 // aseman Sade-varoitus (4) ei enää tarkoita liukasta havaintoa.
+// v4 (11.10.2026, Samulin kenttäkokemus): jäätymispiste-anturin lukema kertoo vain, onko suolaa (alle −1 °C) vai hiipuuko se (−1…0 °C);
+// lukeman suuruus ei ole suojan mitta. Suolan oletetaan pitävän −6 °C:een asti, kylmemmällä suola ei tehoa.
 // v3 (11.10.2026): jää tiellä vasta ≥ 0,1 mm ja lumi > 0,2 mm vain, kun tienpinta ≤ +1 °C (anturin nollatason kohina, esim. jää 0,01 mm +11 °C:ssa).
-const RULES_VERSION = 'v3';
+const RULES_VERSION = 'v4';
 const clamp01 = v => Math.max(0, Math.min(1, v));
 const DT_SLIP = {FROST:0.6, ICE:0.85, PARTLY_ICY:0.7, SNOW:0.6, SLUSH:0.6, SNOW_AND_ICE:0.85, SLIPPERY:0.7, VERY_SLIPPERY:0.9};
 function dtSlip(f){ const r = f && f.forecastConditionReason; if(!r) return 0;
@@ -1224,6 +1226,8 @@ function snowFrac(r){ const sym = Math.round(r.WeatherSymbol3), T = r.Temperatur
   return (sym>=41 && sym<=53) ? 1 : (sym>=71 && sym<=83) ? 0.5 : (sym>=21 && sym<=33) ? 0 : (T<=0 ? 1 : T<=1.5 ? 0.5 : 0); }
 function snowRate(r){ const P = r.Precipitation1h || 0; if(P <= 0) return 0; return P * snowFrac(r) * (r.Temperature <= -5 ? 1.5 : 1); }
 const rainSym = s => s >= 21 && s <= 33;
+const SALT_LIMIT = -6;   // suola ei tehoa tätä kylmemmällä; silloin ei suolata (hiekoitus pistemäisesti)
+const saltProt = tf => tf != null && tf <= -1 ? SALT_LIMIT : 0;   // jäätymispiste-anturi vain merkkinä: suolaa on / ei ole
 // Märän tien kuivuminen (1/h): ei juuri kuivu, kun tienpinta on kastepisteessä; nopeasti, kun ero on yli 3 °C. Jäätynyt kuivuu hitaammin.
 function dryRate(tr, td){ const k = (tr == null || td == null || isNaN(td)) ? 0.25 : 1/12 + (1/2.5 - 1/12) * clamp01((tr - td - 0.5)/2.5); return tr != null && tr < 0 ? k * 0.5 : k; }
 // Aseman liukkaussarja. o = {now, rows: FMI-tunnit, trNow, fc: tiekohdan ennusteet (Digitraffic), tf0, wetNow, slipNow: liukasta nyt (havainto), dewNow, bias: opittu korjaus}
@@ -1251,7 +1255,7 @@ function slipSeriesCore(o){
     wet *= Math.exp(-dryRate(tr, td) * (lead - lead0)); lead0 = lead;
     const liq = tr != null && tr > 0.5 ? P : P * (1 - snowFrac(r));
     if(liq >= 0.05) wet = 1;
-    const tf = (tf0||0) * Math.exp(-(lead/10) - cumP/1.5);
+    const tf = saltProt(tf0) * Math.exp(-(lead/10) - cumP/1.5);
     if(tr != null && tr > 1) obsOn = false;   // havaittu liukkaus sulaa
     const fNear = fcList.find(f=>Math.abs(new Date(f.time).getTime() - t) <= 60*60e3);
     const x = {tr, td, tf, moist: wet, snow: snowRate(r), frz: rainSym(Math.round(r.WeatherSymbol3)) && P >= 0.05, precip: P >= 0.05, ws: r.WindSpeedMS,
@@ -1670,7 +1674,12 @@ function computeActions(){
   const at = t => fmtDT(t);
 
   // A. Liukkaudentorjunta
-  const risk = rows.filter(r=>r.risk);
+  const roadOf = r => r.road ?? r.Temperature;
+  const riskAll = rows.filter(r=>r.risk), risk = riskAll.filter(r=>!(roadOf(r) <= SALT_LIMIT)), riskCold = riskAll.filter(r=>roadOf(r) <= SALT_LIMIT);
+  // Alle −6 °C ei suolata: kylmät liukkaustunnit hoidetaan hiekoittamalla pistemäisesti
+  if(riskCold.length && !risk.length){ const c0 = riskCold[0];
+    acts.push({sev: hrsTo(c0.t) <= 3 ? 'warn' : 'info', title:'Kitkantorjunta hiekoittamalla', when:(hrsTo(c0.t) <= 1 ? 'Riski nyt' : 'Riski alkaen '+at(c0.t))+' · '+riskCold.length+' h, tienpinta ≤ −6 °C',
+      lines:['Tienpinta '+n1(roadOf(c0))+' °C – suolaus ei tehoa tätä kylmemmällä.', 'Hiekoitus pistemäisesti: rampit, risteykset ja muut pistemäiset kohteet.']}); }
   if(risk.length){
     const r0 = risk[0], h = hrsTo(r0.t);
     const basis = r0.road!=null ? 'tienpinta '+n1(r0.road)+' °C (kylmin: '+esc(shortSec(r0.roadSec))+')' : 'ilma '+n1(r0.Temperature)+' °C (tieennuste ei ulotu)';
@@ -1685,6 +1694,7 @@ function computeActions(){
         salted.length ? 'Jäännössuolaa ≥ '+settings.salt+' g/m²: '+salted.map(s=>esc(s.name)+' '+n1(svv(s,'SUOLAN_MÄÄRÄ_1'))).join(', ')+' – arvioi tarve näillä osuuksilla.' : 'Asemilla ei merkittävää jäännössuolaa (raja '+settings.salt+' g/m²).']});
     const wl = worksLines('salt', 4), A = acts[acts.length-1];
     const ff = firstFreeze();
+    if(riskCold.length) A.lines.push('Osa riskitunneista on alle −6 °C ('+riskCold.length+' h, alkaen '+at(riskCold[0].t)+'): silloin hiekoitus pistemäisesti (rampit, risteykset), ei suolausta.');
     if(ff.length) A.lines.splice(1, 0, '<b>Ensimmäisenä pakkaselle:</b> '+ff.slice(0,3).map(e=>esc(segLabel(e.s))+' '+(e.f.type==='OBSERVATION'?'nyt':'klo '+fmtT(e.f.time))+' ('+n0(e.f.roadTemperature)+' °C)').join('; ')+'.');
     if(wl){
       if(wl.done.length) A.lines.push('<b>Suolattu viim. 4 h:</b> '+wl.done.map(o=>esc(shortSec(o.sec.description))+' '+fmtT(o.t)).join(', ')+'.');
@@ -1697,7 +1707,7 @@ function computeActions(){
   const frost = rows.filter(r=>r.road!=null && r.road<=0 && !isNaN(r.DewPoint) && r.DewPoint>=r.road && !(r.Precipitation1h>0) && Math.round(r.WeatherSymbol3)<=2 && (r.WindSpeedMS??9)<5);
   if(frost.length) acts.push({sev: hrsTo(frost[0].t)<=3?'bad':'warn', title:'Kuuran muodostuminen',
     when:at(frost[0].t)+' – '+fmtT(frost[frost.length-1].t),
-    lines:['Selkeää ja heikkotuulista, tienpinta alle kastepisteen ('+n1(frost[0].road)+' / '+n1(frost[0].DewPoint)+' °C).','Kuura muodostuu ensin silloille ja avoimille osuuksille.']});
+    lines:['Selkeää ja heikkotuulista, tienpinta alle kastepisteen ('+n1(frost[0].road)+' / '+n1(frost[0].DewPoint)+' °C).','Kuura muodostuu ensin silloille ja avoimille osuuksille.'].concat(frost[0].road <= SALT_LIMIT ? ['Tienpinta ≤ −6 °C: hiekoitus pistemäisesti (rampit, risteykset), ei suolausta.'] : [])});
 
   // C. Jäätävä sade
   const frz = rows.filter(r=>(r.Precipitation1h>0.05) && isRainSym(Math.round(r.WeatherSymbol3)) && ((r.road ?? r.Temperature) <= 0));
@@ -1739,13 +1749,13 @@ function computeActions(){
     if(r == null) return false;
     if([5,6,7,9].includes(k)) return r <= 2;
     if([2,3].includes(k)) return r <= 0;
-    if([4,8].includes(k)) return tf != null && r <= tf + 0.5;
-    return r <= 0 && d != null && d <= 0 && !(tf != null && tf < -1 && r > tf + 0.5);   // kuuraa muodostuu, ellei tie ole suolattu
+    if([4,8].includes(k)) return r <= 0 && (tf == null || tf > -1 || r <= SALT_LIMIT);   // suola hiipuu (jäätymispiste lähellä nollaa) tai liian kylmä suolalle
+    return r <= 0 && d != null && d <= 0 && !(tf != null && tf <= -1 && r > SALT_LIMIT);   // kuuraa muodostuu, ellei tie ole suolattu
   });
   const hot = [...new Set([...alarm, ...icy])];
   if(hot.length) acts.push({sev: alarm.some(s=>warnBad(svv(s,'VAROITUS_1'))) || icy.length ? 'bad' : 'warn', title:'Asemat hälyttävät nyt',
     when: hot.length+' asemaa',
-    lines: hot.map(s=>esc(s.name)+': tie '+n1(svv(s,'TIE_1'))+' °C, '+esc(svd(s,'KELI_1')||'keli ?')+(svv(s,'VAROITUS_1')>0?' · '+esc(svd(s,'VAROITUS_1')||'varoitus'):'')+(svv(s,'KITKA1_LUKU')!=null?' · kitka '+n1(svv(s,'KITKA1_LUKU')):''))});
+    lines: hot.map(s=>esc(s.name)+': tie '+n1(svv(s,'TIE_1'))+' °C'+(svv(s,'TIE_1') <= SALT_LIMIT ? ' (alle −6 °C: hiekoitus pistemäisesti, ei suolausta)' : '')+', '+esc(svd(s,'KELI_1')||'keli ?')+(svv(s,'VAROITUS_1')>0?' · '+esc(svd(s,'VAROITUS_1')||'varoitus'):'')+(svv(s,'KITKA1_LUKU')!=null?' · kitka '+n1(svv(s,'KITKA1_LUKU')):''))});
 
   // F. Nopeasti jäähtyvät asemat
   const cooling = okStations().map(s=>({s, r:svv(s,'TIE_1'), d:svv(s,'TIE_1_DERIVAATTA')})).filter(o=>o.r!=null && o.d!=null && o.d<=-0.5 && o.r>0 && o.r<=4);
@@ -1772,7 +1782,7 @@ function computeActions(){
     const sh = k => rt.cnt[k]/rt.wet, snowSh = sh('wetsnow')+sh('drysnow'), rainSh = sh('rain');
     // Jäätävä vesisade vaatii asemakohtaisen näytön: tienpinta ≤ 0 °C (tai alle suolaliuoksen jäätymispisteen) ja asema mittaa vesisadetta tai ilma ≤ +1 °C
     const frzSt = okStations().filter(s=>{ const r = svv(s,'TIE_1'), tf = svv(s,'JÄÄTYMISPISTE_1'), sd = svv(s,'SADE'), a = svv(s,'ILMA');
-      return r!=null && r <= Math.min(0, tf ?? 0) && ((sd!=null && sd>=1 && sd<=3) || (a!=null && a<=1)); });
+      return r!=null && r <= 0 && ((sd!=null && sd>=1 && sd<=3) || (a!=null && a<=1)); });   // sade laimentaa suolan: jäätymispistettä ei käytetä
     const measured = frzSt.filter(s=>{ const sd = svv(s,'SADE'); return sd!=null && sd>=1 && sd<=3; });
     const where = Math.round(rt.cover*100)+' % '+(rt.onRoads?'urakan teistä':'alueesta');
     const base = 'Tutkakuva klo '+fmtT(rt.t)+' (Vihdin tutka): sadetta '+where+' – '+radarTypeText(rt)+'.';
