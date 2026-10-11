@@ -90,7 +90,9 @@ const COLS = ['t','st','tr','ta','td','tf','salt','water','snow','ice','fric','k
   'f2_t','f2_td','f2_p','f2_cc','f2_sym','f6_t','f6_td','f6_p','f6_cc','f6_sym','f12_t','f12_td','f12_p','f12_cc','f12_sym',
   'salt_min','plow_min','idx2','idx6','idx12','why2','why6','why12','rv',
   // pidemmän tielämpöarvion oppimista varten: FMI +24 h sekä MEPS-mallin tämän tunnin pilvisyys, säteily ja maanpinnan lämpötila
-  'f24_t','f24_cc','mp_cc','mp_rg','mp_rlw','mp_tg'];
+  'f24_t','f24_cc','mp_cc','mp_rg','mp_rlw','mp_tg',
+  // asemien sadehavainto: SADE 0 pouta, 1–3 vesi, 4–6 lumi/räntä; intensiteetti mm/h; olomuoto PWD-koodi 7–19; 24 h sadesumma mm; näkyvyys km
+  'rain','rain_i','rain_form','rain24','vis'];
 const SEG_COLS = ['t','seg','road','obs_tr','obs_c','fc2','fc4','fc6','fc12','c2','c4','c6','c12','st','st_d'];
 const SAND = ['LINE_SANDING', 'SPOT_SANDING'];
 const PLOW = ['PLOUGHING_AND_SLUSH_REMOVAL','PLOUGHING_OF_SLUSH_DITCH','LOWERING_OF_SNOWBANKS','REMOVAL_OF_BULGE_ICE','TRANSFER_OF_SNOW'];
@@ -317,10 +319,11 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
     for(const w of works) if(w.tasks.some(pred) && (!last || w.end > last) && w.pts.some(c => Math.hypot((c[0]-st.lon)*M_LON, (c[1]-st.lat)*M_LAT) <= 500)) last = w.end;
     return last ? Math.round((now - last) / 60e3) : null; };
   // asemarivit
-  const rows = [], stPos = [];
+  const rows = [], stPos = [], stale = {};
   for(const s of (data.stations || [])){
     if(!ids.has(s.id)) continue; const st = stations.find(x => x.id === s.id);
-    const v = {}; for(const x of s.sensorValues || []) v[x.name] = x.value;
+    // yli 2 h vanhat lukemat jätetään pois (jumittunut anturi) – samoin kuin sivulla
+    const v = {}; for(const x of s.sensorValues || []){ const mt = x.measuredTime ? new Date(x.measuredTime).getTime() : null; if(mt && now - mt > 2 * 36e5){ stale[x.name] = (stale[x.name] || 0) + 1; continue; } v[x.name] = x.value; }
     const lanes = [1,2,3,4].filter(n => v['TIE_' + n] != null); if(!lanes.length) continue;
     const lane = lanes.reduce((a, n) => v['TIE_' + n] < v['TIE_' + a] ? n : a, lanes[0]);
     const keli = [v['KELI_' + lane], ...[1,2,3,4].map(n => v['KELI_' + n])].find(x => x != null && x > 0) ?? null;
@@ -349,6 +352,7 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
       f12_t: f12.Temperature, f12_td: f12.DewPoint, f12_p: f12.Precipitation1h, f12_cc: f12.TotalCloudCover, f12_sym: f12.WeatherSymbol3,
       salt_min: minutesSince(st, t => t === 'SALTING'), plow_min: minutesSince(st, t => PLOW.includes(t)),
       idx2: i2 && i2.idx, idx6: i6 && i6.idx, idx12: i12 && i12.idx, why2: i2 && i2.why, why6: i6 && i6.why, why12: i12 && i12.why, rv: RULES_VERSION,
+      rain: v.SADE ?? null, rain_i: v.SADE_INTENSITEETTI ?? null, rain_form: v.SATEEN_OLOMUOTO_PWDXX ?? null, rain24: v.SADESUMMA_LIUKUVA_24H ?? null, vis: v.NÄKYVYYS_KM ?? null,
       f24_t: f24.Temperature, f24_cc: f24.TotalCloudCover, mp_cc: mp.TotalCloudCover, mp_rg: mp.RadiationGlobal, mp_rlw: mp.RadiationLW, mp_tg: mp.GroundTemperature});
     stPos.push(st);
   }
@@ -364,7 +368,7 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
       fc2: by('2h') && by('2h').roadTemperature, fc4: by('4h') && by('4h').roadTemperature, fc6: by('6h') && by('6h').roadTemperature, fc12: by('12h') && by('12h').roadTemperature,
       c2: reason(by('2h')), c4: reason(by('4h')), c6: reason(by('6h')), c12: reason(by('12h')), st: nst && nst.id, st_d: nst ? Math.round(nd) : null});
   }
-  return {stations, rows, segRows, works};
+  return {stations, rows, segRows, works, stale};
 }
 
 // ---- Oppiminen kerätystä aineistosta → data/learn.json (sivu lukee tämän)
@@ -439,7 +443,8 @@ async function main(){
   let idx = {months: []}; try{ idx = JSON.parse(await fs.readFile('data/index.json', 'utf8')); }catch(e){}
   // tuntitallennukset (tiekohdat, MET, MEPS/ECMWF): aina kun edellisestä on yli 50 min, vaikka GitHub viivästäisi ajoa
   const withSegments = !idx.hourlyT || Date.now() - new Date(idx.hourlyT).getTime() >= 50 * 60e3;
-  const {stations, rows, segRows, works} = await collectRows(get, getText, cached, learn, withSegments);
+  const {stations, rows, segRows, works, stale} = await collectRows(get, getText, cached, learn, withSegments);
+  if(Object.keys(stale).length) console.log('Vanhoja anturilukemia ohitettu: ' + Object.entries(stale).map(([k, n]) => k + ' ' + n).join(', '));
   if(!cached) await fs.writeFile('data/stations.json', JSON.stringify({t: Date.now(), stations}, null, 1));
   const month = new Date().toISOString().slice(0, 7);
   await appendCsv(fs, 'data/obs-' + month + '.csv', COLS, rows);
