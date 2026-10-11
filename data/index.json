@@ -3,10 +3,10 @@
   "2026-09",
   "2026-10"
  ],
- "updated": "2026-10-11T18:29:25.325Z",
+ "updated": "2026-10-11T18:56:08.504Z",
  "stations": 10,
  "lastRows": 10,
- "lastSegRows": 198,
- "rv": "v2",
+ "lastSegRows": 0,
+ "rv": "v3",
  "hourlyT": "2026-10-11T18:29:24.946Z"
 }
