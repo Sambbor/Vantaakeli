@@ -8,7 +8,8 @@
 // v2 (talvitesti 2.10.2026): märkä tie kuivuu kastepiste-eron mukaan (kostea yö ei kuivaa tietä), vain vesisade tai
 // lämpimälle tielle sulava lumi kastelee, havaittu liukkaus jatkuu ennusteessa, kuuran riski pienenee kovalla pakkasella,
 // aseman Sade-varoitus (4) ei enää tarkoita liukasta havaintoa.
-const RULES_VERSION = 'v2';
+// v3 (11.10.2026): jää tiellä vasta ≥ 0,1 mm ja lumi > 0,2 mm vain, kun tienpinta ≤ +1 °C (anturin nollatason kohina, esim. jää 0,01 mm +11 °C:ssa).
+const RULES_VERSION = 'v3';
 const clamp01 = v => Math.max(0, Math.min(1, v));
 const DT_SLIP = {FROST:0.6, ICE:0.85, PARTLY_ICY:0.7, SNOW:0.6, SLUSH:0.6, SNOW_AND_ICE:0.85, SLIPPERY:0.7, VERY_SLIPPERY:0.9};
 function dtSlip(f){ const r = f && f.forecastConditionReason; if(!r) return 0;
@@ -73,7 +74,8 @@ function slipSeriesCore(o){
 }
 // VAROITUS: 0 OK, 1 Varo, 2 Häly, 3 Kuura, 4 Sade – vakavuusjärjestys ei ole numerojärjestys (Sade on pelkkä sadetieto)
 const WARN_RANK = {0:0, 4:1, 1:2, 3:3, 2:4};
-const obsSlippery = o => [5,6,7,9].includes(o.keli) || o.warn === 2 || o.warn === 3 || (o.fric != null && o.fric < 0.45) || (o.ice||0) > 0 || (o.snow||0) > 0.2;
+const obsSlippery = o => [5,6,7,9].includes(o.keli) || o.warn === 2 || o.warn === 3 || (o.fric != null && o.fric < 0.45)
+  || ((o.tr == null || o.tr <= 1) && ((o.ice||0) >= 0.1 || (o.snow||0) > 0.2));
 const WET_KELI = [2,3,4,8,9];
 // ===== /LIUKKAUSSÄÄNNÖT =====
 
@@ -333,7 +335,7 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
     const water = v.VEDEN_MÄÄRÄ1 ?? v.VEDEN_MÄÄRÄ2 ?? null, snow = v.LUMEN_MÄÄRÄ1 ?? v.LUMEN_MÄÄRÄ2 ?? null, ice = v.JÄÄN_MÄÄRÄ1 ?? v.JÄÄN_MÄÄRÄ2 ?? null;
     // sama liukkausennuste kuin sivulla (sääntöversio RULES_VERSION)
     const wetNow = (water != null && water > 0.03) || (snow||0) > 0 || (ice||0) > 0 || WET_KELI.includes(keli) ? 1 : 0;
-    const slipNow = obsSlippery({keli, warn: warn < 0 ? null : warn, fric: fr.length ? Math.min(...fr) : null, ice, snow});
+    const slipNow = obsSlippery({tr, keli, warn: warn < 0 ? null : warn, fric: fr.length ? Math.min(...fr) : null, ice, snow});
     const ser = fmiRows.length ? slipSeriesCore({now, rows: fmiRows.slice(0, 14), trNow: tr, fc: F, tf0: Math.min(0, tf ?? 0), wetNow, slipNow, dewNow: v.KASTEPISTE, bias: learn && learn.bias && learn.bias[s.id]}) : [];
     const at = L => ser.find(c => Math.abs(c.lead - L) < 0.5) || null;
     const i2 = at(2), i6 = at(6), i12 = at(12);
