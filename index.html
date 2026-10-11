@@ -310,6 +310,7 @@ body.wall .tabs{display:none}
 .cw-ev p{margin:2px 0}
 .cw-night{font:700 14px var(--f-display);margin:12px 0 2px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .road.est{font-style:italic;font-weight:400;opacity:.85;white-space:nowrap}
+.night-l{margin:4px 0 8px;padding-left:18px} .night-l li{margin:3px 0}
 .msum{padding:12px 14px;border-bottom:1px solid var(--line)} .msum h3{margin:0 0 6px;font:700 16px var(--f-display)} .msum ul{margin:0;padding-left:18px} .msum li{margin:3px 0}
 .cw-sur{color:var(--bad);font-weight:600} .cw-conf{color:var(--muted)}
 .cw-ev.reg .cw-imgs{flex-wrap:wrap} .cw-ev.reg .cw-imgs figure{width:150px}
@@ -436,6 +437,11 @@ body.wall .tabs{display:none}
         <pre id="brief">Ladataan…</pre>
       </div>
     </div>
+  </section>
+
+  <section id="night" class="hide-wall" data-tab="tilanne" hidden>
+    <div class="sec-h"><h2>Viime yö</h2><span class="note">Klo 18–08: mitä asemat mittasivat, varoittiko oma ennuste ajoissa ja mitä tehtiin</span></div>
+    <div class="panel" id="night-body"></div>
   </section>
 
   <section id="slip" data-tab="liukkaus">
@@ -1372,6 +1378,35 @@ async function loadCamWatch(force){
   renderCamWatch();
 }
 const pctTxt = v => v == null ? '–' : Math.round(v*100)+' %';
+
+// ---- Yön yhteenveto: keruu kirjoittaa data/night.json joka ajolla (yö klo 18–08 Suomen aikaa)
+const nightS = {t:0, d:null};
+async function loadNight(){
+  if(nightS.t && Date.now() - nightS.t < 10*60e3){ renderNight(); return; }
+  nightS.t = Date.now();
+  nightS.d = await fetch('data/night.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  renderNight();
+}
+function renderNight(){
+  const sec = $('#night'), el = $('#night-body'), N = nightS.d; if(!sec || !el) return;
+  if(!N || !N.stations || !N.stations.length){ sec.hidden = true; return; }
+  sec.hidden = false;
+  const S = N.summary, day = new Date(N.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'});
+  const w = (x, nm) => x && x.n ? nm+' '+x.n+(x.n > 1 ? ' kertaa (' : ' kerran (')+(x.n > 1 ? fmtT(x.first)+'–'+fmtT(x.last) : fmtT(x.first))+')' : null;
+  const works = [w(N.works.salt,'suolaus'), w(N.works.plow,'auraus'), w(N.works.sand,'hiekoitus')].filter(Boolean);
+  const slip = N.stations.filter(s=>s.slipFirst).sort((a,b)=>a.slipFirst.localeCompare(b.slipFirst));
+  let h = '<p><b>Yö '+day+' klo 18–08</b>'+(N.complete ? '' : ' <span class="pill p-warn">käynnissä</span>')+' · '+S.stations+' asemaa · päivitetty '+fmtT(N.updated)+'</p><ul class="night-l">'
+    + '<li><b>Alin tienpinta:</b> '+(S.coldest ? n1(S.coldest.tr)+' °C, '+esc(S.coldest.name)+' klo '+fmtT(S.coldest.t) : '–')+'</li>'
+    + '<li><b>Liukkautta:</b> '+(S.slipStations ? S.slipStations+'/'+S.stations+' asemalla · oma ennuste varoitti ajoissa '+S.warned+', ei varoittanut '+S.missed : 'ei yhdelläkään asemalla')
+    + (S.falseHours ? ' · turhia hälytyksiä '+S.falseHours+' asematuntia' : '')+'</li>'
+    + '<li><b>Työt:</b> '+(works.length ? works.join(', ') : 'ei suolausta, aurausta eikä hiekoitusta Harjassa')+'</li>'
+    + '<li><b>Kameravahti:</b> '+(N.cam.events || N.cam.regional ? (N.cam.events ? N.cam.events+(N.cam.events > 1 ? ' havaintoa (' : ' havainto (')+N.cam.confirmed+' vahvistettu)' : '')+(N.cam.events && N.cam.regional ? ', ' : '')+(N.cam.regional ? N.cam.regional+' laaja muutos' : '') : 'ei havaintoja')+'</li></ul>';
+  if(slip.length) h += '<div class="scroll"><table><thead><tr><th>Asema</th><th>Liukasta alkaen</th><th>Keli</th><th>Alin tie</th><th>Oma ennuste</th></tr></thead><tbody>'
+    + slip.map(s=>'<tr><td class="name">'+esc(s.name)+'</td><td>'+fmtT(s.slipFirst)+'</td><td>'+esc(KELI_FI[s.keli] || '–')+'</td><td class="num">'+n1(s.trMin)+' °C</td><td>'
+      + (s.lead != null ? '<span class="pill p-ok">varoitti '+s.lead+' h ennen</span>' : '<span class="pill p-bad">ei varoittanut</span>'+(s.dtWarned ? ' <small class="muted">Digitraffic varoitti</small>' : ''))+'</td></tr>').join('')
+    + '</tbody></table></div>';
+  el.innerHTML = h + '<p class="muted" style="margin-top:6px">Liukas = keli kuura, lumi, jää tai sohjo, häly- tai kuuravaroitus, kitka alle 0,45 tai jäätä tai lunta tiellä. "Varoitti" = liukkausindeksi oli vähintään 50 jo 2, 6 tai 12 tuntia ennen. Turha hälytys = indeksi ≥ 50, mutta asema ei mitannut liukasta tunnin sisällä. Työt Harjan toteumista.</p>';
+}
 
 // ---- Keruun tuoreusvahti: GitHub Actions kirjoittaa liukkausdatan 30 min välein ja kameravahdin klo 18–08 15 min välein
 const keruu = {t:0, idx:null, cam:null};
@@ -2743,7 +2778,7 @@ function applyData(meta, d, errs, snapshot){
   if(curTab === 'liukkaus' && !snapshot) loadObsData();
   if(curTab === 'kamerat' && !snapshot) loadCamWatch(true);
   if(snapshot) return;
-  loadKeruu();
+  loadKeruu(); loadNight();
   loadRadar(); loadWarnings(); loadTraffic(); analyzeRadarType();
   if(curTab === 'asemat') ensureMg();
   loadHistory().then(()=>{ renderStations(); updateSources(state.lastCtx); });
