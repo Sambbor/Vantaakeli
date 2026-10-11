@@ -8,10 +8,11 @@
 // v2 (talvitesti 2.10.2026): märkä tie kuivuu kastepiste-eron mukaan (kostea yö ei kuivaa tietä), vain vesisade tai
 // lämpimälle tielle sulava lumi kastelee, havaittu liukkaus jatkuu ennusteessa, kuuran riski pienenee kovalla pakkasella,
 // aseman Sade-varoitus (4) ei enää tarkoita liukasta havaintoa.
+// v5 (11.10.2026): suola ei hiivu pelkän ajan kuluessa (kuivunut suola jää tien pintaan), vain sade ja kuura laimentavat sitä.
 // v4 (11.10.2026, Samulin kenttäkokemus): jäätymispiste-anturin lukema kertoo vain, onko suolaa (alle −1 °C) vai hiipuuko se (−1…0 °C);
 // lukeman suuruus ei ole suojan mitta. Suolan oletetaan pitävän −6 °C:een asti, kylmemmällä suola ei tehoa.
 // v3 (11.10.2026): jää tiellä vasta ≥ 0,1 mm ja lumi > 0,2 mm vain, kun tienpinta ≤ +1 °C (anturin nollatason kohina, esim. jää 0,01 mm +11 °C:ssa).
-const RULES_VERSION = 'v4';
+const RULES_VERSION = 'v5';
 const clamp01 = v => Math.max(0, Math.min(1, v));
 const DT_SLIP = {FROST:0.6, ICE:0.85, PARTLY_ICY:0.7, SNOW:0.6, SLUSH:0.6, SNOW_AND_ICE:0.85, SLIPPERY:0.7, VERY_SLIPPERY:0.9};
 function dtSlip(f){ const r = f && f.forecastConditionReason; if(!r) return 0;
@@ -53,7 +54,7 @@ function slipSeriesCore(o){
     for(let i=1;i<fcs.length;i++){ const a = fcs[i-1], b = fcs[i]; if(t <= b.t) return a.v + (b.v-a.v)*Math.max(0,(t-a.t))/(b.t-a.t || 1); } return fcs[fcs.length-1].v; };
   const fcList = (o.fc||[]).filter(f=>f.type!=='OBSERVATION');
   const fObs = (o.fc||[]).find(f=>f.type==='OBSERVATION');
-  let cumP = 0, wet = wetNow || 0, lead0 = 0, obsOn = !!o.slipNow; const out = [];
+  let cumP = 0, cumFr = 0, wet = wetNow || 0, lead0 = 0, obsOn = !!o.slipNow; const out = [];
   rows.forEach((r, h) => {
     const t = new Date(r.t).getTime(), lead = Math.max(0, (t - now)/36e5);
     const P = r.Precipitation1h || 0; cumP += P;
@@ -66,7 +67,8 @@ function slipSeriesCore(o){
     wet *= Math.exp(-dryRate(tr, td) * (lead - lead0)); lead0 = lead;
     const liq = tr != null && tr > 0.5 ? P : P * (1 - snowFrac(r));
     if(liq >= 0.05) wet = 1;
-    const tf = saltProt(tf0) * Math.exp(-(lead/10) - cumP/1.5);
+    if(h > 0 && tr != null && td != null && tr <= 0.5 && td >= tr) cumFr += 0.05;   // kuura laimentaa suolaa hitaasti (kerrostuma noin 0,05 mm/h)
+    const tf = saltProt(tf0) * Math.exp(-cumP/1.5 - cumFr/1.5);   // ei aikahiipumista: kuivunut suola pysyy tiellä
     if(tr != null && tr > 1) obsOn = false;   // havaittu liukkaus sulaa
     const fNear = fcList.find(f=>Math.abs(new Date(f.time).getTime() - t) <= 60*60e3);
     const x = {tr, td, tf, moist: wet, snow: snowRate(r), frz: rainSym(Math.round(r.WeatherSymbol3)) && P >= 0.05, precip: P >= 0.05, ws: r.WindSpeedMS,
@@ -406,7 +408,7 @@ export function learnFromRows(rows){
       if(o.idx6 != null){ pr = o.idx6 >= 50; verif.stored++; ver = o.rv || '?'; }
       else if(o.fc6 != null){
         const wetN = wet ? 1 : 0;
-        const x = {tr: o.fc6 + ((o.tr != null && o.fc_obs != null) ? (o.tr - o.fc_obs) * 0.5 : 0), td: o.f6_td, tf: saltProt(o.tf) * Math.exp(-0.6 - (o.f6_p||0)/1.5),
+        const x = {tr: o.fc6 + ((o.tr != null && o.fc_obs != null) ? (o.tr - o.fc_obs) * 0.5 : 0), td: o.f6_td, tf: saltProt(o.tf) * Math.exp(-(o.f6_p||0)/1.5),
           moist: Math.max(wetN * Math.exp(-6/2.5), (o.f6_p||0) * (1 - snowFrac({WeatherSymbol3: o.f6_sym||0, Temperature: o.f6_t})) >= 0.05 ? 1 : 0), snow: snowRate({Precipitation1h: o.f6_p||0, WeatherSymbol3: o.f6_sym||0, Temperature: o.f6_t}),
           frz: rainSym(Math.round(o.f6_sym||0)) && (o.f6_p||0) >= 0.05, precip: (o.f6_p||0) >= 0.05, ws: null, dt: DT_SLIP[o.c6]||0};
         pr = slipRisk(x).p >= 0.5; verif.retro++;
