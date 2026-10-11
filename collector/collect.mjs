@@ -190,6 +190,83 @@ export function nightSummary(all, stations, works, camEvents, now){
     cam: {events: ev.filter(e => e.kind !== 'alue').length, confirmed: ev.filter(e => e.kind !== 'alue' && e.status === 'vahvistettu').length, regional: ev.filter(e => e.kind === 'alue').length}};
 }
 
+// ---- Talven tuloskortti viikoittain → data/scorecard.json
+const isoWeek = t => { const d = new Date(helDate(t) + 'T12:00:00Z'), day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3);
+  const y = d.getUTCFullYear(), w1 = new Date(Date.UTC(y, 0, 4)); return y + '-W' + String(1 + Math.round(((d - w1) / 864e5 - 3 + ((w1.getUTCDay() + 6) % 7)) / 7)).padStart(2, '0'); };
+const errStat = a => { if(!a.length) return null; const m = a.reduce((x, y) => x + y, 0) / a.length, mae = a.reduce((x, y) => x + Math.abs(y), 0) / a.length;
+  return {n: a.length, mae: Math.round(mae * 100) / 100, bias: Math.round(m * 100) / 100}; };
+// Pienimmän neliösumman ratkaisu (normaaliyhtälöt, Gaussin eliminointi)
+function lsq(X, y){
+  const k = X[0].length, A = Array.from({length: k}, () => Array(k + 1).fill(0));
+  X.forEach((x, r) => { for(let i = 0; i < k; i++){ for(let j = 0; j < k; j++) A[i][j] += x[i] * x[j]; A[i][k] += x[i] * y[r]; } });
+  for(let i = 0; i < k; i++) A[i][i] += 1e-3;   // pieni vakautus
+  for(let i = 0; i < k; i++){ let p = i; for(let r = i + 1; r < k; r++) if(Math.abs(A[r][i]) > Math.abs(A[p][i])) p = r; [A[i], A[p]] = [A[p], A[i]];
+    for(let r = 0; r < k; r++){ if(r === i) continue; const f = A[r][i] / A[i][i]; for(let c = i; c <= k; c++) A[r][c] -= f * A[i][c]; } }
+  return A.map((row, i) => row[k] / row[i]);
+}
+// Opittu tielämpö: tie − ilma asemittain MEPSin säteilystä, pilvisyydestä, aseman tuulesta ja vuorokaudenajasta.
+// Verrataan kiinteään sääntöön (selkeä yö −1,5 °C, muuten −0,3 °C) uusimmalla viikolla, jota ei käytetty opetukseen. Ei vaikuta sivun ennusteeseen.
+export function learnedRoad(all, stations, now){
+  const rows = all.filter(o => o.tr != null && o.ta != null && o.mp_rlw != null && o.mp_rg != null && o.mp_cc != null);
+  if(!rows.length) return {status: 'kertyy', note: 'Säteilytietoa (MEPS) ei vielä ole asemariveillä.', days: 0};
+  const ccScale = Math.max(...rows.map(o => o.mp_cc)) <= 1.01 ? 100 : 1;   // MEPS-pilvisyys 0–1 tai 0–100
+  const first = Math.min(...rows.map(o => o.tt)), days = (now - first) / 864e5, split = now - 7 * 864e5;
+  const night = o => o._n ?? (o._n = isNight(o.tt) ? 1 : 0);
+  const feat = o => [1, o.mp_rg / 100, (o.mp_rlw - 300) / 50, Math.min(o.ws ?? 3, 15), night(o)];
+  const rule = o => (o.mp_cc * ccScale < 30 && night(o)) ? -1.5 : -0.3;
+  const base = {days: Math.round(days * 10) / 10, ccScale};
+  if(days < 14) return {...base, status: 'kertyy', note: 'Vertailu alkaa, kun säteilytietoa on 14 vrk (opetus) + viimeisin viikko (testi).'};
+  const train = rows.filter(o => o.tt < split), test = rows.filter(o => o.tt >= split);
+  const pooled = lsq(train.map(feat), train.map(o => o.tr - o.ta));
+  const perSt = [], eL = [], eR = [];
+  for(const st of stations){
+    const tr = train.filter(o => o.st === st.id), te = test.filter(o => o.st === st.id); if(!te.length) continue;
+    const w = tr.length >= 200 ? lsq(tr.map(feat), tr.map(o => o.tr - o.ta)) : pooled;
+    const l = te.map(o => o.ta + feat(o).reduce((a, x, i) => a + x * w[i], 0) - o.tr), r = te.map(o => o.ta + rule(o) - o.tr);
+    eL.push(...l); eR.push(...r);
+    perSt.push({id: st.id, name: st.name, n: te.length, own: tr.length >= 200, learned: errStat(l), rule: errStat(r),
+      nightL: errStat(te.map((o, i) => [o, l[i]]).filter(([o]) => night(o)).map(x => x[1])), nightR: errStat(te.map((o, i) => [o, r[i]]).filter(([o]) => night(o)).map(x => x[1]))});
+  }
+  const L = errStat(eL), R = errStat(eR);
+  return {...base, status: 'vertailu', trainN: train.length, testN: test.length, learned: L, rule: R, better: L && R ? L.mae < R.mae : null, minTr: Math.min(...test.map(o => o.tr)), perSt,
+    note: 'Ilman lämpötila on tässä asemalla mitattu, joten vertailu mittaa vain tien ja ilman eron mallia. Ei käytössä sivun ennusteessa ennen erillistä päätöstä.'};
+}
+export function scorecard(all, met, mod, stations, camEvents, now){
+  const t0 = Math.min(...all.map(o => o.tt)), weeks = {};
+  const W = k => weeks[k] = weeks[k] || {week: k, nights: 0, slipNights: 0, stNights: 0, warned: 0, missed: 0, falseHours: 0, leads: [], models: {}, road: {fc6: [], fc12: []}, cam: {events: 0, confirmed: 0, regional: 0}, rv: new Set()};
+  // liukkaus öittäin (sama laskenta kuin Viime yö -kortissa)
+  for(let d = new Date(helDate(t0) + 'T12:00:00Z').getTime(); d < now; d += 864e5){
+    const [y, m, dd] = helDate(d).split('-').map(Number), end = helUtc(y, m, dd, 18) + 14 * 36e5;
+    if(end > now) break;
+    const N = nightSummary(all, stations, [], [], end + 30 * 60e3); if(!N.stations.length) continue;
+    const w = W(isoWeek(new Date(N.from).getTime() + 2 * 36e5)); w.nights++;
+    const S = N.summary; if(S.slipStations) w.slipNights++; w.stNights += S.slipStations; w.warned += S.warned; w.missed += S.missed; w.falseHours += S.falseHours;
+    for(const s of N.stations) if(s.lead != null) w.leads.push(s.lead);
+  }
+  // havaittu ilman lämpötila (asemien keskiarvo) puolen tunnin jaksoissa
+  const B = 30 * 60e3, obsTa = {};
+  for(const o of all) if(o.ta != null){ const k = Math.round(o.tt / B); (obsTa[k] = obsTa[k] || []).push(o.ta); }
+  const taAt = t => { for(const k of [Math.round(t / B), Math.round(t / B) - 1, Math.round(t / B) + 1]){ const a = obsTa[k]; if(a && a.length >= 2) return a.reduce((x, y) => x + y, 0) / a.length; } return null; };
+  const addModel = (name, t, L, v) => { if(v == null || isNaN(v)) return; const tgt = t + L * 36e5; if(tgt > now) return; const ob = taAt(tgt); if(ob == null) return;
+    const w = W(isoWeek(tgt)); ((w.models[name] = w.models[name] || {})[L] = w.models[name][L] || []).push(v - ob); };
+  const seenFmi = new Set();
+  for(const o of all){ w0: { const k = Math.round(o.tt / B); if(seenFmi.has(k)) break w0; seenFmi.add(k); for(const L of [6, 12, 24]) addModel('FMI', o.tt, L, o['f' + L + '_t']); } }
+  for(const o of met) for(const L of [6, 12, 24]) addModel('MET Norja', o.tt, L, o['m' + L + '_t']);
+  for(const o of mod) for(const L of [6, 12, 24]){ addModel('MEPS', o.tt, L, o['meps' + L + '_t']); addModel('ECMWF', o.tt, L, o['ec' + L + '_t']); }
+  // Digitrafficin tieennuste asemalla
+  const bySt = {}; for(const o of all) (bySt[o.st] = bySt[o.st] || []).push(o);
+  for(const a of Object.values(bySt)){ a.sort((p, q) => p.tt - q.tt);
+    const find = t => { let lo = 0, hi = a.length - 1; while(lo < hi){ const m2 = (lo + hi) >> 1; if(a[m2].tt < t) lo = m2 + 1; else hi = m2; } const c = [a[lo], a[lo - 1]].filter(Boolean).sort((p, q) => Math.abs(p.tt - t) - Math.abs(q.tt - t))[0]; return c && Math.abs(c.tt - t) <= 25 * 60e3 ? c : null; };
+    for(const o of a){ if(o.rv) W(isoWeek(o.tt)).rv.add(o.rv);
+      for(const L of [6, 12]){ const v = o['fc' + L]; if(v == null) continue; const later = find(o.tt + L * 36e5); if(!later || later.tr == null) continue; W(isoWeek(later.tt)).road['fc' + L].push(v - later.tr); } } }
+  for(const e of camEvents || []){ const w = W(isoWeek(new Date(e.start).getTime())); if(e.kind === 'alue') w.cam.regional++; else { w.cam.events++; if(e.status === 'vahvistettu') w.cam.confirmed++; } }
+  const out = Object.values(weeks).sort((a, b) => a.week < b.week ? -1 : 1).map(w => ({week: w.week, nights: w.nights, slipNights: w.slipNights, stNights: w.stNights, warned: w.warned, missed: w.missed,
+    falseHours: w.falseHours, leadAvg: w.leads.length ? Math.round(w.leads.reduce((x, y) => x + y, 0) / w.leads.length * 10) / 10 : null, rv: [...w.rv].sort(),
+    models: Object.fromEntries(Object.entries(w.models).map(([k, v]) => [k, Object.fromEntries(Object.entries(v).map(([L, e]) => [L, errStat(e)]))])),
+    road: {fc6: errStat(w.road.fc6), fc12: errStat(w.road.fc12)}, cam: w.cam}));
+  return {updated: iso(now), weeks: out, learned: learnedRoad(all, stations, now)};
+}
+
 export async function collectRows(get, getText, cachedStations, learn, withSegments){
   // 1. Urakan asemat (välimuisti 7 vrk)
   let stations = cachedStations;
@@ -382,6 +459,21 @@ async function main(){
     await fs.writeFile('data/night.json', JSON.stringify(N));
     if(N.complete){ await fs.mkdir('data/nights', {recursive: true}); await fs.writeFile('data/nights/' + N.night + '.json', JSON.stringify(N)); }
   }catch(e){ console.error('Yön yhteenveto jäi tekemättä: ' + e.message); }
+  try{   // talven tuloskortti ja opitun tielämmön vertailu kerran tunnissa
+    if(withSegments){
+      const rd = async p => { try{ return parseCsv(await fs.readFile(p, 'utf8')); }catch(e){ return []; } };
+      const met = [], mod = []; for(const m of idx.months.slice(-3)){ met.push(...await rd('data/met-' + m + '.csv')); mod.push(...await rd('data/models-' + m + '.csv')); }
+      let cam = []; try{ cam = JSON.parse(await fs.readFile('data/cam/events.json', 'utf8')); }catch(e){}
+      const SC = scorecard(all, met, mod, stations, cam, Date.now());
+      // vanhat viikot säilyvät, vaikka niiden raakadata (3 kk) tai kameravahdin havainnot (14 vrk) poistuvat
+      let old = null; try{ old = JSON.parse(await fs.readFile('data/scorecard.json', 'utf8')); }catch(e){}
+      if(old && old.weeks){ const nw = new Map(SC.weeks.map(w => [w.week, w]));
+        for(const ow of old.weeks){ const w = nw.get(ow.week); if(!w){ nw.set(ow.week, ow); continue; }
+          for(const k of ['events', 'confirmed', 'regional']) w.cam[k] = Math.max(w.cam[k], (ow.cam || {})[k] || 0); }
+        SC.weeks = [...nw.values()].sort((a, b) => a.week < b.week ? -1 : 1); }
+      await fs.writeFile('data/scorecard.json', JSON.stringify(SC));
+    }
+  }catch(e){ console.error('Tuloskortti jäi tekemättä: ' + e.message); }
   idx.updated = L.updated; idx.stations = stations.length; idx.lastRows = rows.length; idx.lastSegRows = segRows.length; idx.rv = RULES_VERSION;
   await fs.writeFile('data/index.json', JSON.stringify(idx, null, 1));
   console.log('Tallennettu ' + rows.length + ' asemariviä' + (withSegments ? ', ' + segRows.length + ' tiekohtaa' : '') + ' (' + month + '), oppimisaineistossa ' + L.n + ' riviä');
