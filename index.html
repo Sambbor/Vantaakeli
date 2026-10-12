@@ -545,14 +545,16 @@ body.wall .tabs{display:none}
   </section>
 
   <section id="stmg" class="hide-wall" data-tab="asemat">
-    <div class="sec-h"><h2>Asemakohtainen meteogrammi</h2><span class="note">Mittaukset 24 h ← nyt → sääennuste 48 h aseman kohdalle (FMI) · tienpinnan ennuste lähimmästä tiekohdasta 12 h (Digitraffic)</span></div>
+    <div class="sec-h"><h2>Asemakohtainen meteogrammi</h2><span class="note">Mittaukset 24 h ← nyt → sääennuste 48 h aseman kohdalle (FMI) · tienpinnan ennuste lähimmästä tiekohdasta 12 h (Digitraffic), sen jälkeen arvio malleista 48 h asti · raita: mitattu keli ja liukkausindeksi</span></div>
     <div class="panel mg">
       <div class="mg-bar"><label for="mg-st" class="lg">Asema</label><select id="mg-st"></select><span class="muted" id="mg-info"></span></div>
       <div class="mg-now" id="mg-now"></div>
       <div class="mg-wrap" id="mg-wrap"><div id="mg-body"><div class="status">Valitse asema.</div></div></div>
       <div class="legend mg-lg">
         <span><i style="background:var(--road);height:4px"></i>Tienpinta</span>
-        <span><i style="background:var(--road);height:0;border-top:3px dashed var(--road)"></i>Tienpinnan ennuste</span>
+        <span><i style="background:var(--road);height:0;border-top:3px dashed var(--road)"></i>Tienpinnan ennuste 12 h</span>
+        <span><i style="background:var(--road);opacity:.35;height:8px"></i>≈ Tienpinnan arvio 48 h (mallien haarukka)</span>
+        <span><i style="background:linear-gradient(90deg,var(--s0),var(--s1),var(--s2),var(--s3));height:8px"></i>Raita: mitattu keli · liukkausindeksi</span>
         <span><i style="background:var(--cold)"></i>Ilma</span>
         <span><i style="background:var(--dew)"></i>Kastepiste</span>
         <span><i style="background:var(--frz);height:3px"></i>Jäätymispiste (suola)</span>
@@ -732,7 +734,7 @@ function isRisk(r){
   // Kun tielämpötilan ennuste on saatavilla, käytetään sitä; muuten ilman lämpötilaa
   if(r.road != null){
     const R = r.road;
-    return R <= 1 && R >= -15 && ((P>0.05) || (r.frAcc || 0) >= FROST_FULL/2);   // kuura: vasta kun kertymä tekee tiestä liukkaan
+    return R <= 1 && R >= -15 && ((P>0.05) || (r.frAcc || 0) >= FROST_SLIP);   // kuura: vasta kun kertymä tekee tiestä liukkaan
   }
   const T = r.Temperature;
   if(isNaN(T)) return false;
@@ -973,7 +975,7 @@ function renderHourly(){
 function renderStations(){
   const el = $('#stations-body');
   if(!state.stations.length){ el.innerHTML='<div class="status">Ei asemia.</div>'; return; }
-  let h = '<table><thead><tr><th>Asema</th><th>Mitattu</th><th>Tie °C</th><th>Trendi</th><th>24 h</th><th>Ilma °C</th><th>Kastep. °C</th><th>Tie–kastep.</th><th>Tie–kuurap.</th><th>Keli</th><th>Varoitus</th><th>Kitka</th><th>Suola g/m²</th><th>Sade</th><th>Tuuli m/s</th><th>Näk. km</th></tr></thead><tbody>';
+  let h = '<table><thead><tr><th>Asema</th><th>Mitattu</th><th>Tie °C</th><th>Trendi</th><th>24 h</th><th>Ilma °C</th><th>Kastep. °C</th><th>Tie–kastep.</th><th>Tie–kuurap.</th><th title="Kuurakertymä °C·h: tienpinta kuurapistettä kylmempi × tunnit. 4 °C·h ≈ mahdollisesti liukas">Kuura °C·h</th><th>Keli</th><th>Varoitus</th><th>Kitka</th><th>Suola g/m²</th><th>Sade</th><th title="Aseman mittaama sademäärä viimeisen 12 tunnin aikana (sateen intensiteetistä)">Sade 12 h mm</th><th>Tuuli m/s</th><th>Näk. km</th></tr></thead><tbody>';
   for(const s of state.stations){
     const v = k => s.values && s.values[k];
     const num = k => v(k) ? n1(v(k).value) : '–';
@@ -993,11 +995,14 @@ function renderStations(){
       + '<td class="num">'+num('ILMA')+'</td><td class="num">'+num('KASTEPISTE')+'</td>'
       + '<td class="num"'+diffCls+'>'+n1(diff)+'</td>'
       + (()=>{ const k = v('KUURAPISTE_ERO_TIE'); if(!k) return '<td class="num">–</td>'; return '<td class="num"'+(k.value<=0 && road && road.value<=0.5?' style="color:var(--bad);font-weight:600"':'')+'>'+n1(k.value)+'</td>'; })()
+      + (()=>{ const a = road ? stationFrostAcc(s) : null; if(a == null) return '<td class="num">–</td>'; return '<td class="num"'+(a >= FROST_SLIP ? ' style="color:var(--bad);font-weight:600"' : a >= FROST_SLIP/2 ? ' style="color:var(--warn);font-weight:600"' : '')+' title="Kuurakertymä – mahdollisesti liukas '+n1(FROST_SLIP)+' °C·h alkaen">'+n1(a)+'</td>'; })()
       + '<td>'+desc('KELI_1')+'</td>'
       + '<td><span class="pill p-'+wcls+'">'+desc('VAROITUS_1')+'</span></td>'
       + '<td class="num"'+(fr && fr.value<0.4?' style="color:var(--bad);font-weight:600"':'')+'>'+(fr?n1(fr.value):'–')+'</td>'
       + '<td class="num">'+num('SUOLAN_MÄÄRÄ_1')+'</td>'
-      + '<td>'+desc('SADE')+'</td><td class="num">'+num('KESKITUULI')+'</td><td class="num">'+num('NÄKYVYYS_KM')+'</td></tr>';
+      + '<td>'+desc('SADE')+'</td>'
+      + (()=>{ const r12 = state.rain12 && state.rain12[s.id]; return r12 == null ? '<td class="num" title="Lasketaan, kun Asemat-välilehti on auki">–</td>' : '<td class="num"'+(r12 >= 1 ? ' style="color:var(--rain);font-weight:600"' : '')+'>'+n1(r12)+'</td>'; })()
+      + '<td class="num">'+num('KESKITUULI')+'</td><td class="num">'+num('NÄKYVYYS_KM')+'</td></tr>';
   }
   // puhelimelle korttinäkymä
   let c = '';
@@ -1013,7 +1018,9 @@ function renderStations(){
       + '<div class="stc-k">'+(dsc('KELI_1') ? '<span class="pill p-'+(/kuiva/i.test(dsc('KELI_1'))?'ok':/jää|kuura|lumi|sohjo/i.test(dsc('KELI_1'))?'bad':'warn')+'">'+esc(dsc('KELI_1'))+'</span>' : '')
       + (wv>0 ? ' <span class="pill p-'+(warnBad(wv)?'bad':'warn')+'">'+esc(dsc('VAROITUS_1')||'varoitus')+'</span>' : '')+'</div>'
       + '<div class="stc-g">'+kv('Ilma',n1(val('ILMA')))+kv('Kastep.',n1(dew))+kv('Tie–kastep.',n1(diff), diff!=null && diff<=1 && r<=1 ? 'hot' : '')
-      + kv('Kitka',val('KITKA1_LUKU')!=null?n1(val('KITKA1_LUKU')):'–')+kv('Suola',n1(val('SUOLAN_MÄÄRÄ_1')))+kv('Tuuli',n1(val('KESKITUULI')))+'</div>'
+      + kv('Kitka',val('KITKA1_LUKU')!=null?n1(val('KITKA1_LUKU')):'–')+kv('Suola',n1(val('SUOLAN_MÄÄRÄ_1')))+kv('Tuuli',n1(val('KESKITUULI')))
+      + (()=>{ const a = r!=null && iss.ok ? stationFrostAcc(s) : null; return kv('Kuura °C·h', a==null?'–':n1(a), a!=null && a >= FROST_SLIP ? 'hot' : ''); })()
+      + kv('Sade 12 h', state.rain12 && state.rain12[s.id]!=null ? n1(state.rain12[s.id])+' mm' : '–')+'</div>'
       + (state.hist[s.id] && state.hist[s.id].pts ? '<div class="stc-sp">'+spark(state.hist[s.id].pts)+'</div>' : '')
       + (iss.crit.length||iss.minor.length ? '<p class="fault">Tarkista: '+esc(iss.crit.concat(iss.minor).join(', '))+'</p>' : '')
       + '</article>';
@@ -1128,12 +1135,33 @@ function renderMg(){
   $('#mg-info').textContent = (st.measured ? 'mitattu '+fmtT(st.measured) : '') + (seg ? ' · tieennuste: '+segLabel(seg)+(segD>150?' ('+(segD/1000).toFixed(1).replace('.',',')+' km)':'') : ' · ei tieennustetta lähellä') + (c.err.length ? ' · puuttuu: '+c.err.join(', ') : '');
   // --- kuvaaja
   const W = Math.max(340, Math.round($('#mg-wrap').clientWidth - 8) || 900), narrow = W < 640;
-  const L = 34, R = 30, stripH = 52, T = stripH + 6, ih = narrow ? 190 : 230, gap = 16, bh = 70, B = 34;
+  const L = 34, R = 30, stripH = 52, BAND = 16, bandY = stripH + 4, T = bandY + BAND + 8, ih = narrow ? 190 : 230, gap = 16, bh = 70, B = 34;
   const H = T + ih + gap + bh + B, iw = W - L - R;
   const now = Date.now(), t0 = now - 24*36e5, t1 = now + 48*36e5;
   const x = t => L + iw*(t - t0)/(t1 - t0);
   const clip = a => (a||[]).filter(p=>p[0]>=t0 && p[0]<=now+60e3);
-  const temps = [].concat(clip(road).map(p=>p[1]), clip(air).map(p=>p[1]), clip(dew).map(p=>p[1]), fc.flatMap(r=>[r.Temperature, r.DewPoint]), rfc.map(r=>r.v), clip(frz).map(p=>p[1]).filter(v=>v<-0.05)).filter(v=>v!=null && isFinite(v));
+  // tienpinnan arvio Digitrafficin ennusteen jälkeen 48 h asti: mallit (aseman FMI-ennuste + MEPS/ECMWF/MET) ankkuroituna viimeiseen tie-ennusteeseen
+  const est = (()=>{
+    const aT = rfc.length ? rfc[rfc.length-1].t : now, aV = rfc.length ? rfc[rfc.length-1].v : rNow;
+    if(aV == null) return [];
+    const tP = rs => rs.filter(r=>r.Temperature!=null && isFinite(r.Temperature)).map(r=>[new Date(r.t).getTime(), r.Temperature]);
+    const ms = [tP(c.fc)].concat((state.models||[]).map(m=>tP(m.rows))).filter(p=>p.length > 1);
+    if(ms.length < 2) return [];
+    const at = (pts, t) => { if(t < pts[0][0] - 30*60e3 || t > pts[pts.length-1][0] + 30*60e3) return null;
+      for(let i=1;i<pts.length;i++) if(t <= pts[i][0]){ const a = pts[i-1], b = pts[i]; return a[1] + (b[1]-a[1]) * Math.max(0, Math.min(1, (t-a[0])/(b[0]-a[0] || 1))); } return pts[pts.length-1][1]; };
+    const ccAt = t => { let b = null; for(const r of c.fc){ const d = Math.abs(new Date(r.t).getTime()-t); if(!b || d < b.d) b = {d, r}; } return b && b.r.TotalCloudCover != null ? b.r.TotalCloudCover : 100; };
+    const off = t => ccAt(t) < 30 && isNight(t) ? -1.5 : -0.3;   // selkeä yö: tie ilmaa kylmempi
+    const anch = ms.map(p=>{ const a = at(p, aT); return a == null ? null : aV - (a + off(aT)); });
+    const out = [{t:aT, lo:aV, hi:aV, med:aV, n:ms.length}];
+    for(let t = Math.ceil(aT/36e5)*36e5 + (Math.ceil(aT/36e5)*36e5 === aT ? 36e5 : 0); t <= t1; t += 36e5){
+      const k = Math.max(0, 1 - (t-aT)/(24*36e5)), v = [];
+      ms.forEach((p,i)=>{ const a = at(p, t); if(a != null && anch[i] != null) v.push(a + off(t) + anch[i]*k); });
+      if(v.length < 2) continue; v.sort((p,q)=>p-q);
+      out.push({t, lo:v[0], hi:v[v.length-1], med: v.length % 2 ? v[(v.length-1)/2] : (v[v.length/2-1] + v[v.length/2])/2, n:v.length});
+    }
+    return out.length > 2 ? out : [];
+  })();
+  const temps = [].concat(est.flatMap(e=>[e.lo, e.hi]), clip(road).map(p=>p[1]), clip(air).map(p=>p[1]), clip(dew).map(p=>p[1]), fc.flatMap(r=>[r.Temperature, r.DewPoint]), rfc.map(r=>r.v), clip(frz).map(p=>p[1]).filter(v=>v<-0.05)).filter(v=>v!=null && isFinite(v));
   let lo = Math.floor(Math.min(...temps, 0) - 1), hi = Math.ceil(Math.max(...temps, 2) + 1);
   const step = (hi-lo) > 24 ? 6 : (hi-lo) > 12 ? 4 : 2; lo = Math.floor(lo/step)*step; hi = Math.ceil(hi/step)*step;
   const y = v => T + ih*(hi - Math.max(lo, Math.min(hi, v)))/(hi - lo);
@@ -1156,6 +1184,22 @@ function renderMg(){
   const pastWx = []; for(let t = Math.ceil(t0/(3*36e5))*3*36e5; t < now - 36e5; t += 3*36e5) pastWx.push({t, wd:near(wdir,t,20*60e3), ws:near(wsp,t,20*60e3), gust:near(gst,t,20*60e3), cloud:null});
   const futWx = fc.filter(r=>hourOf(r.t) % 3 === 0).map(r=>({t:new Date(r.t).getTime(), wd:r.WindDirection, ws:r.WindSpeedMS, gust:r.HourlyMaximumGust, cloud:r.TotalCloudCover}));
   s += wxStrip(pastWx.concat(futWx), x, 0, narrow ? 26 : 20);
+  // liukkausraita: mitattu keli (menneisyys) ja liukkausindeksi (ennuste 24 h)
+  const keliS = S.KELI_1 || mgPick(S, ['KELI_'], lane);
+  const KCOL = k => [5,6,7,9].includes(k) ? 'var(--s3)' : [2,3,4,8].includes(k) ? 'var(--rain)' : k === 1 ? 'var(--s0)' : 'var(--line)';
+  const slipS = stationSlipSeries(st), slipRows = slipS ? slipS.rows : [];
+  s += '<rect x="'+L+'" y="'+bandY+'" width="'+iw+'" height="'+BAND+'" fill="var(--soft)" opacity=".5"/>';
+  const kp = clip(keliS);
+  for(let i=0;i<kp.length;){ let j = i;   // yhtenäiset jaksot samalla kelillä yhdeksi palkiksi; yli 90 min katko jää tyhjäksi
+    while(j+1 < kp.length && kp[j+1][1] === kp[i][1] && kp[j+1][0] - kp[j][0] <= 90*60e3) j++;
+    const a = kp[i][0], b = j+1 < kp.length ? (kp[j+1][0] - kp[j][0] <= 90*60e3 ? kp[j+1][0] : kp[j][0] + 30*60e3) : now;
+    s += '<rect x="'+x(a).toFixed(1)+'" y="'+bandY+'" width="'+Math.max(0.5, x(b)-x(a)).toFixed(1)+'" height="'+BAND+'" fill="'+KCOL(kp[i][1])+'" opacity=".9"><title>'+fmtT(a)+'–'+fmtT(b)+' · '+esc(KELI_FI[kp[i][1]]||kp[i][1])+'</title></rect>';
+    i = j + 1; }
+  const SCOL = {s0:'var(--s0)', s1:'var(--s1)', s2:'var(--s2)', s3:'var(--s3)'};
+  for(const r of slipRows){ if(r.idx == null) continue; const a = Math.max(now, r.t), b = r.t + 36e5; if(b <= now || a >= t1) continue;
+    s += '<rect x="'+x(a).toFixed(1)+'" y="'+bandY+'" width="'+Math.max(0.5, x(b)-x(a)).toFixed(1)+'" height="'+BAND+'" fill="'+(SCOL[slipCls(r.idx)]||'var(--line)')+'"><title>'+fmtT(r.t)+' · liukkausindeksi '+r.idx+(r.why ? ' ('+esc(r.why)+')' : '')+'</title></rect>'; }
+  s += '<text x="'+(L+4)+'" y="'+(bandY+12)+'" style="font-size:10px;fill:var(--ink);stroke:var(--panel);stroke-width:3;paint-order:stroke">'+(narrow?'keli':'keli (mitattu)')+'</text>';
+  if(slipRows.length) s += '<text x="'+(x(now)+4).toFixed(1)+'" y="'+(bandY+12)+'" style="font-size:10px;fill:var(--ink);stroke:var(--panel);stroke-width:3;paint-order:stroke">'+(narrow?'liukkaus':'liukkausindeksi 24 h')+'</text>';
   // jäätymispiste (vain kun suola laskee sitä)
   const fz = clip(frz); const fzOn = fz.some(p=>p[1] < -0.05);
   const line = (pts, col, w, dash) => pts.length > 1 ? '<path d="'+pts.map((p,i)=>(i?'L':'M')+x(p[0]).toFixed(1)+' '+y(p[1]).toFixed(1)).join(' ')+'" fill="none" stroke="'+col+'" stroke-width="'+w+'"'+(dash?' stroke-dasharray="'+dash+'"':'')+' stroke-linejoin="round"/>' : '';
@@ -1168,6 +1212,11 @@ function renderMg(){
     s += line(pts, 'var(--road)', 2.6, '7 4');
     rfc.filter(r=>!r.obs).forEach(r=>{ s += '<circle cx="'+x(r.t).toFixed(1)+'" cy="'+y(r.v).toFixed(1)+'" r="3.8" fill="'+(r.v<=0?'var(--bad)':'var(--road)')+'" stroke="var(--panel)" stroke-width="1.2"><title>Tienpinnan ennuste '+fmtT(r.t)+': '+n1(r.v)+' °C</title></circle>'; });
     const e = rfc[rfc.length-1]; s += '<text x="'+(x(e.t)+6).toFixed(1)+'" y="'+(y(e.v)+4).toFixed(1)+'" style="fill:var(--ink)">tie '+n0(e.v)+'°</text>';
+  }
+  if(est.length){
+    s += '<path d="M'+est.map(e=>x(e.t).toFixed(1)+' '+y(e.hi).toFixed(1)).join(' L')+' L'+est.slice().reverse().map(e=>x(e.t).toFixed(1)+' '+y(e.lo).toFixed(1)).join(' L')+' Z" fill="var(--road)" opacity=".16"><title>Tienpinnan arvio, mallien haarukka</title></path>';
+    s += line(est.map(e=>[e.t, e.med]), 'var(--road)', 2, '2 4');
+    const e = est[est.length-1]; s += '<text x="'+Math.min(W-R-30, x(e.t)-4).toFixed(1)+'" y="'+(y(e.med)-6).toFixed(1)+'" text-anchor="end" style="fill:var(--ink)">≈ tie '+n0(e.med)+'°</text>';
   }
   if(!fzOn && fz.length) s += '<text x="'+(L+6)+'" y="'+(T+14)+'">jäätymispiste 0 °C – ei suolaa tiellä</text>';
   // alapaneeli: tiellä oleva vesi / lumi / jää (mitattu) ja sade (ennuste) + kitka
@@ -1200,13 +1249,16 @@ function renderMg(){
     const r = svg.getBoundingClientRect(), px_ = (ev.clientX - r.left)*W/r.width; if(px_ < L || px_ > W-R){ tip.hidden = true; return; }
     const t = t0 + (px_ - L)/iw*(t1 - t0); curL.setAttribute('x1', px_); curL.setAttribute('x2', px_); curL.setAttribute('opacity', '.8');
     let h;
-    if(t <= now){ const g = (a) => near(a, t, 12*60e3);
-      h = '<b>'+esc(fmtDT(t))+' · mitattu</b><br>Tie '+n1(g(road))+' °C · ilma '+n1(g(air))+' · kastep. '+n1(g(dew))
+    if(t <= now){ const g = (a) => near(a, t, 12*60e3); const kk = near(keliS, t, 20*60e3);
+      h = '<b>'+esc(fmtDT(t))+' · mitattu</b>'+(kk!=null ? ' · '+esc(KELI_FI[kk]||kk) : '')+'<br>Tie '+n1(g(road))+' °C · ilma '+n1(g(air))+' · kastep. '+n1(g(dew))
         + (fz.length ? '<br>Jäätymispiste '+n1(g(frz))+' °C' : '') + '<br>Vesi '+n1(g(water))+' · lumi '+n1(g(snow))+' · jää '+n1(g(ice))+' mm'
         + (fk.length ? ' · kitka '+n1(g(fr)) : '') + (g(wsp)!=null ? '<br>Tuuli '+n1(g(wsp))+' m/s' : '');
     } else { let d = null; for(const e of fc){ const tt = new Date(e.t).getTime(); if(!d || Math.abs(tt-t) < Math.abs(new Date(d.t).getTime()-t)) d = e; }
       const rv = interp(rline, t);
-      h = '<b>'+esc(fmtDT(d ? d.t : t))+' · ennuste</b>' + (rv!=null ? '<br><b>Tie '+n1(rv)+' °C</b>' : '')
+      let ee = null; if(rv == null && est.length){ for(const e of est) if(!ee || Math.abs(e.t-t) < Math.abs(ee.t-t)) ee = e; if(ee && Math.abs(ee.t-t) > 90*60e3) ee = null; }
+      let sr = null; for(const r of slipRows) if(t >= r.t && t < r.t + 36e5) sr = r;
+      h = '<b>'+esc(fmtDT(d ? d.t : t))+' · ennuste</b>' + (rv!=null ? '<br><b>Tie '+n1(rv)+' °C</b>' : ee ? '<br><b>Tie ≈ '+n1(ee.med)+' °C</b> (arvio '+ee.n+' mallista: '+n1(ee.lo)+' … '+n1(ee.hi)+')' : '')
+        + (sr && sr.idx != null ? '<br>Liukkausindeksi <b>'+sr.idx+'</b>'+(sr.why ? ' – '+esc(sr.why) : '') : '')
         + (d ? '<br>Ilma '+n1(d.Temperature)+' · kastep. '+n1(d.DewPoint)+' °C<br>'+esc(SYM3[Math.round(d.WeatherSymbol3)]||'')+' · pilvisyys '+n0(d.TotalCloudCover)+' %<br>Sade '+n1(d.Precipitation1h)+' mm · tuuli '+n0(d.WindSpeedMS)+' ('+n0(d.HourlyMaximumGust)+') m/s' : ''); }
     tip.hidden = false; tip.innerHTML = h;
     const wr = wrap.getBoundingClientRect(); tip.style.left = Math.min(wr.width-110, Math.max(110, ev.clientX - wr.left))+'px'; tip.style.top = (r.top - wr.top + T*r.height/H + 4)+'px';
@@ -1224,13 +1276,14 @@ function renderMg(){
 // v2 (talvitesti 2.10.2026): märkä tie kuivuu kastepiste-eron mukaan (kostea yö ei kuivaa tietä), vain vesisade tai
 // lämpimälle tielle sulava lumi kastelee, havaittu liukkaus jatkuu ennusteessa, kuuran riski pienenee kovalla pakkasella,
 // aseman Sade-varoitus (4) ei enää tarkoita liukasta havaintoa.
+// v7 (12.10.2026, Samuli): kuurakertymän raja nostettu – mahdollisesti liukas vasta 4 °C·h (indeksi 50), täysi 8 °C·h.
 // v6 (11.10.2026, Samulin kenttäkokemus): kuura lasketaan kuurapisteestä ja kertymänä. Kuuraaminen alkaa, kun tienpinta on kuurapistettä
 // kylmempi, mutta tie muuttuu liukkaaksi vasta useamman tunnin kuuraamisen jälkeen – sitä nopeammin, mitä suurempi ero on.
 // v5 (11.10.2026): suola ei hiivu pelkän ajan kuluessa (kuivunut suola jää tien pintaan), vain sade ja kuura laimentavat sitä.
 // v4 (11.10.2026, Samulin kenttäkokemus): jäätymispiste-anturin lukema kertoo vain, onko suolaa (alle −1 °C) vai hiipuuko se (−1…0 °C);
 // lukeman suuruus ei ole suojan mitta. Suolan oletetaan pitävän −6 °C:een asti, kylmemmällä suola ei tehoa.
 // v3 (11.10.2026): jää tiellä vasta ≥ 0,1 mm ja lumi > 0,2 mm vain, kun tienpinta ≤ +1 °C (anturin nollatason kohina, esim. jää 0,01 mm +11 °C:ssa).
-const RULES_VERSION = 'v6';
+const RULES_VERSION = 'v7';
 const clamp01 = v => Math.max(0, Math.min(1, v));
 const DT_SLIP = {FROST:0.6, ICE:0.85, PARTLY_ICY:0.7, SNOW:0.6, SLUSH:0.6, SNOW_AND_ICE:0.85, SLIPPERY:0.7, VERY_SLIPPERY:0.9};
 function dtSlip(f){ const r = f && f.forecastConditionReason; if(!r) return 0;
@@ -1244,7 +1297,7 @@ function slipRisk(x){
   if(x.frz && x.tr <= 0.5) c.push([1, 'jäätävä sade']);
   if(x.snow >= 0.05) c.push([clamp01(0.4 + x.snow/0.6) * (x.tr <= 2 ? 1 : 0.6), x.tr > 0.5 ? 'lumi / sohjo' : 'lumisade']);
   if(x.moist > 0){ const p = x.moist * clamp01((1 - m)/1.5); if(p > 0.02) c.push([p, 'märkä tie jäätyy']); }
-  if(x.tr <= 0.5 && (x.frAcc||0) > 0){ const cold = x.tr >= -8 ? 1 : clamp01(1 - (-8 - x.tr)/12);   // kuura: kertymä FROST_FULL °C·h = liukas
+  if(x.tr <= 0.5 && (x.frAcc||0) > 0){ const cold = x.tr >= -8 ? 1 : clamp01(1 - (-8 - x.tr)/12);   // kuura: kertymä FROST_SLIP °C·h = mahdollisesti liukas
     const p = clamp01(x.frAcc / FROST_FULL) * (m <= 0.3 ? 1 : 0.3) * cold; if(p > 0.02) c.push([p, 'kuura']); }
   if(x.dt) c.push([x.dt, 'tiesääennuste (Digitraffic)']);
   const best = c.reduce((a,b)=>b[0]>a[0]?b:a, [0, '']);
@@ -1260,7 +1313,8 @@ const rainSym = s => s >= 21 && s <= 33;
 function frostPt(td){ if(td == null || isNaN(td)) return null; if(td >= 0) return td; const g = 17.62*td/(243.12+td); return 272.62*g/(22.46-g); }
 // Kuurakertymä (°C·h): kasvaa tienpinnan ja kuurapisteen erotuksen verran tunnissa, kun tie on kuurapistettä kylmempi.
 // Tuuli (≥ 5 m/s) ja sade hidastavat. Kun tie on kuurapistettä lämpimämpi, kuura haihtuu hitaasti; yli +0,5 °C:ssa se sulaa.
-const FROST_FULL = 4;   // °C·h → indeksi 100; puolet (2) → indeksi 50 = liukas: 1 °C:n erolla 2 h, 0,5 °C:n erolla 4 h kuuraamista
+const FROST_FULL = 8;   // °C·h → indeksi 100
+const FROST_SLIP = FROST_FULL/2;   // 4 °C·h → indeksi 50 = mahdollisesti liukas (Samuli 12.10.): 1 °C:n erolla 4 h, 0,5 °C:n erolla 8 h kuuraamista
 function frostStep(acc, tr, fp, dtH, ws, precip){
   if(tr == null || fp == null || isNaN(tr) || isNaN(fp) || !(dtH > 0)) return acc;
   if(tr > 0.5) return 0;
@@ -1345,7 +1399,7 @@ function slipWhy(st, c){
   return '<b>'+esc(st.name)+' · klo '+String(hourOf(c.t)).padStart(2,'0')+' · indeksi '+(c.idx ?? '–')+(c.why ? ' ('+esc(c.why)+')' : '')+'</b><br>'
     + 'Tienpinta '+f(x.tr)+' °C'+(c.ext?' (arvio ilman lämpötilasta)':'')+(c.corr?' · opittu korjaus '+(c.corr>0?'+':'')+n1(c.corr)+' °C':'')
     + ' · kastepiste '+f(x.td)+' · kuurapiste '+f(x.fp)+' · jäätymispiste '+f(x.tf)+' °C · kosteus '+Math.round((x.moist||0)*100)+' %'
-    + ((x.frAcc||0) > 0.05 ? ' · kuurakertymä '+n1(x.frAcc)+' °C·h (liukas ~'+n1(FROST_FULL/2)+'–'+FROST_FULL+')' : '')
+    + ((x.frAcc||0) > 0.05 ? ' · kuurakertymä '+n1(x.frAcc)+' °C·h (mahdollisesti liukas '+n1(FROST_SLIP)+' °C·h)' : '')
     + (x.obs > 0.02 ? ' · <b>asema mittaa nyt liukasta</b>' : '') + (x.snow>=0.05 ? ' · lunta '+n1(x.snow)+' cm/h' : '') + (x.precip ? ' · sadetta' : '') + (x.ws!=null ? ' · tuuli '+n0(x.ws)+' m/s' : '')
     + (c.parts && c.parts.length > 1 ? '<br><span class="muted">Muut riskit: '+c.parts.filter(p=>p[1]!==c.why).map(p=>esc(p[1])+' '+Math.round(p[0]*100)).join(', ')+'</span>' : '');
 }
@@ -1764,16 +1818,16 @@ function computeActions(){
   }
 
   // B. Kuura
-  // Kuuraaminen alkaa, kun tienpinta on kuurapistettä kylmempi; liukas vasta, kun kertymä on FROST_FULL/2 (useamman tunnin kuuraaminen)
+  // Kuuraaminen alkaa, kun tienpinta on kuurapistettä kylmempi; mahdollisesti liukas, kun kertymä on FROST_SLIP (useamman tunnin kuuraaminen)
   const frost = rows.filter(r=>r.road!=null && r.road<=0.5 && r.frostPt!=null && r.frostPt>r.road);
-  const frSlip = rows.find(r=>(r.frAcc||0) >= FROST_FULL/2);
+  const frSlip = rows.find(r=>(r.frAcc||0) >= FROST_SLIP);
   const saltAll = saltOn.length && !saltOff.length;   // kaikilla asemilla suolaa: kuura ei vaadi uusintasuolausta
   if(frost.length){ const f0 = frost[0], fMax = frost.reduce((a,r)=>r.frostPt-r.road > a.frostPt-a.road ? r : a, f0);
     acts.push({sev: saltAll || !frSlip ? 'info' : hrsTo(frSlip.t)<=3?'bad':'warn',
     title: saltAll ? 'Kuuran muodostuminen – suolaa tiellä' : frSlip ? 'Kuuran muodostuminen' : 'Kuuraa alkaa muodostua – ei vielä liukasta',
-    when:'Kuuraa '+(hrsTo(f0.t)<=1 ? 'nyt' : 'alkaen '+at(f0.t))+' · '+frost.length+' h'+(frSlip ? ' · liukas arviolta '+(hrsTo(frSlip.t)<=1 ? 'nyt' : 'klo '+fmtT(frSlip.t)) : ' · kertymä jää vähäiseksi'),
+    when:'Kuuraa '+(hrsTo(f0.t)<=1 ? 'nyt' : 'alkaen '+at(f0.t))+' · '+frost.length+' h'+(frSlip ? ' · mahdollisesti liukas arviolta '+(hrsTo(frSlip.t)<=1 ? 'nyt' : 'klo '+fmtT(frSlip.t)) : ' · kertymä jää vähäiseksi'),
     lines:['Tienpinta '+n1(f0.road)+' °C, kuurapiste '+n1(f0.frostPt)+' °C; suurin ero '+n1(fMax.frostPt-fMax.road)+' °C klo '+fmtT(fMax.t)+'.',
-      'Tie muuttuu liukkaaksi vasta useamman tunnin kuuraamisen jälkeen – sitä nopeammin, mitä suurempi ero on.','Kuura muodostuu ensin silloille ja avoimille osuuksille.'].concat(saltAll ? ['Kaikki asemat näyttävät suolaa: uusintasuolausta ei tarvita, seuraa jäätymispistettä (hiipuu, kun nousee lähelle nollaa).'] : []).concat((frSlip||f0).road <= SALT_LIMIT ? ['Tienpinta ≤ −6 °C: hiekoitus pistemäisesti (rampit, risteykset), ei suolausta.'] : [])}); }
+      'Tie voi muuttua liukkaaksi vasta useamman tunnin kuuraamisen jälkeen (kertymä noin 4 °C·h) – sitä nopeammin, mitä suurempi ero on.','Kuura muodostuu ensin silloille ja avoimille osuuksille.'].concat(saltAll ? ['Kaikki asemat näyttävät suolaa: uusintasuolausta ei tarvita, seuraa jäätymispistettä (hiipuu, kun nousee lähelle nollaa).'] : []).concat((frSlip||f0).road <= SALT_LIMIT ? ['Tienpinta ≤ −6 °C: hiekoitus pistemäisesti (rampit, risteykset), ei suolausta.'] : [])}); }
 
   // C. Jäätävä sade
   const frz = rows.filter(r=>(r.Precipitation1h>0.05) && isRainSym(Math.round(r.WeatherSymbol3)) && ((r.road ?? r.Temperature) <= 0));
@@ -1816,7 +1870,7 @@ function computeActions(){
     if([5,6,7,9].includes(k)) return r <= 2;
     if([2,3].includes(k)) return r <= 0;
     if([4,8].includes(k)) return r <= 0 && (tf == null || tf > -1 || r <= SALT_LIMIT);   // suola hiipuu (jäätymispiste lähellä nollaa) tai liian kylmä suolalle
-    return r <= 0.5 && stationFrostAcc(s) >= FROST_FULL/2 && !(tf != null && tf <= -1 && r > SALT_LIMIT);   // kuuraa kertynyt, ellei tie ole suolattu
+    return r <= 0.5 && stationFrostAcc(s) >= FROST_SLIP && !(tf != null && tf <= -1 && r > SALT_LIMIT);   // kuuraa kertynyt, ellei tie ole suolattu
   });
   const hot = [...new Set([...alarm, ...icy])];
   if(hot.length) acts.push({sev: alarm.some(s=>warnBad(svv(s,'VAROITUS_1'))) || icy.length ? 'bad' : 'warn', title:'Asemat hälyttävät nyt',
@@ -2226,6 +2280,14 @@ async function loadHistory(){
       const pts = road.sort((a,b)=>a[0]-b[0]).map(p=>{ let best = null; for(const x of dew) if(!best || Math.abs(x[0]-p[0])<Math.abs(best[0]-p[0])) best = x; return [p[0], p[1], best && Math.abs(best[0]-p[0])<15*60e3 ? best[1] : null]; });
       if(pts.length >= 4) state.hist[s.id] = {src:'api', pts};
     }catch(e){ /* historia-API ei käytettävissä: käytetään omaa kertymää */ }
+    try{   // sadesumma 12 h: sateen intensiteetti (mm/h) integroituna, katkoksen yli enintään 30 min
+      const ri = sv(s,'SADE_INTENSITEETTI');
+      if(ri && ri.id != null){
+        const a = vals(await getJSON(DT+'/api/weather/v1/stations/'+s.id+'/data/history?from='+isoZ(Date.now()-12*36e5)+'&to='+isoZ(Date.now())+'&sensorId='+ri.id)).sort((p,q)=>p[0]-q[0]);
+        if(a.length >= 6){ let sum = 0; for(let i=1;i<a.length;i++){ const dt = Math.min(30*60e3, a[i][0]-a[i-1][0])/36e5; sum += Math.max(0, (a[i][1]+a[i-1][1])/2) * dt; }
+          (state.rain12 = state.rain12 || {})[s.id] = Math.round(sum*10)/10; }
+      }
+    }catch(e){ /* sadehistoria ei käytettävissä */ }
   }));
 }
 function spark(pts){
