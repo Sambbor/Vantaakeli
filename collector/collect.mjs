@@ -8,6 +8,7 @@
 // v2 (talvitesti 2.10.2026): märkä tie kuivuu kastepiste-eron mukaan (kostea yö ei kuivaa tietä), vain vesisade tai
 // lämpimälle tielle sulava lumi kastelee, havaittu liukkaus jatkuu ennusteessa, kuuran riski pienenee kovalla pakkasella,
 // aseman Sade-varoitus (4) ei enää tarkoita liukasta havaintoa.
+// v8 (12.10.2026): tienpinnan ennusteen välitunnit seuraavat sääennusteen tuntikäyrää (yön minimi ei katoa 6–12 h välissä).
 // v7 (12.10.2026, Samuli): kuurakertymän raja nostettu – mahdollisesti liukas vasta 4 °C·h (indeksi 50), täysi 8 °C·h.
 // v6 (11.10.2026, Samulin kenttäkokemus): kuura lasketaan kuurapisteestä ja kertymänä. Kuuraaminen alkaa, kun tienpinta on kuurapistettä
 // kylmempi, mutta tie muuttuu liukkaaksi vasta useamman tunnin kuuraamisen jälkeen – sitä nopeammin, mitä suurempi ero on.
@@ -15,7 +16,7 @@
 // v4 (11.10.2026, Samulin kenttäkokemus): jäätymispiste-anturin lukema kertoo vain, onko suolaa (alle −1 °C) vai hiipuuko se (−1…0 °C);
 // lukeman suuruus ei ole suojan mitta. Suolan oletetaan pitävän −6 °C:een asti, kylmemmällä suola ei tehoa.
 // v3 (11.10.2026): jää tiellä vasta ≥ 0,1 mm ja lumi > 0,2 mm vain, kun tienpinta ≤ +1 °C (anturin nollatason kohina, esim. jää 0,01 mm +11 °C:ssa).
-const RULES_VERSION = 'v7';
+const RULES_VERSION = 'v8';
 const clamp01 = v => Math.max(0, Math.min(1, v));
 const DT_SLIP = {FROST:0.6, ICE:0.85, PARTLY_ICY:0.7, SNOW:0.6, SLUSH:0.6, SNOW_AND_ICE:0.85, SLIPPERY:0.7, VERY_SLIPPERY:0.9};
 function dtSlip(f){ const r = f && f.forecastConditionReason; if(!r) return 0;
@@ -60,6 +61,25 @@ const SALT_LIMIT = -6;   // suola ei tehoa tätä kylmemmällä; silloin ei suol
 const saltProt = tf => tf != null && tf <= -1 ? SALT_LIMIT : 0;   // jäätymispiste-anturi vain merkkinä: suolaa on / ei ole
 // Märän tien kuivuminen (1/h): ei juuri kuivu, kun tienpinta on kastepisteessä; nopeasti, kun ero on yli 3 °C. Jäätynyt kuivuu hitaammin.
 function dryRate(tr, td){ const k = (tr == null || td == null || isNaN(td)) ? 0.25 : 1/12 + (1/2.5 - 1/12) * clamp01((tr - td - 0.5)/2.5); return tr != null && tr < 0 ? k * 0.5 : k; }
+// Tienpinnan ennusteen välitunnit (v8): Digitrafficin ennustepisteiden (0/2/4/6/12 h) välissä käyrä seuraa sääennusteen
+// tuntikäyrää. Arvio = ilma + (selkeä yö −1,5 °C, muuten −0,3 °C); ennustepisteiden ero arvioon viedään tasaisesti pisteestä toiseen.
+function roadShape(rows){
+  const pts = (rows||[]).filter(r=>r && r.Temperature!=null && isFinite(r.Temperature))
+    .map(r=>{ const t = new Date(r.t).getTime(); return [t, r.Temperature - ((r.TotalCloudCover ?? 100) < 30 && isNight(t) ? 1.5 : 0.3)]; }).sort((a,b)=>a[0]-b[0]);
+  return t => { if(pts.length < 2 || t < pts[0][0] - 30*60e3 || t > pts[pts.length-1][0] + 30*60e3) return null;
+    for(let i=1;i<pts.length;i++) if(t <= pts[i][0]){ const a = pts[i-1], b = pts[i]; return a[1] + (b[1]-a[1]) * Math.max(0, Math.min(1, (t-a[0])/(b[0]-a[0] || 1))); }
+    return pts[pts.length-1][1]; };
+}
+// Tienpinta hetkellä t ennustepisteistä fcs = [{t, v}] (aikajärjestyksessä); est = roadShape(tuntiennuste) tai null (suora viiva)
+function roadAt(fcs, t, est){
+  if(fcs.length < 2 || t > fcs[fcs.length-1].t + 30*60e3) return null;
+  for(let i=1;i<fcs.length;i++){ const a = fcs[i-1], b = fcs[i];
+    if(t <= b.t){ const f = Math.max(0, Math.min(1, (t-a.t)/(b.t-a.t || 1))), lin = a.v + (b.v-a.v)*f;
+      if(!est || f <= 0 || f >= 1) return lin;
+      const ea = est(a.t), eb = est(b.t), et = est(t); if(ea == null || eb == null || et == null) return lin;
+      return et + (a.v - ea) + ((b.v - eb) - (a.v - ea)) * f; } }
+  return fcs[fcs.length-1].v;
+}
 // Aseman liukkaussarja. o = {now, rows: FMI-tunnit, trNow, fc: tiekohdan ennusteet (Digitraffic), tf0, wetNow, slipNow: liukasta nyt (havainto), dewNow, bias: opittu korjaus, frAcc0: aseman kuurakertymä nyt}
 function slipSeriesCore(o){
   const {now, rows, trNow, tf0, wetNow, dewNow, bias} = o;
@@ -68,8 +88,7 @@ function slipSeriesCore(o){
   const off0 = (trNow!=null && segObs!=null) ? trNow - segObs : 0;
   const base = trNow ?? segObs;
   const tdOff0 = (dewNow!=null && rows[0] && rows[0].DewPoint!=null) ? dewNow - rows[0].DewPoint : 0;
-  const interp = t => { if(fcs.length < 2) return null; if(t > fcs[fcs.length-1].t + 30*60e3) return null;
-    for(let i=1;i<fcs.length;i++){ const a = fcs[i-1], b = fcs[i]; if(t <= b.t) return a.v + (b.v-a.v)*Math.max(0,(t-a.t))/(b.t-a.t || 1); } return fcs[fcs.length-1].v; };
+  const shape = roadShape(rows), interp = t => roadAt(fcs, t, shape);
   const fcList = (o.fc||[]).filter(f=>f.type!=='OBSERVATION');
   const fObs = (o.fc||[]).find(f=>f.type==='OBSERVATION');
   let cumP = 0, cumFr = 0, wet = wetNow || 0, lead0 = 0, obsOn = !!o.slipNow, fr = o.frAcc0 || 0; const out = [];
