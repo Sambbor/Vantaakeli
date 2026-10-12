@@ -1185,7 +1185,8 @@ function renderMg(){
   const futWx = fc.filter(r=>hourOf(r.t) % 3 === 0).map(r=>({t:new Date(r.t).getTime(), wd:r.WindDirection, ws:r.WindSpeedMS, gust:r.HourlyMaximumGust, cloud:r.TotalCloudCover}));
   s += wxStrip(pastWx.concat(futWx), x, 0, narrow ? 26 : 20);
   // liukkausraita: mitattu keli (menneisyys) ja liukkausindeksi (ennuste 24 h)
-  const keliS = S.KELI_1 || mgPick(S, ['KELI_'], lane);
+  // sama kaista kuin tienpinnalla; jos sen anturi on vikatilassa (keli 0), ensimmäinen toimiva kaista
+  const keliS = [lane,1,2,3,4].map(n=>S['KELI_'+n]).find(a=>a && a.some(p=>p[1] > 0)) || S['KELI_'+lane] || S.KELI_1 || null;
   const KCOL = k => [5,6,7,9].includes(k) ? 'var(--s3)' : [2,3,4,8].includes(k) ? 'var(--rain)' : k === 1 ? 'var(--s0)' : 'var(--line)';
   const slipS = stationSlipSeries(st), slipRows = slipS ? slipS.rows : [];
   s += '<rect x="'+L+'" y="'+bandY+'" width="'+iw+'" height="'+BAND+'" fill="var(--soft)" opacity=".5"/>';
