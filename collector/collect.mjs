@@ -8,6 +8,8 @@
 // v2 (talvitesti 2.10.2026): märkä tie kuivuu kastepiste-eron mukaan (kostea yö ei kuivaa tietä), vain vesisade tai
 // lämpimälle tielle sulava lumi kastelee, havaittu liukkaus jatkuu ennusteessa, kuuran riski pienenee kovalla pakkasella,
 // aseman Sade-varoitus (4) ei enää tarkoita liukasta havaintoa.
+// v10 (15.10.2026, Samuli): aseman Kuura-varoitus (VAROITUS 3) ei ole liukas havainto – se kertoo kuuraavasta tilanteesta
+// (tie kastepisteen alapuolella), ei siitä, että tiellä on kuuraa. Kuura tiellä = keli 5.
 // v9 (13.10.2026): kitka alle 0,45 on liukas havainto vain, kun tienpinta ≤ +1 °C (Keravan optisen anturin häiriö 12.10.: kitka 0,41 ja lunta 0,22 mm +6 °C:ssa).
 // v8 (12.10.2026): tienpinnan ennusteen välitunnit seuraavat sääennusteen tuntikäyrää (yön minimi ei katoa 6–12 h välissä).
 // v7 (12.10.2026, Samuli): kuurakertymän raja nostettu – mahdollisesti liukas vasta 4 °C·h (indeksi 50), täysi 8 °C·h.
@@ -17,7 +19,7 @@
 // v4 (11.10.2026, Samulin kenttäkokemus): jäätymispiste-anturin lukema kertoo vain, onko suolaa (alle −1 °C) vai hiipuuko se (−1…0 °C);
 // lukeman suuruus ei ole suojan mitta. Suolan oletetaan pitävän −6 °C:een asti, kylmemmällä suola ei tehoa.
 // v3 (11.10.2026): jää tiellä vasta ≥ 0,1 mm ja lumi > 0,2 mm vain, kun tienpinta ≤ +1 °C (anturin nollatason kohina, esim. jää 0,01 mm +11 °C:ssa).
-const RULES_VERSION = 'v9';
+const RULES_VERSION = 'v10';
 const clamp01 = v => Math.max(0, Math.min(1, v));
 const DT_SLIP = {FROST:0.6, ICE:0.85, PARTLY_ICY:0.7, SNOW:0.6, SLUSH:0.6, SNOW_AND_ICE:0.85, SLIPPERY:0.7, VERY_SLIPPERY:0.9};
 function dtSlip(f){ const r = f && f.forecastConditionReason; if(!r) return 0;
@@ -120,7 +122,7 @@ function slipSeriesCore(o){
 }
 // VAROITUS: 0 OK, 1 Varo, 2 Häly, 3 Kuura, 4 Sade – vakavuusjärjestys ei ole numerojärjestys (Sade on pelkkä sadetieto)
 const WARN_RANK = {0:0, 4:1, 1:2, 3:3, 2:4};
-const obsSlippery = o => [5,6,7,9].includes(o.keli) || o.warn === 2 || o.warn === 3
+const obsSlippery = o => [5,6,7,9].includes(o.keli) || o.warn === 2
   || ((o.tr == null || o.tr <= 1) && ((o.fric != null && o.fric < 0.45) || (o.ice||0) >= 0.1 || (o.snow||0) > 0.2));
 const WET_KELI = [2,3,4,8,9];
 // ===== /LIUKKAUSSÄÄNNÖT =====
