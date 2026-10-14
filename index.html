@@ -1296,6 +1296,8 @@ function renderMg(){
 // v2 (talvitesti 2.10.2026): märkä tie kuivuu kastepiste-eron mukaan (kostea yö ei kuivaa tietä), vain vesisade tai
 // lämpimälle tielle sulava lumi kastelee, havaittu liukkaus jatkuu ennusteessa, kuuran riski pienenee kovalla pakkasella,
 // aseman Sade-varoitus (4) ei enää tarkoita liukasta havaintoa.
+// v10 (15.10.2026, Samuli): aseman Kuura-varoitus (VAROITUS 3) ei ole liukas havainto – se kertoo kuuraavasta tilanteesta
+// (tie kastepisteen alapuolella), ei siitä, että tiellä on kuuraa. Kuura tiellä = keli 5.
 // v9 (13.10.2026): kitka alle 0,45 on liukas havainto vain, kun tienpinta ≤ +1 °C (Keravan optisen anturin häiriö 12.10.: kitka 0,41 ja lunta 0,22 mm +6 °C:ssa).
 // v8 (12.10.2026): tienpinnan ennusteen välitunnit seuraavat sääennusteen tuntikäyrää (yön minimi ei katoa 6–12 h välissä).
 // v7 (12.10.2026, Samuli): kuurakertymän raja nostettu – mahdollisesti liukas vasta 4 °C·h (indeksi 50), täysi 8 °C·h.
@@ -1305,7 +1307,7 @@ function renderMg(){
 // v4 (11.10.2026, Samulin kenttäkokemus): jäätymispiste-anturin lukema kertoo vain, onko suolaa (alle −1 °C) vai hiipuuko se (−1…0 °C);
 // lukeman suuruus ei ole suojan mitta. Suolan oletetaan pitävän −6 °C:een asti, kylmemmällä suola ei tehoa.
 // v3 (11.10.2026): jää tiellä vasta ≥ 0,1 mm ja lumi > 0,2 mm vain, kun tienpinta ≤ +1 °C (anturin nollatason kohina, esim. jää 0,01 mm +11 °C:ssa).
-const RULES_VERSION = 'v9';
+const RULES_VERSION = 'v10';
 const clamp01 = v => Math.max(0, Math.min(1, v));
 const DT_SLIP = {FROST:0.6, ICE:0.85, PARTLY_ICY:0.7, SNOW:0.6, SLUSH:0.6, SNOW_AND_ICE:0.85, SLIPPERY:0.7, VERY_SLIPPERY:0.9};
 function dtSlip(f){ const r = f && f.forecastConditionReason; if(!r) return 0;
@@ -1408,7 +1410,7 @@ function slipSeriesCore(o){
 }
 // VAROITUS: 0 OK, 1 Varo, 2 Häly, 3 Kuura, 4 Sade – vakavuusjärjestys ei ole numerojärjestys (Sade on pelkkä sadetieto)
 const WARN_RANK = {0:0, 4:1, 1:2, 3:3, 2:4};
-const obsSlippery = o => [5,6,7,9].includes(o.keli) || o.warn === 2 || o.warn === 3
+const obsSlippery = o => [5,6,7,9].includes(o.keli) || o.warn === 2
   || ((o.tr == null || o.tr <= 1) && ((o.fric != null && o.fric < 0.45) || (o.ice||0) >= 0.1 || (o.snow||0) > 0.2));
 const WET_KELI = [2,3,4,8,9];
 // ===== /LIUKKAUSSÄÄNNÖT =====
@@ -1530,7 +1532,7 @@ function renderRetro(){
   const miss = Object.entries(S.missObs||{}).sort((a,b)=>b[1]-a[1]).slice(0,6);
   if(miss.length) h += '<h3>Ohi menneet: mitä asema mittasi (+6 h)</h3>' + tb(['Havainto','Kpl'], miss.map(([w,n])=>[esc(w), n]));
   const FB = ['0–0,5','0,5–2','2–4','4–8','yli 8'].filter(b=>S.frost && S.frost[b]);
-  if(FB.length) h += '<h3>Kuura kuurakertymän mukaan</h3><p class="muted">Tienpinta enintään +0,5 °C eikä suolaa. Raja "mahdollisesti liukas" on '+n1(FROST_SLIP)+' °C·h.</p>' + tb(['Kertymä °C·h','Tunteja','Kuuraa','Liukasta'], FB.map(b=>{ const f = S.frost[b]; return [b, f.n, f.frost+' ('+pc(f.frost, f.n)+')', f.slip+' ('+pc(f.slip, f.n)+')']; }));
+  if(FB.length) h += '<h3>Kuura kuurakertymän mukaan</h3><p class="muted">Tienpinta enintään +0,5 °C eikä suolaa. Raja "mahdollisesti liukas" on '+n1(FROST_SLIP)+' °C·h.</p>' + tb(['Kertymä °C·h','Tunteja','Kuura tiellä (keli)','Kuuraava tilanne (varoitus)','Liukasta'], FB.map(b=>{ const f = S.frost[b]; return [b, f.n, f.frost+' ('+pc(f.frost, f.n)+')', f.warn != null ? f.warn+' ('+pc(f.warn, f.n)+')' : '–', f.slip+' ('+pc(f.slip, f.n)+')']; }));
   const TB = ['−2…+0,5','−4…−2','−6…−4','−8…−6','alle −8'], sa = (S.salt||{})['suolaa']||{}, ns = (S.salt||{})['ei suolaa']||{};
   const tr = TB.filter(b=>sa[b] || ns[b]);
   if(tr.length) h += '<h3>Märkä tie pakkasella: liukasta 6 h sisällä</h3><p class="muted">"Suolaa" = jäätymispiste ≤ −1 °C. Sääntöjen oletus: suola pitää −6 °C:een asti.</p>' + tb(['Tienpinta °C','Suolaa: tunteja','liukasta','Ei suolaa: tunteja','liukasta'], tr.map(b=>[b, sa[b]?sa[b].n:0, sa[b]?pc(sa[b].slip, sa[b].n):'–', ns[b]?ns[b].n:0, ns[b]?pc(ns[b].slip, ns[b].n):'–']));
@@ -1598,7 +1600,7 @@ function renderSlipModel(){
       + '<div class="scroll"><table><thead><tr><th>Aika suolauksesta</th><th>Havaintoja</th><th>Liukkaana</th><th>Osuus</th></tr></thead><tbody>'
       + L.salt.map(x=>'<tr><td>'+esc(x.bin)+'</td><td class="num">'+x.n+'</td><td class="num">'+x.slip+'</td><td class="num">'+(x.n?Math.round(x.slip/x.n*100)+' %':'–')+'</td></tr>').join('') + '</tbody></table></div>';
   }
-  el.innerHTML = h + '<p class="muted" style="margin-top:8px">Virhe = aseman mittaama tienpinta miinus 6 tuntia aiemmin annettu tiesääennuste (positiivinen = ennuste oli liian kylmä). Liukas havainto = keli kuura, lumi, jää tai sohjo, aseman varoitus häly tai kuura, tai tienpinnan ollessa enintään +1 °C kitka alle 0,45, jäätä vähintään 0,1 mm tai lunta tiellä. Keruu tallentaa 30 min välein asemat ja kerran tunnissa kaikkien urakan tiekohtien ennusteet.</p>';
+  el.innerHTML = h + '<p class="muted" style="margin-top:8px">Virhe = aseman mittaama tienpinta miinus 6 tuntia aiemmin annettu tiesääennuste (positiivinen = ennuste oli liian kylmä). Liukas havainto = keli kuura, lumi, jää tai sohjo, aseman varoitus häly (Kuura-varoitus kertoo vain kuuraavasta tilanteesta), tai tienpinnan ollessa enintään +1 °C kitka alle 0,45, jäätä vähintään 0,1 mm tai lunta tiellä. Keruu tallentaa 30 min välein asemat ja kerran tunnissa kaikkien urakan tiekohtien ennusteet.</p>';
 }
 
 
@@ -1645,7 +1647,7 @@ function renderNight(){
     + slip.map(s=>'<tr><td class="name">'+esc(s.name)+'</td><td>'+fmtT(s.slipFirst)+'</td><td>'+esc(KELI_FI[s.keli] || '–')+'</td><td class="num">'+n1(s.trMin)+' °C</td><td>'
       + (s.lead != null ? '<span class="pill p-ok">varoitti '+s.lead+' h ennen</span>' : '<span class="pill p-bad">ei varoittanut</span>'+(s.dtWarned ? ' <small class="muted">Digitraffic varoitti</small>' : ''))+'</td></tr>').join('')
     + '</tbody></table></div>';
-  el.innerHTML = h + '<p class="muted" style="margin-top:6px">Liukas = keli kuura, lumi, jää tai sohjo, häly- tai kuuravaroitus, tai kun tie on enintään +1 °C: kitka alle 0,45, jäätä (≥ 0,1 mm) tai lunta tiellä. "Varoitti" = liukkausindeksi oli vähintään 50 jo 2, 6 tai 12 tuntia ennen. Turha hälytys = indeksi ≥ 50, mutta asema ei mitannut liukasta tunnin sisällä. Työt Harjan toteumista.</p>';
+  el.innerHTML = h + '<p class="muted" style="margin-top:6px">Liukas = keli kuura, lumi, jää tai sohjo, hälyvaroitus, tai kun tie on enintään +1 °C: kitka alle 0,45, jäätä (≥ 0,1 mm) tai lunta tiellä. "Varoitti" = liukkausindeksi oli vähintään 50 jo 2, 6 tai 12 tuntia ennen. Turha hälytys = indeksi ≥ 50, mutta asema ei mitannut liukasta tunnin sisällä. Työt Harjan toteumista.</p>';
 }
 
 // ---- Keruun tuoreusvahti: GitHub Actions kirjoittaa liukkausdatan 30 min välein ja kameravahdin klo 18–08 15 min välein
@@ -1964,7 +1966,7 @@ function computeActions(){
   const hot = [...new Set([...alarm, ...icy])];
   if(hot.length) acts.push({sev: alarm.some(s=>warnBad(svv(s,'VAROITUS_1'))) || icy.length ? 'bad' : 'warn', title:'Asemat hälyttävät nyt',
     when: hot.length+' asemaa',
-    lines: hot.map(s=>esc(s.name)+': tie '+n1(svv(s,'TIE_1'))+' °C'+(svv(s,'TIE_1') <= SALT_LIMIT ? ' (alle −6 °C: hiekoitus pistemäisesti, ei suolausta)' : '')+', '+esc(svd(s,'KELI_1')||'keli ?')+(svv(s,'VAROITUS_1')>0?' · '+esc(svd(s,'VAROITUS_1')||'varoitus'):'')+(svv(s,'KITKA1_LUKU')!=null?' · kitka '+n1(svv(s,'KITKA1_LUKU')):''))});
+    lines: hot.map(s=>esc(s.name)+': tie '+n1(svv(s,'TIE_1'))+' °C'+(svv(s,'TIE_1') <= SALT_LIMIT ? ' (alle −6 °C: hiekoitus pistemäisesti, ei suolausta)' : '')+', '+esc(svd(s,'KELI_1')||'keli ?')+(svv(s,'VAROITUS_1')>0?' · '+(svv(s,'VAROITUS_1') === 3 ? 'kuuraava tilanne (tie kastepisteen alapuolella)' : esc(svd(s,'VAROITUS_1')||'varoitus')):'')+(svv(s,'KITKA1_LUKU')!=null?' · kitka '+n1(svv(s,'KITKA1_LUKU')):''))});
 
   // F. Nopeasti jäähtyvät asemat
   const cooling = okStations().map(s=>({s, r:svv(s,'TIE_1'), d:svv(s,'TIE_1_DERIVAATTA')})).filter(o=>o.r!=null && o.d!=null && o.d<=-0.5 && o.r>0 && o.r<=4);
@@ -2997,9 +2999,10 @@ function updateSources(ctx){
 // joten käytetään kylmintä tienpinta-anturia ja sen keliä; kitka ja varoitus huonoimman mukaan.
 const KELI_FI = {0:'Anturissa on vikaa',1:'Kuiva',2:'Kostea',3:'Märkä',4:'Märkä ja suolattu',5:'Kuura',6:'Lumi',7:'Jää',8:'Todennäköisesti kostea ja suolainen',9:'Sohjoinen'};
 const VAR_FI = {0:'OK',1:'Varo',2:'Häly',3:'Kuura',4:'Sade'};
-// Häly ja Kuura ovat hälytyksiä; Varo on varoitus; Sade huomioidaan vain, kun tienpinta on lähellä nollaa
-const warnBad = w => w === 2 || w === 3;
-const warnOn = (w, tr) => w === 1 || warnBad(w) || (w === 4 && tr != null && tr <= 1);
+// Häly on hälytys; Varo ja Kuura (kuuraava tilanne: tie kastepisteen alapuolella, ei kuuraa tiellä) ovat varoituksia;
+// Sade huomioidaan vain, kun tienpinta on lähellä nollaa
+const warnBad = w => w === 2;
+const warnOn = (w, tr) => w === 1 || w === 3 || warnBad(w) || (w === 4 && tr != null && tr <= 1);
 function normalizeStation(values){
   const okLane = n => { const v = values['TIE_'+n]; return v && v.value!=null && v.value > -45 && v.value < 65 && (!v.measuredTime || Date.now() - new Date(v.measuredTime).getTime() <= 2*36e5); };
   let lanes = [1,2,3,4].filter(okLane);   // jumittunut tai epätodennäköinen kaista ei saa voittaa kylmimpänä
