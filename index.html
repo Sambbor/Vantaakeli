@@ -1727,6 +1727,8 @@ function renderKomento(){
       + '<div class="scroll"><table><thead><tr><th>Yö</th><th>Ehdotus</th><th>Urakka</th><th>Liukkaita asemia</th><th>Osui / myöhässä / ohi / turha / suolattiin / oikein</th></tr></thead><tbody>'
       + H.map(n=>{ const c = n.cnt||{}; return '<tr><td class="name">'+esc(new Date(n.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'}))+'</td><td><span class="pill '+(KLEVEL[n.level]||KLEVEL.ei)[0]+'">'+(KLEVEL[n.level]||KLEVEL.ei)[1]+'</span></td><td>'+esc(n.urakka)+(n.agree?'':' ≠')+'</td><td class="num">'+n.slip+'</td><td class="num">'+[c.osui,c.myohassa,c.ohi,c.turha,c.suolattiin,c.oikein].map(v=>v||0).join(' / ')+'</td></tr>'; }).join('') + '</tbody></table></div></details>';
   }
+  const NT = K.notify;
+  if(NT) x += '<p class="muted" style="margin:10px 0 0">Puhelinhälytykset: '+(NT.off ? 'ei käytössä (NTFY_TOPIC-salaisuus puuttuu)' : 'käytössä'+(NT.last ? ' · viimeisin ilmoitus '+fmtDT(NT.last.t)+': '+esc(NT.last.title) : ' · ei vielä ilmoituksia'))+'</p>';
   el.innerHTML = x + '<p class="muted" style="margin-top:8px">Ehdotus syntyy, kun liukkausindeksi nousee asemalla 50:een ennen klo 08: toimenpide valmiiksi ennen riskin alkua. Alle −6 °C ehdotetaan hiekoitusta rampeille ja liittymiin, koska suola ei tehoa. Seuranta = indeksi 30–49 tai RoadSurf ennustaa kuuraa, jäätä tai lunta. Turha = ehdotettiin, mutta liukasta ei mitattu eikä lähellä suolattu.</p>';
 }
 function renderNight(){
