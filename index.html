@@ -1595,6 +1595,7 @@ function renderRsVerif(){
     return '<tr><td class="name">'+n+'</td><td class="num">'+e.hit+'</td><td class="num">'+e.miss+'</td><td class="num">'+e.fa+'</td><td class="num">'+e.cn+'</td><td class="num">'+pod+'</td><td class="num">'+far+'</td></tr>'; };
   h += '<h3 style="margin:14px 0 4px;font-size:17px">Liukkaus seuraavan 12 h aikana</h3><div class="scroll"><table><thead><tr><th>Hälytys</th><th>Osui</th><th>Ohi</th><th>Turha</th><th>Oikein ei</th><th>Havaitsi</th><th>Turhien osuus</th></tr></thead><tbody>'
     + ln('RoadSurf: kuuraa, jäätä tai lunta ≥ 0,02 mm', E.rs) + ln('Sivun liukkausindeksi ≥ 50', E.idx) + ln('RoadSurf kuura → asema mittasi kuuraa (keli 5)', V.frost)
+    + (E.rsidx && (E.rsidx.hit+E.rsidx.miss+E.rsidx.fa+E.rsidx.cn) ? ln('Varjoindeksi (RoadSurfin tienpinta ja varastot) ≥ 50', E.rsidx) + ln('… sivun indeksi samoilla hetkillä', E.idx_s) : '')
     + '</tbody></table></div><p class="muted">Liukas = asema mittasi kuuraa, lunta, jäätä tai sohjoa (keli) tai jäätä tiellä, kun tie ≤ +1 °C. Lämpimällä kelillä kaikki ovat "oikein ei" – luvut alkavat kertoa jotain vasta pakkasilla.</p>';
   // asemittain ja viikoittain
   const st = Object.entries(V.st||{});
@@ -1711,15 +1712,20 @@ function renderKomento(){
   if(C.roads && C.roads.length) x += '<div class="scroll"><table><thead><tr><th>Tie</th><th>Ehdotus</th><th>Milloin</th><th>Syy</th><th>Tie silloin / min</th><th>RoadSurf</th><th>Asemat</th></tr></thead><tbody>'
     + C.roads.map(r=>'<tr><td class="name">'+roadName(r)+'</td><td>'+(r.level==='toimenpide' ? esc(r.action) : '<span class="muted">seuranta</span>')+'</td><td>'+(r.level==='toimenpide' ? when(r.by, C.t) : '–')+'</td><td>'+esc(r.why||'–')+'</td>'
       + '<td class="num">'+(r.trAt!=null ? n1(r.trAt)+' °C' : '–')+' / '+(r.trMin!=null ? n1(r.trMin)+' °C' : '–')+'</td><td>'+(r.rs ? esc(r.rs) : '–')+'</td><td><small>'+esc((r.stations||[]).join(', '))+'</small></td></tr>').join('') + '</tbody></table></div>';
+  const viSt = Object.values(C.stations||{}).filter(s=>s.vi !== undefined);
+  if(viSt.length){ const on = viSt.filter(s=>s.viBy).sort((a,b)=>new Date(a.viBy)-new Date(b.viBy));
+    x += '<p class="muted" style="margin:6px 0 0">Varjoindeksi (RoadSurfin tienpinta ja kuura/jää, vertailua varten): '+(on.length ? '≥ 50 '+on.length+' asemalla, aikaisin klo '+fmtT(on[0].viBy)+' ('+esc(on[0].name)+(on[0].viWhy ? ', '+esc(on[0].viWhy) : '')+')' : 'alle 50 kaikilla asemilla')+'</p>'; }
   // viime yön vertailu
   const E = K.eval;
   if(E){ const day = new Date(E.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'}), c = E.cnt || {};
     const ws = E.works && E.works.salt && E.works.salt.n ? 'suolasi '+E.works.salt.n+(E.works.salt.n > 1 ? ' kertaa ('+fmtT(E.works.salt.first)+'–'+fmtT(E.works.salt.last)+')' : ' kerran ('+fmtT(E.works.salt.first)+')') : 'ei suolannut';
     x += '<h3 style="margin:14px 0 4px;font-size:17px">Aamuvertailu: yö '+esc(day)+'</h3><p style="margin:0 0 6px">Klo '+esc(E.slot)+' ehdotus: <b>'+esc(E.headline)+'</b><br>Asemat mittasivat liukasta: <b>'+E.slipStations+'</b> · urakka '+ws+' · '
       + (E.agree ? '<span class="pill p-ok">ehdotus ja urakka samaa mieltä</span>' : '<span class="pill p-warn">ehdotus ja urakka eri mieltä</span>')+'</p>'
-      + '<div class="scroll"><table><thead><tr><th>Asema</th><th>Ehdotus</th><th>Liukasta mitattiin</th><th>Yön alin tie</th><th>Suolattu lähellä</th><th>Tulos</th></tr></thead><tbody>'
+      + (E.cntVi ? '<p class="muted" style="margin:0 0 6px">Varjoindeksi (RoadSurf): osui '+(E.cntVi.osui||0)+', myöhässä '+(E.cntVi.myohassa||0)+', ohi '+(E.cntVi.ohi||0)+', turha '+(E.cntVi.turha||0)+', suolattiin '+(E.cntVi.suolattiin||0)+', oikein ei '+(E.cntVi.oikein||0)+' – sivun indeksi: osui '+(c.osui||0)+', myöhässä '+(c.myohassa||0)+', ohi '+(c.ohi||0)+', turha '+(c.turha||0)+'</p>' : '')
+      + '<div class="scroll"><table><thead><tr><th>Asema</th><th>Ehdotus</th><th>Liukasta mitattiin</th><th>Yön alin tie</th><th>Suolattu lähellä</th><th>Tulos</th>'+(E.cntVi ? '<th>Varjoindeksi</th>' : '')+'</tr></thead><tbody>'
       + (E.stations||[]).map(s=>{ const r = KRES[s.res] || ['p-na', s.res]; return '<tr><td class="name">'+esc(s.name)+'</td><td>'+(s.level==='toimenpide' ? esc(s.action)+(s.by ? ' – ennen klo '+fmtT(s.by) : '') : esc((KLEVEL[s.level]||KLEVEL.ei)[1]))+'</td>'
-        + '<td>'+(s.slipFirst ? 'klo '+fmtT(s.slipFirst)+(s.keli!=null && KELI_FI[s.keli] ? ' ('+esc(KELI_FI[s.keli])+')' : '') : 'ei')+'</td><td class="num">'+(s.trMin!=null ? n1(s.trMin)+' °C' : '–')+'</td><td>'+(s.salted ? 'kyllä' : 'ei')+'</td><td><span class="pill '+r[0]+'">'+r[1]+'</span></td></tr>'; }).join('') + '</tbody></table></div>';
+        + '<td>'+(s.slipFirst ? 'klo '+fmtT(s.slipFirst)+(s.keli!=null && KELI_FI[s.keli] ? ' ('+esc(KELI_FI[s.keli])+')' : '') : 'ei')+'</td><td class="num">'+(s.trMin!=null ? n1(s.trMin)+' °C' : '–')+'</td><td>'+(s.salted ? 'kyllä' : 'ei')+'</td><td><span class="pill '+r[0]+'">'+r[1]+'</span></td>'
+        + (E.cntVi ? '<td>'+(s.resVi ? '<span class="pill '+(KRES[s.resVi]||['p-na'])[0]+'">'+(KRES[s.resVi]||['',s.resVi])[1]+'</span>'+(s.vi!=null ? ' <small class="muted">'+s.vi+'</small>' : '') : '–')+'</td>' : '')+'</tr>'; }).join('') + '</tbody></table></div>';
   }
   const H = K.history || [];
   if(H.length){ const sum = H.reduce((a, n)=>{ for(const k in n.cnt||{}) a[k] = (a[k]||0) + n.cnt[k]; a.agree += n.agree ? 1 : 0; return a; }, {agree:0});
