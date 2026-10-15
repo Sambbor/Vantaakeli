@@ -1,0 +1,37 @@
+name: RoadSurf-tienpintamalli (varjoajo)
+on:
+  schedule:
+    - cron: '29 * * * *'   # kerran tunnissa (UTC), noin 10 min keliaineiston keruun jälkeen
+  workflow_dispatch:        # käsin käynnistys: Actions → RoadSurf-tienpintamalli → Run workflow
+permissions:
+  contents: write
+concurrency: roadsurf
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Asenna numpy
+        run: pip install --quiet numpy
+      - name: Hae RoadSurf-malli (FMI, MIT-lisenssi), lukittu versio
+        run: |
+          git init -q roadsurf-src && cd roadsurf-src
+          git fetch -q --depth 1 https://github.com/fmidev/RoadSurf-Python.git 61b5ee1864e1d5b6e2cdafce67a2dc9544520335
+          git checkout -q FETCH_HEAD
+      - name: Aja malli asemille
+        run: python3 collector/roadsurf.py
+        env:
+          RS_SRC: roadsurf-src/src
+      - name: Tallenna tulokset säilöön
+        run: |
+          git config user.name "keli-bot"
+          git config user.email "keli-bot@users.noreply.github.com"
+          git add data/roadsurf.json; git add data/roadsurf-*.csv 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -m "RoadSurf $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4; do git pull --rebase --autostash && git push && exit 0; sleep $((i*5)); done
+          exit 1
