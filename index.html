@@ -554,7 +554,7 @@ body.wall .tabs{display:none}
   </section>
 
   <section id="stmg" class="hide-wall" data-tab="asemat">
-    <div class="sec-h"><h2>Asemakohtainen meteogrammi</h2><span class="note">Mittaukset 24 h ← nyt → sääennuste 48 h aseman kohdalle (FMI) · tienpinnan ennuste lähimmästä tiekohdasta 12 h (Digitraffic), sen jälkeen arvio malleista 48 h asti · raita: mitattu keli ja liukkausindeksi</span></div>
+    <div class="sec-h"><h2>Asemakohtainen meteogrammi</h2><span class="note">Mittaukset 24 h ← nyt → sääennuste 48 h aseman kohdalle (FMI) · tienpinnan ennuste lähimmästä tiekohdasta 12 h (Digitraffic), sen jälkeen arvio malleista 48 h asti · RoadSurf: FMI:n tienpintamalli aseman mittauksista ja MEPS-ennusteesta (koekäytössä) · raita: mitattu keli ja liukkausindeksi</span></div>
     <div class="panel mg">
       <div class="mg-bar"><label for="mg-st" class="lg">Asema</label><select id="mg-st"></select><span class="muted" id="mg-info"></span></div>
       <div class="mg-now" id="mg-now"></div>
@@ -563,6 +563,7 @@ body.wall .tabs{display:none}
         <span><i style="background:var(--road);height:4px"></i>Tienpinta</span>
         <span><i style="background:var(--road);height:0;border-top:3px dashed var(--road)"></i>Tienpinnan ennuste 12 h</span>
         <span><i style="background:var(--road);opacity:.35;height:8px"></i>≈ Tienpinnan arvio 48 h (mallien haarukka)</span>
+        <span><i style="background:var(--level);height:3px"></i>RoadSurf-tienpintamalli (koekäyttö) · <b style="color:var(--bad)">▲</b> kuuraa / jäätä / lunta ennusteessa</span>
         <span><i style="background:linear-gradient(90deg,var(--s0),var(--s1),var(--s2),var(--s3));height:8px"></i>Raita: mitattu keli · liukkausindeksi</span>
         <span><i style="background:var(--cold)"></i>Ilma</span>
         <span><i style="background:var(--dew)"></i>Kastepiste</span>
@@ -650,6 +651,7 @@ const fmtDay = d => new Date(d).toLocaleDateString('fi-FI',{weekday:'long',day:'
 const hourOf = d => Number(new Date(d).toLocaleString('fi-FI',{hour:'2-digit',hour12:false,timeZone:TZ}));
 const n1 = v => (v==null||isNaN(v)) ? '–' : ((Math.round(v*10)/10)||0).toLocaleString('fi-FI',{minimumFractionDigits:1,maximumFractionDigits:1});
 const n0 = v => (v==null||isNaN(v)) ? '–' : (Math.round(v)||0).toLocaleString('fi-FI');
+const n2 = v => (v==null||isNaN(v)) ? '–' : (Math.round(v*100)/100).toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2});
 const ageMin = d => Math.round((Date.now()-new Date(d))/60000);
 const getJSON = url => fetch(url, HDR).then(r => { if(!r.ok) throw new Error(url+' → HTTP '+r.status); return r.json(); });
 const inBox = c => c[0]>=BBOX.xMin && c[0]<=BBOX.xMax && c[1]>=BBOX.yMin && c[1]<=BBOX.yMax;
@@ -1091,6 +1093,17 @@ async function fmiAt(lat, lon){
     if(!byT.has(t)) byT.set(t, {t}); byT.get(t)[k] = v; }
   return [...byT.values()].sort((a,b)=>a.t<b.t?-1:1);
 }
+// RoadSurf-tienpintamalli (FMI, avoin) – keruu ajaa sen kerran tunnissa asemille: data/roadsurf.json (varjoajo, ei vaikuta indeksiin)
+async function loadRs(){
+  if(mg.rs && Date.now() - mg.rsT < 10*60e3) return mg.rs;
+  mg.rs = await fetch('data/roadsurf.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null); mg.rsT = Date.now();
+  return mg.rs;
+}
+function rsSeries(st){
+  const d = mg.rs && mg.rs.st && mg.rs.st[String(st.id)]; if(!d || !d.h || !d.f0) return null;
+  const f0 = new Date(d.f0).getTime(); if(Date.now() - f0 > 4*36e5) return null;   // vanha ajo ei näy
+  return {f0, run: mg.rs.t, pts: d.h.map((v,i)=>({t: f0 + i*36e5, tr: v[0], w: v[1], ice: v[2], snow: v[3], dep: v[4]}))};
+}
 async function ensureMg(){
   if(!$('#mg-st').options.length || !mgStations().some(s=>String(s.id)===String(mg.id))) fillMgSelect();
   const st = state.stations.find(s=>String(s.id)===String(mg.id)); if(!st) return;
@@ -1101,7 +1114,7 @@ async function ensureMg(){
   const q = '?from='+isoZ(Date.now()-24*36e5)+'&to='+isoZ(Date.now());
   const [h, f] = await Promise.all([
     getJSON(DT+'/api/weather/v1/stations/'+st.id+'/data/history'+q).catch(e=>({err:e.message})),
-    fmiAt(st.lat, st.lon).catch(e=>({err:e.message}))]);
+    fmiAt(st.lat, st.lon).catch(e=>({err:e.message})), loadRs()]);
   const series = {};
   const list = h && !h.err ? (Array.isArray(h) ? h : (h.values||[])) : [];
   for(const v of list){ const name = SENSOR_NAME[v.sensorId ?? v.id]; if(!name) continue; const val = v.sensorValue ?? v.value, tt = new Date(v.measuredTime).getTime();
@@ -1149,7 +1162,7 @@ function renderMg(){
     + kv('Keli', esc(svd(st,'KELI_1')||'–'))
     + kv('Kitka', cur('KITKA1_LUKU')!=null ? n1(cur('KITKA1_LUKU')) : '–', cur('KITKA1_LUKU')!=null && cur('KITKA1_LUKU')<0.4 ? 'hot' : '')
     + kv('Ilma / kastep.', n1(cur('ILMA'))+' / '+n1(cur('KASTEPISTE'))+' °C');
-  $('#mg-info').textContent = (st.measured ? 'mitattu '+fmtT(st.measured) : '') + (seg ? ' · tieennuste: '+segLabel(seg)+(segD>150?' ('+(segD/1000).toFixed(1).replace('.',',')+' km)':'') : ' · ei tieennustetta lähellä') + (c.err.length ? ' · puuttuu: '+c.err.join(', ') : '');
+  $('#mg-info').textContent = (st.measured ? 'mitattu '+fmtT(st.measured) : '') + (seg ? ' · tieennuste: '+segLabel(seg)+(segD>150?' ('+(segD/1000).toFixed(1).replace('.',',')+' km)':'') : ' · ei tieennustetta lähellä') + (rsSeries(st) ? ' · RoadSurf-ajo '+fmtT(rsSeries(st).f0) : '') + (c.err.length ? ' · puuttuu: '+c.err.join(', ') : '');
   // --- kuvaaja
   const W = Math.max(340, Math.round($('#mg-wrap').clientWidth - 8) || 900), narrow = W < 640;
   const L = 34, R = 30, stripH = 52, BAND = 16, bandY = stripH + 4, T = bandY + BAND + 8, ih = narrow ? 190 : 230, gap = 16, bh = 70, B = 34;
@@ -1178,7 +1191,8 @@ function renderMg(){
     }
     return out.length > 2 ? out : [];
   })();
-  const temps = [].concat(est.flatMap(e=>[e.lo, e.hi]), clip(road).map(p=>p[1]), clip(air).map(p=>p[1]), clip(dew).map(p=>p[1]), fc.flatMap(r=>[r.Temperature, r.DewPoint]), rfc.map(r=>r.v), clip(frz).map(p=>p[1]).filter(v=>v<-0.05)).filter(v=>v!=null && isFinite(v));
+  const rsS = rsSeries(st), rsP = rsS ? rsS.pts.filter(p=>p.t <= t1) : [];
+  const temps = [].concat(rsP.map(p=>p.tr), est.flatMap(e=>[e.lo, e.hi]), clip(road).map(p=>p[1]), clip(air).map(p=>p[1]), clip(dew).map(p=>p[1]), fc.flatMap(r=>[r.Temperature, r.DewPoint]), rfc.map(r=>r.v), clip(frz).map(p=>p[1]).filter(v=>v<-0.05)).filter(v=>v!=null && isFinite(v));
   let lo = Math.floor(Math.min(...temps, 0) - 1), hi = Math.ceil(Math.max(...temps, 2) + 1);
   const step = (hi-lo) > 24 ? 6 : (hi-lo) > 12 ? 4 : 2; lo = Math.floor(lo/step)*step; hi = Math.ceil(hi/step)*step;
   const y = v => T + ih*(hi - Math.max(lo, Math.min(hi, v)))/(hi - lo);
@@ -1238,6 +1252,12 @@ function renderMg(){
     s += line(est.map(e=>[e.t, e.med]), 'var(--road)', 2, '2 4');
     const e = est[est.length-1]; s += '<text x="'+Math.min(W-R-30, x(e.t)-4).toFixed(1)+'" y="'+(y(e.med)-6).toFixed(1)+'" text-anchor="end" style="fill:var(--ink)">≈ tie '+n0(e.med)+'°</text>';
   }
+  if(rsP.length > 1){
+    s += line(rsP.map(p=>[p.t, p.tr]), 'var(--level)', 2.2);
+    rsP.forEach(p=>{ const k = p.ice + p.dep + p.snow; if(k < 0.02 || p.t < now - 36e5 || (narrow && hourOf(p.t) % 3)) return;
+      s += '<path d="M'+x(p.t).toFixed(1)+' '+(y(p.tr)-7).toFixed(1)+' l4 7 l-8 0 Z" fill="var(--bad)" stroke="var(--panel)" stroke-width=".8"><title>RoadSurf '+fmtT(p.t)+': '+[p.dep>=0.02?'kuuraa '+n2(p.dep)+' mm':'', p.ice>=0.02?'jäätä '+n2(p.ice)+' mm':'', p.snow>=0.02?'lunta '+n2(p.snow)+' mm':''].filter(Boolean).join(', ')+'</title></path>'; });
+    const e = rsP[rsP.length-1]; s += '<text x="'+Math.min(W-R-2, x(e.t)-2).toFixed(1)+'" y="'+(y(e.tr)+14).toFixed(1)+'" text-anchor="end" style="fill:var(--level);font-weight:600">RoadSurf '+n0(e.tr)+'°</text>';
+  }
   if(!fzOn && fz.length) s += '<text x="'+(L+6)+'" y="'+(T+14)+'">jäätymispiste 0 °C – ei suolaa tiellä</text>';
   // alapaneeli: tiellä oleva vesi / lumi / jää (mitattu) ja sade (ennuste) + kitka
   const wv = clip(water), sv_ = clip(snow), iv = clip(ice);
@@ -1277,7 +1297,9 @@ function renderMg(){
       const rv = rline.length > 1 && t <= rline[rline.length-1].t ? roadAt(rline, t, rShape) : null;
       let ee = null; if(rv == null && est.length){ for(const e of est) if(!ee || Math.abs(e.t-t) < Math.abs(ee.t-t)) ee = e; if(ee && Math.abs(ee.t-t) > 90*60e3) ee = null; }
       let sr = null; for(const r of slipRows) if(t >= r.t && t < r.t + 36e5) sr = r;
+      let rp = null; for(const p of rsP) if(!rp || Math.abs(p.t-t) < Math.abs(rp.t-t)) rp = p; if(rp && Math.abs(rp.t-t) > 40*60e3) rp = null;
       h = '<b>'+esc(fmtDT(d ? d.t : t))+' · ennuste</b>' + (rv!=null ? '<br><b>Tie '+n1(rv)+' °C</b>' : ee ? '<br><b>Tie ≈ '+n1(ee.med)+' °C</b> (arvio '+ee.n+' mallista: '+n1(ee.lo)+' … '+n1(ee.hi)+')' : '')
+        + (rp ? '<br><span style="color:var(--level)">RoadSurf: tie '+n1(rp.tr)+' °C'+(rp.dep>=0.01?' · kuuraa '+n2(rp.dep):'')+(rp.ice>=0.01?' · jäätä '+n2(rp.ice):'')+(rp.snow>=0.01?' · lunta '+n2(rp.snow):'')+(rp.w>=0.01?' · vettä '+n2(rp.w):'')+(rp.dep>=0.01||rp.ice>=0.01||rp.snow>=0.01||rp.w>=0.01?' mm':'')+'</span>' : '')
         + (sr && sr.idx != null ? '<br>Liukkausindeksi <b>'+sr.idx+'</b>'+(sr.why ? ' – '+esc(sr.why) : '') : '')
         + (d ? '<br>Ilma '+n1(d.Temperature)+' · kastep. '+n1(d.DewPoint)+' °C<br>'+esc(SYM3[Math.round(d.WeatherSymbol3)]||'')+' · pilvisyys '+n0(d.TotalCloudCover)+' %<br>Sade '+n1(d.Precipitation1h)+' mm · tuuli '+n0(d.WindSpeedMS)+' ('+n0(d.HourlyMaximumGust)+') m/s' : ''); }
     tip.hidden = false; tip.innerHTML = h;
