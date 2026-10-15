@@ -339,7 +339,63 @@ async function updateKomento(fs, now, stations, sers, rowsNow, N){
   K.now = live; K.updated = iso(now); K.v = KOMENTO_V;
   for(const [slot, a, b] of [['18', 18, 19], ['22', 22, 23]]) if(h >= a && h <= b && K.night === night && K.slots && !K.slots[slot]){
     K.slots[slot] = Object.assign({}, live, {slot}); console.log('Varjokomento klo ' + slot + ': ' + live.headline); }
+  try{ await notifyPhone(K, rowsNow, stations, now); }catch(e){ console.error('Puhelinhälytys jäi tekemättä: ' + e.message); }
   await fs.writeFile('data/komento.json', JSON.stringify(K));
+}
+
+// ---- Puhelinhälytys (nt1, 15.10.2026): ntfy-ilmoitus, kun liukkaustilanne muuttuu. Aihe GitHubin salaisuudesta NTFY_TOPIC; ilman sitä ei lähetetä.
+// Ilmoitetaan: asema mittaa liukasta (aina), toimenpide-ehdotus alkaa tai kiristyy (yöllä klo 22–06 vain, jos aikaraja on alle 3 h päässä),
+// riski poistuu kokonaan, illan klo 18 ehdotus ja aamuvertailu (hiljaiset). Toimenpide ↔ seuranta -vaihtelu ei tuota ilmoituksia.
+const NTFY_V = 'nt1', PAGE_URL = 'https://sambbor.github.io/Vantaakeli/#tilanne';
+const KELI_TXT = {5: 'kuura', 6: 'lumi', 7: 'jää', 9: 'sohjo'};
+const roadLbl = r => /^\d+$/.test(String(r.road)) ? 'Tie ' + r.road : String(r.road);
+const fmtC = v => v == null ? '' : String(Math.round(v * 10) / 10).replace('.', ',').replace('-', '−') + ' °C';
+function roadLines(C, now){ return (C.roads || []).filter(r => r.level === 'toimenpide').map(r => roadLbl(r) + ': ' + r.action + ' ' + (new Date(r.by).getTime() - now < 45 * 60e3 ? 'heti' : 'ennen klo ' + fmtHel(r.by))
+  + (r.trAt != null ? ' – tie ' + fmtC(r.trAt) : '') + (r.rs ? ' (RoadSurf: ' + r.rs + ')' : '')).join('\n'); }
+export function notifyPlan(K, rowsNow, stations, now){
+  const P = K.notify || {}, C = K.now || {}, h = hourHel(now), quiet = h >= 22 || h < 6, msgs = [];
+  const N = {...P, v: NTFY_V};
+  // 1) asema mittaa liukasta nyt
+  const slip = rowsNow.filter(o => obsSlippery(o)), slipIds = slip.map(o => o.st);
+  const fresh = slip.filter(o => !(P.slip || []).includes(o.st));
+  if(fresh.length) msgs.push({priority: 5, tags: ['warning'], title: 'Asema mittaa liukasta',
+    message: fresh.map(o => { const s = stations.find(x => x.id === o.st); return (s ? s.name : o.st) + ': ' + (KELI_TXT[o.keli] || (o.fric != null && o.fric < 0.45 ? 'kitka ' + String(o.fric).replace('.', ',') : o.warn === 2 ? 'hälytys' : 'liukas')) + ', tie ' + fmtC(o.tr); }).join('\n')});
+  N.slip = slipIds;
+  // 2) toimenpide-ehdotus
+  const act = (C.roads || []).filter(r => r.level === 'toimenpide'), roads = act.map(r => String(r.road));
+  const by = act.length ? Math.min(...act.map(r => new Date(r.by).getTime())) : null;
+  const soon = by != null && by - now <= 3 * 36e5;
+  if(act.length){
+    const isNew = P.level !== 'toimenpide', earlier = !isNew && P.by && by <= new Date(P.by).getTime() - 2 * 36e5, added = !isNew && roads.some(r => !(P.roads || []).includes(r));
+    if((isNew || earlier || added) && (!quiet || soon)){
+      msgs.push({priority: soon ? 5 : 4, tags: ['rotating_light'], title: (isNew ? 'Liukkausriski: ' : 'Päivitys: ') + C.headline.split(':')[0], message: C.headline + '\n' + roadLines(C, now)});
+      N.level = 'toimenpide'; N.by = iso(by); N.roads = roads;
+    }
+  } else if(C.level === 'ei' && P.level === 'toimenpide'){
+    msgs.push({priority: 2, tags: ['white_check_mark'], title: 'Liukkausriski poistui', message: C.headline});
+    N.level = 'ei'; N.by = null; N.roads = [];
+  } else if(!P.level) N.level = C.level === 'toimenpide' ? 'ei' : C.level;
+  // 3) illan ehdotus klo 18 ja aamuvertailu (hiljaiset)
+  const s18 = K.slots && K.slots['18'];
+  if(s18 && P.sent18 !== K.night){ N.sent18 = K.night;
+    if(!msgs.some(m => m.tags[0] === 'rotating_light')) msgs.push({priority: 2, tags: ['crescent_moon'], title: 'Illan ehdotus klo 18', message: s18.headline + (s18.level === 'toimenpide' ? '\n' + roadLines(s18, now) : '')}); }
+  const E = K.eval;
+  if(E && K.evaluated && P.evalNight !== E.night){ N.evalNight = E.night; const c = E.cnt || {};
+    msgs.push({priority: 2, tags: ['sunrise'], title: 'Aamuvertailu', message: 'Ehdotus: ' + E.headline + '\nLiukasta mitattiin ' + E.slipStations + ' asemalla · urakka ' + E.urakka
+      + '\nOsui ' + (c.osui || 0) + ', myöhässä ' + (c.myohassa || 0) + ', ohi ' + (c.ohi || 0) + ', turha ' + (c.turha || 0) + ', oikein ei ' + (c.oikein || 0)}); }
+  return {msgs, state: N};
+}
+async function notifyPhone(K, rowsNow, stations, now){
+  const topic = typeof process !== 'undefined' && process.env.NTFY_TOPIC;
+  const {msgs, state} = notifyPlan(K, rowsNow, stations, now);
+  if(!topic){ K.notify = Object.assign(state, {off: true}); return; }
+  const sent = [];
+  for(const m of msgs){
+    try{ const r = await fetch('https://ntfy.sh/', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic, click: PAGE_URL, ...m})});
+      if(!r.ok) throw new Error('HTTP ' + r.status); sent.push({t: iso(now), title: m.title, priority: m.priority}); console.log('Ilmoitus lähetetty: ' + m.title); }
+    catch(e){ console.error('Ilmoitus jäi lähettämättä (' + m.title + '): ' + e.message); }
+  }
+  K.notify = Object.assign(state, {off: false, last: sent.length ? sent[sent.length - 1] : (K.notify && K.notify.last) || null, sent: (sent.concat((K.notify && K.notify.sent) || [])).slice(0, 30)});
 }
 
 // ---- Talven tuloskortti viikoittain → data/scorecard.json
