@@ -16,6 +16,8 @@ jobs:
         with:
           node-version: 22
       - run: node collector/collect.mjs
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}   # puhelinhälytykset (ntfy); ilman salaisuutta ei lähetetä
       - name: Tallenna aineisto säilöön
         run: |
           git config user.name "keli-bot"
