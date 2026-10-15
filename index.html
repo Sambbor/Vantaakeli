@@ -463,6 +463,11 @@ body.wall .tabs{display:none}
     <div class="panel" id="sc-body"><div class="status">Ladataan…</div></div>
   </section>
 
+  <section id="rsverif" class="hide-wall" data-tab="liukkaus">
+    <div class="sec-h"><h2>Tienpintaennusteiden vertailu</h2><span class="note">RoadSurf (FMI:n tienpintamalli, koekäyttö) · Digitrafficin tiesääennuste · sivun kiinteä sääntö – verrattuna asemien mittaamaan tienpintaan · päivittyy tunneittain</span></div>
+    <div class="panel" id="rsv-body"><div class="status">Ladataan…</div></div>
+  </section>
+
   <section id="retro" class="hide-wall" data-tab="liukkaus">
     <div class="sec-h"><h2>Koko Suomen jälkitarkistus</h2><span class="note">Sivun liukkaussäännöt ajettuna jälkikäteen Tiesää-arkiston noin 525 asemalle · päivittyy kerran vuorokaudessa</span></div>
     <div class="panel" id="retro-body"><div class="status">Ladataan…</div></div>
@@ -1536,8 +1541,9 @@ async function loadObsData(){
     slip.learn = L; slip.data = true; slip.dataErr = null;
   }catch(e){ slip.learn = null; slip.data = null; slip.dataErr = e.message; }
   slip.sc = await fetch('data/scorecard.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  slip.rsv = await fetch('data/roadsurf-verif.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   slip.retro = await fetch(RETRO_URL+'?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
-  renderSlipModel(); renderSlip(); renderScorecard(); renderRetro();
+  renderSlipModel(); renderSlip(); renderScorecard(); renderRsVerif(); renderRetro();
 }
 // ---- Koko Suomen jälkitarkistus (Tiesää-arkisto, retro.mjs kerran vuorokaudessa)
 const RETRO_URL = 'https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/retro/summary.json';
@@ -1560,6 +1566,38 @@ function renderRetro(){
   if(tr.length) h += '<h3>Märkä tie pakkasella: liukasta 6 h sisällä</h3><p class="muted">"Suolaa" = jäätymispiste ≤ −1 °C. Sääntöjen oletus: suola pitää −6 °C:een asti.</p>' + tb(['Tienpinta °C','Suolaa: tunteja','liukasta','Ei suolaa: tunteja','liukasta'], tr.map(b=>[b, sa[b]?sa[b].n:0, sa[b]?pc(sa[b].slip, sa[b].n):'–', ns[b]?ns[b].n:0, ns[b]?pc(ns[b].slip, ns[b].n):'–']));
   h += '<p class="muted">Liukas havainto ja indeksi samoilla säännöillä kuin sivulla. Koko raportti maakunnittain: Tiesaa-arkisto, retro/raportti.md.</p>';
   el.innerHTML = h;
+}
+// ---- Tienpintaennusteiden vertailu (collector/roadsurf.py laskee data/roadsurf-verif.json kerran tunnissa)
+function renderRsVerif(){
+  const el = $('#rsv-body'); if(!el) return;
+  const V = slip.rsv, SRC = [['rs','RoadSurf'],['dt','Digitraffic'],['rule','Sääntö']];
+  const n6 = V && V.leads && V.leads['6'] && V.leads['6'].all ? V.leads['6'].all.n : 0;
+  if(!V || !n6){ el.innerHTML = '<p class="muted">Vertailu alkaa, kun RoadSurf-ajojen kohdehetket ovat ohi ja asema on mitannut tienpinnan (ensimmäiset 6 h tulokset noin 6 h ensimmäisen ajon jälkeen).'+(V ? ' Ajoja talletettu '+V.runs+'.' : '')+'</p>'; return; }
+  const sgn = v => (v>0?'+':'')+n1(v);
+  const cells = d => { if(!d || !d.n) return SRC.map(()=>'<td class="num">–</td>').join('');
+    const best = Math.min(...SRC.map(([k])=>d[k] ? d[k][1] : 1e9));
+    return SRC.map(([k])=>{ const x = d[k]; if(!x) return '<td class="num">–</td>'; const b = x[1] <= best + 0.005;
+      return '<td class="num">'+(b?'<b>':'')+n1(x[1])+' °C'+(b?'</b>':'')+' <small class="muted">('+sgn(x[0])+')</small></td>'; }).join(''); };
+  const head = first => '<thead><tr><th>'+first+'</th>'+SRC.map(([,n])=>'<th>'+n+'</th>').join('')+'<th>Pareja</th></tr></thead>';
+  let h = '<p>Jakso '+fmtDT(V.from)+' – '+fmtDT(V.to)+' · '+V.runs+' asema-ajoa. Kaikkia kolmea verrataan samoihin hetkiin ja asemiin.</p>';
+  h += '<div class="scroll"><table>'+head('Ennustepituus')+'<tbody>'+['2','6','12'].map(L=>{ const d = V.leads[L].all; return '<tr><td class="name">'+L+' h</td>'+cells(d)+'<td class="num">'+(d?d.n:0)+'</td></tr>'; }).join('')+'</tbody></table></div>';
+  const G = [['night','Yö (klo 18–08)'],['day','Päivä'],['cold','Kylmä tie (mitattu ≤ +3 °C)']];
+  h += '<h3 style="margin:14px 0 4px;font-size:17px">6 h ennuste tilanteittain</h3><div class="scroll"><table>'+head('Tilanne')+'<tbody>'+G.map(([g,n])=>{ const d = V.leads['6'][g]; return '<tr><td class="name">'+n+'</td>'+cells(d)+'<td class="num">'+(d?d.n:0)+'</td></tr>'; }).join('')+'</tbody></table></div>';
+  const cold = V.leads['6'].cold;
+  if(!cold || cold.n < 30) h += '<p class="muted">Kylmän tien tilanteita on vielä vähän ('+(cold?cold.n:0)+'). Ratkaiseva vertailu tulee selkeistä pakkasöistä, joissa tie jäähtyy säteilemällä – siinä RoadSurfin energiataseen pitäisi olla vahvimmillaan.</p>';
+  // liukkaus 12 h
+  const E = V.ev || {}, ln = (n, e) => { if(!e) return ''; const pod = e.hit+e.miss ? Math.round(e.hit/(e.hit+e.miss)*100)+' %' : '–', far = e.hit+e.fa ? Math.round(e.fa/(e.hit+e.fa)*100)+' %' : '–';
+    return '<tr><td class="name">'+n+'</td><td class="num">'+e.hit+'</td><td class="num">'+e.miss+'</td><td class="num">'+e.fa+'</td><td class="num">'+e.cn+'</td><td class="num">'+pod+'</td><td class="num">'+far+'</td></tr>'; };
+  h += '<h3 style="margin:14px 0 4px;font-size:17px">Liukkaus seuraavan 12 h aikana</h3><div class="scroll"><table><thead><tr><th>Hälytys</th><th>Osui</th><th>Ohi</th><th>Turha</th><th>Oikein ei</th><th>Havaitsi</th><th>Turhien osuus</th></tr></thead><tbody>'
+    + ln('RoadSurf: kuuraa, jäätä tai lunta ≥ 0,02 mm', E.rs) + ln('Sivun liukkausindeksi ≥ 50', E.idx) + ln('RoadSurf kuura → asema mittasi kuuraa (keli 5)', V.frost)
+    + '</tbody></table></div><p class="muted">Liukas = asema mittasi kuuraa, lunta, jäätä tai sohjoa (keli) tai jäätä tiellä, kun tie ≤ +1 °C. Lämpimällä kelillä kaikki ovat "oikein ei" – luvut alkavat kertoa jotain vasta pakkasilla.</p>';
+  // asemittain ja viikoittain
+  const st = Object.entries(V.st||{});
+  if(st.length) h += '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Asemittain (6 h)</summary><div class="scroll"><table>'+head('Asema')+'<tbody>'
+    + st.map(([id,d])=>'<tr><td class="name">'+esc(d.name||id)+'</td>'+cells(d)+'<td class="num">'+d.n+'</td></tr>').join('')+'</tbody></table></div></details>';
+  if((V.weeks||[]).length) h += '<details style="margin-top:6px"><summary style="cursor:pointer;font-weight:600">Viikoittain (6 h)</summary><div class="scroll"><table>'+head('Viikko')+'<tbody>'
+    + V.weeks.slice().reverse().map(d=>'<tr><td class="name">vko '+Number(d.w.split('-W')[1])+'</td>'+cells(d)+'<td class="num">'+d.n+'</td></tr>').join('')+'</tbody></table></div></details>';
+  el.innerHTML = h + '<p class="muted" style="margin-top:8px">Luku = keskimääräinen virhe mitattuun tienpintaan, lihavoitu paras; suluissa harha (+ = ennuste liian lämmin, − = liian kylmä). Digitraffic = lähimmän tiekohdan tiesääennuste, sääntö = Ilmatieteen laitoksen ilman ennuste − 0,3 °C (selkeänä yönä − 1,5 °C). Päivitetty '+fmtDT(V.t)+'. Ei vaikuta liukkausindeksiin.</p>';
 }
 // ---- Talven tuloskortti (keruu laskee data/scorecard.json kerran tunnissa)
 function renderScorecard(){
