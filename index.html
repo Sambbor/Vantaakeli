@@ -447,6 +447,11 @@ body.wall .tabs{display:none}
     <div class="panel" id="night-body"></div>
   </section>
 
+  <section id="komento" class="hide-wall" data-tab="tilanne" hidden>
+    <div class="sec-h"><h2>Varjokomento</h2><span class="note">Kokeilu: sivu ehdottaa illan toimenpiteet klo 18 ja 22 liukkausindeksin perusteella, aamulla ehdotusta verrataan asemien mittauksiin ja urakan toteumiin · ei ohjaa mitään</span></div>
+    <div class="panel" id="komento-body"></div>
+  </section>
+
   <section id="slip" data-tab="liukkaus">
     <div class="sec-h"><h2>Liukkausennuste asemittain 24 h</h2><span class="note">Oma liukkausindeksi 0–100 jokaiselle tiesääasemalle tunneittain · vaihe 1: fysiikkapohjainen, opettuu keräämällä dataa</span></div>
     <div class="panel slip-panel">
@@ -1684,10 +1689,45 @@ const pctTxt = v => v == null ? '–' : Math.round(v*100)+' %';
 // ---- Yön yhteenveto: keruu kirjoittaa data/night.json joka ajolla (yö klo 18–08 Suomen aikaa)
 const nightS = {t:0, d:null};
 async function loadNight(){
-  if(nightS.t && Date.now() - nightS.t < 10*60e3){ renderNight(); return; }
+  if(nightS.t && Date.now() - nightS.t < 10*60e3){ renderNight(); renderKomento(); return; }
   nightS.t = Date.now();
   nightS.d = await fetch('data/night.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
-  renderNight();
+  nightS.k = await fetch('data/komento.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  renderNight(); renderKomento();
+}
+// ---- Varjokomento (collector/collect.mjs → data/komento.json): illan ehdotus klo 18 ja 22, aamuvertailu
+const KLEVEL = {toimenpide:['p-bad','Toimenpide'], seuranta:['p-warn','Seuranta'], ei:['p-ok','Ei toimenpiteitä']};
+const KRES = {osui:['p-ok','osui ajoissa'], myohassa:['p-warn','myöhässä / jo liukas'], ohi:['p-bad','ohi'], turha:['p-na','turha'], suolattiin:['p-na','ei liukasta – suolattiin'], oikein:['p-ok','oikein: ei tarvetta']};
+function renderKomento(){
+  const sec = $('#komento'), el = $('#komento-body'), K = nightS.k; if(!sec || !el) return;
+  if(!K || !K.now){ sec.hidden = true; return; }
+  sec.hidden = false;
+  const h = hourHel(Date.now()), inNight = h >= 18 || h < 8, slot = K.slots && (K.slots['22'] || K.slots['18']);
+  const C = inNight && slot ? slot : K.now, lv = KLEVEL[C.level] || KLEVEL.ei;
+  const roadName = r => /^\d+$/.test(String(r.road)) ? 'Tie '+r.road : esc(r.road);
+  const when = (by, t0) => !by ? '–' : new Date(by) - new Date(t0) < 45*60e3 ? 'heti' : 'ennen klo '+fmtT(by);
+  let x = '<p style="margin:0 0 6px"><span class="pill '+lv[0]+'">'+lv[1]+'</span> <b>'+esc(C.headline)+'</b></p>'
+    + '<p class="muted" style="margin:0 0 8px">'+(C === K.now ? 'Ehdotus nyt (päivittyy 30 min välein; tallennetaan vertailua varten klo 18 ja 22)' : 'Klo '+C.slot+' tallennettu ehdotus')+' · tarkastelu klo '+fmtT(C.to)+' asti · laskettu '+fmtT(C.t)+'</p>';
+  if(C.roads && C.roads.length) x += '<div class="scroll"><table><thead><tr><th>Tie</th><th>Ehdotus</th><th>Milloin</th><th>Syy</th><th>Tie silloin / min</th><th>RoadSurf</th><th>Asemat</th></tr></thead><tbody>'
+    + C.roads.map(r=>'<tr><td class="name">'+roadName(r)+'</td><td>'+(r.level==='toimenpide' ? esc(r.action) : '<span class="muted">seuranta</span>')+'</td><td>'+(r.level==='toimenpide' ? when(r.by, C.t) : '–')+'</td><td>'+esc(r.why||'–')+'</td>'
+      + '<td class="num">'+(r.trAt!=null ? n1(r.trAt)+' °C' : '–')+' / '+(r.trMin!=null ? n1(r.trMin)+' °C' : '–')+'</td><td>'+(r.rs ? esc(r.rs) : '–')+'</td><td><small>'+esc((r.stations||[]).join(', '))+'</small></td></tr>').join('') + '</tbody></table></div>';
+  // viime yön vertailu
+  const E = K.eval;
+  if(E){ const day = new Date(E.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'}), c = E.cnt || {};
+    const ws = E.works && E.works.salt && E.works.salt.n ? 'suolasi '+E.works.salt.n+(E.works.salt.n > 1 ? ' kertaa ('+fmtT(E.works.salt.first)+'–'+fmtT(E.works.salt.last)+')' : ' kerran ('+fmtT(E.works.salt.first)+')') : 'ei suolannut';
+    x += '<h3 style="margin:14px 0 4px;font-size:17px">Aamuvertailu: yö '+esc(day)+'</h3><p style="margin:0 0 6px">Klo '+esc(E.slot)+' ehdotus: <b>'+esc(E.headline)+'</b><br>Asemat mittasivat liukasta: <b>'+E.slipStations+'</b> · urakka '+ws+' · '
+      + (E.agree ? '<span class="pill p-ok">ehdotus ja urakka samaa mieltä</span>' : '<span class="pill p-warn">ehdotus ja urakka eri mieltä</span>')+'</p>'
+      + '<div class="scroll"><table><thead><tr><th>Asema</th><th>Ehdotus</th><th>Liukasta mitattiin</th><th>Yön alin tie</th><th>Suolattu lähellä</th><th>Tulos</th></tr></thead><tbody>'
+      + (E.stations||[]).map(s=>{ const r = KRES[s.res] || ['p-na', s.res]; return '<tr><td class="name">'+esc(s.name)+'</td><td>'+(s.level==='toimenpide' ? esc(s.action)+(s.by ? ' – ennen klo '+fmtT(s.by) : '') : esc((KLEVEL[s.level]||KLEVEL.ei)[1]))+'</td>'
+        + '<td>'+(s.slipFirst ? 'klo '+fmtT(s.slipFirst)+(s.keli!=null && KELI_FI[s.keli] ? ' ('+esc(KELI_FI[s.keli])+')' : '') : 'ei')+'</td><td class="num">'+(s.trMin!=null ? n1(s.trMin)+' °C' : '–')+'</td><td>'+(s.salted ? 'kyllä' : 'ei')+'</td><td><span class="pill '+r[0]+'">'+r[1]+'</span></td></tr>'; }).join('') + '</tbody></table></div>';
+  }
+  const H = K.history || [];
+  if(H.length){ const sum = H.reduce((a, n)=>{ for(const k in n.cnt||{}) a[k] = (a[k]||0) + n.cnt[k]; a.agree += n.agree ? 1 : 0; return a; }, {agree:0});
+    x += '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Kaikki yöt ('+H.length+') · samaa mieltä urakan kanssa '+sum.agree+'/'+H.length+' · asemittain: osui '+(sum.osui||0)+', myöhässä '+(sum.myohassa||0)+', ohi '+(sum.ohi||0)+', turha '+(sum.turha||0)+'</summary>'
+      + '<div class="scroll"><table><thead><tr><th>Yö</th><th>Ehdotus</th><th>Urakka</th><th>Liukkaita asemia</th><th>Osui / myöhässä / ohi / turha / suolattiin / oikein</th></tr></thead><tbody>'
+      + H.map(n=>{ const c = n.cnt||{}; return '<tr><td class="name">'+esc(new Date(n.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'}))+'</td><td><span class="pill '+(KLEVEL[n.level]||KLEVEL.ei)[0]+'">'+(KLEVEL[n.level]||KLEVEL.ei)[1]+'</span></td><td>'+esc(n.urakka)+(n.agree?'':' ≠')+'</td><td class="num">'+n.slip+'</td><td class="num">'+[c.osui,c.myohassa,c.ohi,c.turha,c.suolattiin,c.oikein].map(v=>v||0).join(' / ')+'</td></tr>'; }).join('') + '</tbody></table></div></details>';
+  }
+  el.innerHTML = x + '<p class="muted" style="margin-top:8px">Ehdotus syntyy, kun liukkausindeksi nousee asemalla 50:een ennen klo 08: toimenpide valmiiksi ennen riskin alkua. Alle −6 °C ehdotetaan hiekoitusta rampeille ja liittymiin, koska suola ei tehoa. Seuranta = indeksi 30–49 tai RoadSurf ennustaa kuuraa, jäätä tai lunta. Turha = ehdotettiin, mutta liukasta ei mitattu eikä lähellä suolattu.</p>';
 }
 function renderNight(){
   const sec = $('#night'), el = $('#night-body'), N = nightS.d; if(!sec || !el) return;
