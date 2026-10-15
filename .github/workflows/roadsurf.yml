@@ -30,7 +30,7 @@ jobs:
         run: |
           git config user.name "keli-bot"
           git config user.email "keli-bot@users.noreply.github.com"
-          git add data/roadsurf.json; git add data/roadsurf-*.csv 2>/dev/null || true
+          git add data/roadsurf.json; git add data/roadsurf-* 2>/dev/null || true
           git diff --cached --quiet && exit 0
           git commit -m "RoadSurf $(date -u +%Y-%m-%dT%H:%MZ)"
           for i in 1 2 3 4; do git pull --rebase --autostash && git push && exit 0; sleep $((i*5)); done
