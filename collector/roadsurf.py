@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RoadSurf-tienpintamalli Vantaan tiesääasemille – varjoajo (vaihe 2, rs1, 15.10.2026).
+"""RoadSurf-tienpintamalli Vantaan tiesääasemille – varjoajo (vaihe 2, rs1, 15.10.2026; vertailu vaihe 3, rs2).
 
 Ilmatieteen laitoksen avoin tienpintamalli RoadSurf (MIT-lisenssi, github.com/fmidev/RoadSurf-Python)
 ajetaan kerran tunnissa jokaiselle asemalle:
@@ -9,6 +9,7 @@ ajetaan kerran tunnissa jokaiselle asemalle:
 Tulokset:
   * data/roadsurf.json          – uusin ajo asemittain tunneittain (sivun meteogrammi)
   * data/roadsurf-YYYY-MM.csv   – ennusteet +1…+48 h talteen vertailua varten (varjoajo)
+  * data/roadsurf-verif.json    – vertailu: RoadSurf vs. Digitraffic vs. sivun sääntö mitattuun tienpintaan (60 vrk)
 Ei vaikuta liukkausindeksiin eikä hälytyksiin.
 
 Ajo: python3 collector/roadsurf.py   (ympäristö: RS_SRC = RoadSurf-Python/src -hakemisto)
@@ -18,7 +19,7 @@ import os, sys, json, math, time, types, urllib.request, urllib.parse
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 
-VERSION = 'rs1'
+VERSION = 'rs2'
 os.environ['TZ'] = 'UTC'; time.tzset()          # RoadSurf käyttää naiiveja aikoja → UTC
 # RoadSurf tuo matplotlibin, vaikka ei piirrä mitään ajon aikana: korvataan tyhjällä moduulilla
 _mpl = types.ModuleType('matplotlib'); _mpl.pyplot = types.ModuleType('matplotlib.pyplot')
@@ -196,6 +197,102 @@ def station(st, rows, now):
     if not res: return None, 'malliajo epäonnistui'
     return {'f0': f0, 'tr0': hr[f0]['tr'], 'n_obs': n_obs, 'res': res}, None
 
+# ---------- vaihe 3: vertailu mitattuun tienpintaan (data/roadsurf-verif.json) ----------
+# Samat alkuhetket ja asemat kaikille kolmelle: RoadSurf, Digitrafficin tiesääennuste (lähin tiekohta, obs-rivin fc2/fc6/fc12)
+# ja sivun kiinteä sääntö (FMI:n ilman ennuste − 0,3 °C, selkeänä yönä − 1,5 °C). Totuus = aseman mittaama tienpinta.
+VLEADS = [2, 6, 12]
+SLIP_KELI = (5, 6, 7, 9)
+
+
+def hel_hour(t):
+    from zoneinfo import ZoneInfo
+    return datetime.fromtimestamp(t, ZoneInfo('Europe/Helsinki')).hour
+
+
+def read_csv_months(prefix, months, cols):
+    out = []
+    for m in months:
+        p = os.path.join(DATA, '%s-%s.csv' % (prefix, m))
+        if not os.path.exists(p): continue
+        with open(p, encoding='utf-8') as f:
+            head = f.readline().strip().split(','); ix = {k: i for i, k in enumerate(head)}
+            for line in f:
+                v = line.rstrip('\n').split(',')
+                if len(v) < len(head): continue
+                r = {}
+                for k in cols:
+                    x = v[ix[k]] if k in ix else ''
+                    r[k] = x if k in ('t', 'st', 'f0', 'v') else fnum(x)
+                out.append(r)
+    return out
+
+
+def stat(pairs):
+    if not pairs: return None
+    e = [a - b for a, b in pairs]
+    return [round(sum(e) / len(e), 2), round(sum(abs(x) for x in e) / len(e), 2)]
+
+
+def verify(now, stations, days=60):
+    nowt = ts(now)
+    months = sorted({(now - timedelta(days=d)).strftime('%Y-%m') for d in range(0, days + 1, 5)} | {now.strftime('%Y-%m')})
+    rs = [r for r in read_csv_months('roadsurf', months, ['st', 'f0', 'rs2', 'rs6', 'rs12', 'ice12', 'dep12', 'snow12'])
+          if r['f0'] and nowt - ts(datetime.fromisoformat(r['f0'].replace('Z', '+00:00'))) <= days * 86400]
+    if not rs: return None
+    obs_cols = ['t', 'st', 'tr', 'keli', 'ice', 'fc2', 'fc6', 'fc12', 'f2_t', 'f6_t', 'f12_t', 'f2_cc', 'f6_cc', 'f12_cc', 'idx2', 'idx6', 'idx12']
+    obs = read_csv_months('obs', months, obs_cols)
+    by = {}
+    for r in obs:
+        try: r['t'] = ts(datetime.fromisoformat(r['t'].replace('Z', '+00:00')))
+        except ValueError: continue
+        by.setdefault(r['st'], []).append(r)
+    H_ = {sid: hourly(rows) for sid, rows in by.items()}
+    groups = ('all', 'night', 'day', 'cold')
+    acc = {L: {g: {'rs': [], 'dt': [], 'rule': []} for g in groups} for L in VLEADS}
+    per = {}; weeks = {}
+    ev = {k: {'hit': 0, 'miss': 0, 'fa': 0, 'cn': 0} for k in ('rs', 'idx')}
+    fr = {'hit': 0, 'miss': 0, 'fa': 0, 'cn': 0}
+    t_lo, t_hi = None, None
+    for r in rs:
+        f0 = ts(datetime.fromisoformat(r['f0'].replace('Z', '+00:00'))); hr = H_.get(r['st'], {}); ref = hr.get(f0)
+        if not ref: continue
+        t_lo = f0 if t_lo is None else min(t_lo, f0); t_hi = f0 if t_hi is None else max(t_hi, f0)
+        for L in VLEADS:
+            T = f0 + L * H
+            if T > nowt: continue
+            o = hr.get(T)
+            if not o or o['tr'] is None: continue
+            a_rs, a_dt, ft, cc = r['rs%d' % L], ref['fc%d' % L], ref['f%d_t' % L], ref['f%d_cc' % L]
+            if a_rs is None or a_dt is None or ft is None: continue       # vain parit, joissa kaikki kolme
+            night = hel_hour(T) >= 18 or hel_hour(T) < 8
+            a_rule = ft - (1.5 if (cc is not None and cc < 30 and night) else 0.3)
+            for g in ('all', 'night' if night else 'day') + (('cold',) if o['tr'] <= 3 else ()):
+                for k, a in (('rs', a_rs), ('dt', a_dt), ('rule', a_rule)): acc[L][g][k].append((a, o['tr']))
+            if L == 6:
+                p = per.setdefault(r['st'], {'rs': [], 'dt': [], 'rule': []})
+                wk = datetime.fromtimestamp(f0, timezone.utc).strftime('%G-W%V'); w = weeks.setdefault(wk, {'rs': [], 'dt': [], 'rule': []})
+                for k, a in (('rs', a_rs), ('dt', a_dt), ('rule', a_rule)): p[k].append((a, o['tr'])); w[k].append((a, o['tr']))
+        # liukkaus 12 h sisällä: RoadSurfin varastot vs. sivun liukkausindeksi
+        if f0 + 12 * H <= nowt:
+            fut = [hr.get(f0 + k * H) for k in range(1, 13)]; fut = [x for x in fut if x]
+            if len(fut) >= 9:
+                slip = any(((x['keli'] is not None and int(x['keli']) in SLIP_KELI) or (x['ice'] or 0) >= 0.1) and (x['tr'] is None or x['tr'] <= 1) for x in fut)
+                kuura = any(x['keli'] is not None and int(x['keli']) == 5 for x in fut)
+                a_rs = ((r['ice12'] or 0) + (r['dep12'] or 0) + (r['snow12'] or 0)) >= 0.02
+                ix = [ref['idx%d' % L] for L in VLEADS if ref['idx%d' % L] is not None]
+                a_ix = bool(ix) and max(ix) >= 50
+                for k, a in (('rs', a_rs), ('idx', a_ix)):
+                    ev[k]['hit' if a and slip else 'miss' if slip else 'fa' if a else 'cn'] += 1
+                a_fr = (r['dep12'] or 0) >= 0.02
+                fr['hit' if a_fr and kuura else 'miss' if kuura else 'fa' if a_fr else 'cn'] += 1
+    names = {str(s['id']): s.get('name') for s in stations}
+    pack = lambda d: {'n': len(d['rs']), 'rs': stat(d['rs']), 'dt': stat(d['dt']), 'rule': stat(d['rule'])}
+    return {'t': iso(nowt), 'v': VERSION, 'days': days, 'from': iso(t_lo) if t_lo else None, 'to': iso(t_hi) if t_hi else None, 'runs': len(rs),
+            'leads': {str(L): {g: pack(acc[L][g]) for g in groups} for L in VLEADS},
+            'st': {sid: dict(pack(d), name=names.get(sid, sid)) for sid, d in sorted(per.items())},
+            'weeks': [dict(pack(d), w=w) for w, d in sorted(weeks.items())],
+            'ev': ev, 'frost': fr}
+
 
 def main():
     now = now_utc()
@@ -233,6 +330,14 @@ def main():
         with open(p, 'a', encoding='utf-8') as f:
             if new: f.write(','.join(CSV_COLS) + '\n')
             for r in csv_rows: f.write(','.join('' if x is None else str(x) for x in r) + '\n')
+    try:
+        V = verify(now, stations)
+        if V:
+            with open(os.path.join(DATA, 'roadsurf-verif.json'), 'w', encoding='utf-8') as f: json.dump(V, f, separators=(',', ':'), ensure_ascii=False)
+            a = V['leads']['6']['all']
+            log('Vertailu 6 h: %d paria, keskivirhe RoadSurf %s · Digitraffic %s · sääntö %s' % (a['n'], (a['rs'] or ['-', '-'])[1], (a['dt'] or ['-', '-'])[1], (a['rule'] or ['-', '-'])[1]))
+    except Exception as e:
+        log('Vertailu jäi laskematta: %s' % e)
     ok = sum(1 for v in out['st'].values() if 'h' in v)
     log('RoadSurf %s: %d/%d asemaa, %d riviä talteen' % (VERSION, ok, len(stations), len(csv_rows)))
     if ok == 0 and stations: sys.exit(1)
