@@ -244,6 +244,104 @@ export function nightSummary(all, stations, works, camEvents, now){
     cam: {events: ev.filter(e => e.kind !== 'alue').length, confirmed: ev.filter(e => e.kind !== 'alue' && e.status === 'vahvistettu').length, regional: ev.filter(e => e.kind === 'alue').length}};
 }
 
+// ---- Varjokomento (vk1, 15.10.2026): illan toimenpide-ehdotus klo 18 ja 22 sekä aamuvertailu → data/komento.json, data/komennot/YYYY-MM-DD.json
+// Varjotila: ehdotus ei ohjaa mitään. Se muodostetaan sivun liukkausindeksistä (sama sääntökoodi) aseman 14 h sarjasta;
+// RoadSurfin kuura-/jää-/lumivarasto kirjataan rinnalle. Aamulla verrataan asemien mittaamaan liukkauteen ja urakan Harja-toteumiin.
+const KOMENTO_V = 'vk1';
+const ACTION_BY_WHY = {
+  'kuura': 'Ennakkosuolaus (kuura)', 'märkä tie jäätyy': 'Ennakkosuolaus (märkä tie jäätyy)', 'jäätävä sade': 'Ennakkosuolaus ennen jäätävää sadetta',
+  'lumisade': 'Lumityövalmius: auraus ja suolaus', 'lumi / sohjo': 'Lumityövalmius: auraus ja suolaus',
+  'havaittu liukkaus': 'Liukkaudentorjunta heti', 'tiesääennuste (Digitraffic)': 'Ennakkosuolaus (Digitrafficin liukkausvaroitus)'};
+const fmtHel = t => new Date(t).toLocaleTimeString('fi-FI', {hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Helsinki'});
+const r1k = v => v == null ? null : Math.round(v * 10) / 10;
+function nextHel8(now){ const d = helDate(hourHel(now) < 8 ? now : now + 24 * 36e5).split('-').map(Number); return helUtc(d[0], d[1], d[2], 8); }
+export function shadowCommand(now, stations, sers, rs, rowsNow, slot){
+  const to = (hourHel(now) >= 14 || hourHel(now) < 8) ? nextHel8(now) : now + 12 * 36e5;
+  const out = {v: KOMENTO_V, rv: RULES_VERSION, t: iso(now), slot, night: helDate(hourHel(now) < 8 ? now - 12 * 36e5 : now), from: iso(now), to: iso(to), stations: {}, roads: []};
+  const rsOk = rs && rs.st ? rs.st : {};
+  for(const st of stations){
+    const S = (sers[st.id] || []).filter(c => c.t >= now - 30 * 60e3 && c.t <= to + 30 * 60e3); if(!S.length) continue;
+    const row = rowsNow.find(o => o.st === st.id) || {};
+    const first = S.find(c => c.idx != null && c.idx >= 50), peak = S.reduce((a, c) => c.idx != null && (!a || c.idx > a.idx) ? c : a, null);
+    const trs = S.filter(c => c.tr != null), mn = trs.reduce((a, c) => !a || c.tr < a.tr ? c : a, null);
+    let rsFirst = null, rsKind = null, rsMin = null;
+    const R = rsOk[String(st.id)];
+    if(R && R.h && R.f0){ const f0 = new Date(R.f0).getTime();
+      if(now - f0 <= 4 * 36e5) R.h.forEach((v, i) => { const t = f0 + i * 36e5; if(t < now - 30 * 60e3 || t > to) return;
+        if(rsMin == null || v[0] < rsMin) rsMin = v[0];
+        if(!rsFirst && v[2] + v[3] + v[4] >= 0.02){ rsFirst = t; rsKind = v[4] >= v[2] && v[4] >= v[3] ? 'kuura' : v[3] >= v[2] ? 'lumi' : 'jää'; } }); }
+    const cold = first && first.tr != null && first.tr <= SALT_LIMIT;
+    const level = first ? 'toimenpide' : (peak && peak.idx >= 30) || rsFirst ? 'seuranta' : 'ei';
+    const action = !first ? null : cold ? 'Hiekoitus rampeille ja liittymiin (suola ei tehoa alle −6 °C)' : (ACTION_BY_WHY[first.why] || 'Ennakkosuolaus');
+    const by = first ? Math.max(now, Math.floor(first.t / 36e5) * 36e5) : null;
+    out.stations[st.id] = {name: st.name, road: st.road, level, action, by: by && iso(by), first: first && iso(first.t), why: first ? first.why : peak && peak.idx >= 30 ? peak.why : null,
+      idx: peak ? peak.idx : null, trAt: first ? r1k(first.tr) : null, trMin: mn ? r1k(mn.tr) : null, trMinT: mn ? iso(mn.t) : null,
+      rsFirst: rsFirst && iso(rsFirst), rsKind, rsMin: r1k(rsMin), tfNow: row.tf ?? null, saltNow: row.salt ?? null, trNow: row.tr ?? null};
+  }
+  // tieosittain (asemien tie): kiireellisin asema ratkaisee
+  const byRoad = {};
+  for(const [id, s] of Object.entries(out.stations)){ const k = s.road || s.name; (byRoad[k] = byRoad[k] || []).push({id, ...s}); }
+  const rank = {toimenpide: 2, seuranta: 1, ei: 0};
+  for(const [road, a] of Object.entries(byRoad)){
+    a.sort((p, q) => (rank[q.level] - rank[p.level]) || ((p.by ? new Date(p.by).getTime() : 9e15) - (q.by ? new Date(q.by).getTime() : 9e15)));
+    const s = a[0]; if(s.level === 'ei') continue;
+    out.roads.push({road, level: s.level, action: s.action, by: s.by, why: s.why, trAt: s.trAt, trMin: s.trMin, station: s.name, stations: a.filter(x => x.level !== 'ei').map(x => x.name),
+      rs: s.rsFirst ? s.rsKind + ' ' + fmtHel(s.rsFirst) : null});
+  }
+  out.roads.sort((p, q) => (rank[q.level] - rank[p.level]) || ((p.by ? new Date(p.by).getTime() : 9e15) - (q.by ? new Date(q.by).getTime() : 9e15)));
+  const act = out.roads.filter(r => r.level === 'toimenpide'), watch = out.roads.filter(r => r.level === 'seuranta');
+  const all = Object.values(out.stations), coldest = all.filter(s => s.trMin != null).sort((p, q) => p.trMin - q.trMin)[0];
+  const roadName = r => /^\d+$/.test(String(r.road)) ? 'Tie ' + r.road : r.road;
+  out.level = act.length ? 'toimenpide' : watch.length ? 'seuranta' : 'ei';
+  const when = by => new Date(by).getTime() - now < 45 * 60e3 ? 'heti' : 'valmiina ennen klo ' + fmtHel(by);
+  out.headline = act.length ? act[0].action.split(' (')[0] + ': ' + act.map(roadName).join(', ') + ' – ' + when(act[0].by)
+    : watch.length ? 'Seuranta: ' + watch.map(roadName).join(', ') + ' – liukkausriski kasvaa, ei vielä toimenpiderajaa'
+    : 'Ei toimenpiteitä klo ' + fmtHel(to) + ' asti' + (coldest ? ' – kylmin tienpinta ' + String(coldest.trMin).replace('.', ',') + ' °C (' + coldest.name.replace(/^Tie \d+,? ?/, '') + ')' : '');
+  return out;
+}
+// Aamuvertailu: komento (klo 22, muuten klo 18) vs. asemien mittaama liukkaus ja urakan toteumat yön aikana
+export function evalCommand(K, N){
+  const cmd = K.slots && (K.slots['22'] || K.slots['18']); if(!cmd || !N) return null;
+  const st = [], cnt = {osui: 0, myohassa: 0, ohi: 0, turha: 0, suolattiin: 0, oikein: 0};
+  for(const s of N.stations){
+    const c = cmd.stations[s.id] || cmd.stations[String(s.id)]; if(!c) continue;
+    const act = c.level === 'toimenpide', slip = !!s.slipFirst;
+    let res;
+    if(act && slip) res = c.by && new Date(c.by) <= new Date(s.slipFirst) ? 'osui' : 'myohassa';
+    else if(act) res = s.saltMin ? 'suolattiin' : 'turha';
+    else res = slip ? 'ohi' : 'oikein';
+    cnt[res]++;
+    st.push({id: s.id, name: s.name, level: c.level, action: c.action, by: c.by, why: c.why, rs: c.rsFirst ? c.rsKind : null, slipFirst: s.slipFirst, keli: s.keli, trMin: s.trMin, salted: !!s.saltMin, res});
+  }
+  const ws = N.works && N.works.salt && N.works.salt.n || 0;
+  return {night: N.night, slot: cmd.slot, level: cmd.level, headline: cmd.headline, slipStations: N.summary.slipStations, coldest: N.summary.coldest,
+    works: N.works, urakka: ws ? 'suolasi' : 'ei suolannut', agree: (cmd.level === 'toimenpide') === (ws > 0), cnt, stations: st};
+}
+async function updateKomento(fs, now, stations, sers, rowsNow, N){
+  let K = {}; try{ K = JSON.parse(await fs.readFile('data/komento.json', 'utf8')); }catch(e){}
+  let rs = null; try{ rs = JSON.parse(await fs.readFile('data/roadsurf.json', 'utf8')); }catch(e){}
+  const h = hourHel(now), night = helDate(h < 8 ? now - 12 * 36e5 : now);
+  // aamuvertailu valmiista yöstä
+  if(K.night && !K.evaluated && N && N.complete && N.night === K.night){
+    const E = evalCommand(K, N);
+    if(E){ K.evaluated = iso(now); K.eval = E;
+      await fs.mkdir('data/komennot', {recursive: true});
+      await fs.writeFile('data/komennot/' + K.night + '.json', JSON.stringify({night: K.night, slots: K.slots, eval: E}));
+      K.history = [{night: E.night, level: E.level, headline: E.headline, urakka: E.urakka, agree: E.agree, slip: E.slipStations, cnt: E.cnt}].concat((K.history || []).filter(x => x.night !== E.night)).slice(0, 60);
+    } else K.evaluated = 'ei vertailtavaa';
+  }
+  // uusi ilta: edellisen yön komennot arkistoon (vaikka vertailu ei onnistuisi)
+  if(h >= 18 && K.night !== night){
+    if(K.night && K.slots && !K.evaluated){ await fs.mkdir('data/komennot', {recursive: true}); await fs.writeFile('data/komennot/' + K.night + '.json', JSON.stringify({night: K.night, slots: K.slots, eval: null})); }
+    K.night = night; K.slots = {}; K.evaluated = null; K.eval = K.eval || null;
+  }
+  const live = shadowCommand(now, stations, sers, rs, rowsNow, 'nyt');
+  K.now = live; K.updated = iso(now); K.v = KOMENTO_V;
+  for(const [slot, a, b] of [['18', 18, 19], ['22', 22, 23]]) if(h >= a && h <= b && K.night === night && K.slots && !K.slots[slot]){
+    K.slots[slot] = Object.assign({}, live, {slot}); console.log('Varjokomento klo ' + slot + ': ' + live.headline); }
+  await fs.writeFile('data/komento.json', JSON.stringify(K));
+}
+
 // ---- Talven tuloskortti viikoittain → data/scorecard.json
 const isoWeek = t => { const d = new Date(helDate(t) + 'T12:00:00Z'), day = (d.getUTCDay() + 6) % 7; d.setUTCDate(d.getUTCDate() - day + 3);
   const y = d.getUTCFullYear(), w1 = new Date(Date.UTC(y, 0, 4)); return y + '-W' + String(1 + Math.round(((d - w1) / 864e5 - 3 + ((w1.getUTCDay() + 6) % 7)) / 7)).padStart(2, '0'); };
@@ -369,7 +467,7 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
     for(const w of works) if(w.tasks.some(pred) && (!last || w.end > last) && w.pts.some(c => Math.hypot((c[0]-st.lon)*M_LON, (c[1]-st.lat)*M_LAT) <= 500)) last = w.end;
     return last ? Math.round((now - last) / 60e3) : null; };
   // asemarivit
-  const rows = [], stPos = [], stale = {};
+  const rows = [], stPos = [], stale = {}, sers = {};
   for(const s of (data.stations || [])){
     if(!ids.has(s.id)) continue; const st = stations.find(x => x.id === s.id);
     // yli 2 h vanhat lukemat jätetään pois (jumittunut anturi) – samoin kuin sivulla
@@ -396,6 +494,7 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
     const ser = fmiRows.length ? slipSeriesCore({now, rows: fmiRows.slice(0, 14), trNow: tr, fc: F, tf0: Math.min(0, tf ?? 0), wetNow, slipNow, dewNow: v.KASTEPISTE, bias: learn && learn.bias && learn.bias[s.id], frAcc0: frAcc}) : [];
     const at = L => ser.find(c => Math.abs(c.lead - L) < 0.5) || null;
     const i2 = at(2), i6 = at(6), i12 = at(12);
+    sers[s.id] = ser.map(c => ({t: c.t, idx: c.idx, why: c.why, tr: c.x && c.x.tr != null ? Math.round(c.x.tr * 10) / 10 : null}));
     rows.push({t: iso(now), st: s.id, tr, ta: v.ILMA, td: v.KASTEPISTE, tf,
       salt: v['SUOLAN_MÄÄRÄ_' + lane] ?? v.SUOLAN_MÄÄRÄ_1 ?? null, water, snow, ice, fric: fr.length ? Math.min(...fr) : null, keli, warn: warn < 0 ? null : warn, ws: v.KESKITUULI ?? null,
       seg, fc_obs: obs ? obs.roadTemperature : null,
@@ -423,7 +522,7 @@ export async function collectRows(get, getText, cachedStations, learn, withSegme
       c2: reason(by('2h')), c4: reason(by('4h')), c6: reason(by('6h')), c12: reason(by('12h')), st: nst && nst.id, st_d: nst ? Math.round(nd) : null});
   }
   for(const id of Object.keys(frost)) if(now - frost[id].t > 2 * 36e5) delete frost[id];
-  return {stations, rows, segRows, works, stale, frost};
+  return {stations, rows, segRows, works, stale, frost, sers};
 }
 
 // ---- Oppiminen kerätystä aineistosta → data/learn.json (sivu lukee tämän)
@@ -499,7 +598,7 @@ async function main(){
   let idx = {months: []}; try{ idx = JSON.parse(await fs.readFile('data/index.json', 'utf8')); }catch(e){}
   // tuntitallennukset (tiekohdat, MET, MEPS/ECMWF): aina kun edellisestä on yli 50 min, vaikka GitHub viivästäisi ajoa
   const withSegments = !idx.hourlyT || Date.now() - new Date(idx.hourlyT).getTime() >= 50 * 60e3;
-  const {stations, rows, segRows, works, stale, frost} = await collectRows(get, getText, cached, learn, withSegments, idx.frost || {});
+  const {stations, rows, segRows, works, stale, frost, sers} = await collectRows(get, getText, cached, learn, withSegments, idx.frost || {});
   idx.frost = frost;
   if(Object.keys(stale).length) console.log('Vanhoja anturilukemia ohitettu: ' + Object.entries(stale).map(([k, n]) => k + ' ' + n).join(', '));
   if(!cached) await fs.writeFile('data/stations.json', JSON.stringify({t: Date.now(), stations}, null, 1));
@@ -517,12 +616,14 @@ async function main(){
   const L = learnFromRows(all.filter(o => o.tt >= since));
   L.updated = new Date().toISOString();
   await fs.writeFile('data/learn.json', JSON.stringify(L));
+  let N = null;
   try{   // yön yhteenveto
     let cam = []; try{ cam = JSON.parse(await fs.readFile('data/cam/events.json', 'utf8')); }catch(e){}
-    const N = nightSummary(all, stations, works, cam, Date.now());
+    N = nightSummary(all, stations, works, cam, Date.now());
     await fs.writeFile('data/night.json', JSON.stringify(N));
     if(N.complete){ await fs.mkdir('data/nights', {recursive: true}); await fs.writeFile('data/nights/' + N.night + '.json', JSON.stringify(N)); }
   }catch(e){ console.error('Yön yhteenveto jäi tekemättä: ' + e.message); }
+  try{ await updateKomento(fs, Date.now(), stations, sers || {}, rows, N); }catch(e){ console.error('Varjokomento jäi tekemättä: ' + e.message); }
   try{   // talven tuloskortti ja opitun tielämmön vertailu kerran tunnissa
     if(withSegments){
       const rd = async p => { try{ return parseCsv(await fs.readFile(p, 'utf8')); }catch(e){ return []; } };
