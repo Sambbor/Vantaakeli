@@ -19,7 +19,7 @@ import os, sys, json, math, time, types, urllib.request, urllib.parse
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 
-VERSION = 'rs2'
+VERSION = 'rs3'
 os.environ['TZ'] = 'UTC'; time.tzset()          # RoadSurf käyttää naiiveja aikoja → UTC
 # RoadSurf tuo matplotlibin, vaikka ei piirrä mitään ajon aikana: korvataan tyhjällä moduulilla
 _mpl = types.ModuleType('matplotlib'); _mpl.pyplot = types.ModuleType('matplotlib.pyplot')
@@ -239,7 +239,7 @@ def verify(now, stations, days=60):
     rs = [r for r in read_csv_months('roadsurf', months, ['st', 'f0', 'rs2', 'rs6', 'rs12', 'ice12', 'dep12', 'snow12'])
           if r['f0'] and nowt - ts(datetime.fromisoformat(r['f0'].replace('Z', '+00:00'))) <= days * 86400]
     if not rs: return None
-    obs_cols = ['t', 'st', 'tr', 'keli', 'ice', 'fc2', 'fc6', 'fc12', 'f2_t', 'f6_t', 'f12_t', 'f2_cc', 'f6_cc', 'f12_cc', 'idx2', 'idx6', 'idx12']
+    obs_cols = ['t', 'st', 'tr', 'keli', 'ice', 'fc2', 'fc6', 'fc12', 'f2_t', 'f6_t', 'f12_t', 'f2_cc', 'f6_cc', 'f12_cc', 'idx2', 'idx6', 'idx12', 'rsidx2', 'rsidx6', 'rsidx12']
     obs = read_csv_months('obs', months, obs_cols)
     by = {}
     for r in obs:
@@ -250,7 +250,7 @@ def verify(now, stations, days=60):
     groups = ('all', 'night', 'day', 'cold')
     acc = {L: {g: {'rs': [], 'dt': [], 'rule': []} for g in groups} for L in VLEADS}
     per = {}; weeks = {}
-    ev = {k: {'hit': 0, 'miss': 0, 'fa': 0, 'cn': 0} for k in ('rs', 'idx')}
+    ev = {k: {'hit': 0, 'miss': 0, 'fa': 0, 'cn': 0} for k in ('rs', 'idx', 'idx_s', 'rsidx')}   # idx_s = sivun indeksi samoilta hetkiltä kuin varjoindeksi
     fr = {'hit': 0, 'miss': 0, 'fa': 0, 'cn': 0}
     t_lo, t_hi = None, None
     for r in rs:
@@ -283,6 +283,10 @@ def verify(now, stations, days=60):
                 a_ix = bool(ix) and max(ix) >= 50
                 for k, a in (('rs', a_rs), ('idx', a_ix)):
                     ev[k]['hit' if a and slip else 'miss' if slip else 'fa' if a else 'cn'] += 1
+                vi = [ref['rsidx%d' % L] for L in VLEADS if ref.get('rsidx%d' % L) is not None]
+                if vi:   # varjoindeksi (RoadSurf) vs. sivun indeksi samoilla hetkillä
+                    for k, a in (('rsidx', max(vi) >= 50), ('idx_s', a_ix)):
+                        ev[k]['hit' if a and slip else 'miss' if slip else 'fa' if a else 'cn'] += 1
                 a_fr = (r['dep12'] or 0) >= 0.02
                 fr['hit' if a_fr and kuura else 'miss' if kuura else 'fa' if a_fr else 'cn'] += 1
     names = {str(s['id']): s.get('name') for s in stations}
