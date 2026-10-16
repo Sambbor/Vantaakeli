@@ -1569,6 +1569,15 @@ function renderRetro(){
   const TB = ['−2…+0,5','−4…−2','−6…−4','−8…−6','alle −8'], sa = (S.salt||{})['suolaa']||{}, ns = (S.salt||{})['ei suolaa']||{};
   const tr = TB.filter(b=>sa[b] || ns[b]);
   if(tr.length) h += '<h3>Märkä tie pakkasella: liukasta 6 h sisällä</h3><p class="muted">"Suolaa" = jäätymispiste ≤ −1 °C. Sääntöjen oletus: suola pitää −6 °C:een asti.</p>' + tb(['Tienpinta °C','Suolaa: tunteja','liukasta','Ei suolaa: tunteja','liukasta'], tr.map(b=>[b, sa[b]?sa[b].n:0, sa[b]?pc(sa[b].slip, sa[b].n):'–', ns[b]?ns[b].n:0, ns[b]?pc(ns[b].slip, ns[b].n):'–']));
+  const T = S.toteu;
+  if(T && T.days){
+    h += '<h3>Ennuste vs. urakoiden suolaukset</h3><p class="muted">Harjan suolauskirjaukset 2 km säteellä asemasta, '+(S.toteuDays||[]).length+' päivää, '+T.days+' asemavuorokautta. Hälytys = indeksi ≥ 50 vuorokauden aikana; suolaus = suolauskerta vuorokauden aikana tai 6 h sen jälkeen.</p>'
+      + tb(['','Asemavuorokausia','Asema mittasi liukasta'], [['Ennuste hälytti ja urakka suolasi','both'],['Vain urakka suolasi','salt'],['Vain ennuste hälytti','alarm'],['Kumpikaan ei','none']].map(([n,k])=>[n, T[k]||0, (T.slip||{})[k]||0]))
+      + '<p>Suolauskertoja <b>'+(T.ep||0)+'</b>: ennuste hälytti 0–12 h ennen <b>'+(T.epPred||0)+'</b> kertaa ('+pc(T.epPred||0, T.ep||0)+')'+(T.leadN ? ', keskimäärin '+n1(T.leadSum/T.leadN)+' h ennen suolausta' : '')+'. Asema oli mitannut liukasta jo ennen suolausta '+(T.epReactive||0)+' kertaa ('+pc(T.epReactive||0, T.ep||0)+'). '
+      + 'Liukkaista asemavuorokausista ('+(T.slipDays||0)+') suolattu ennen ensimmäistä liukasta mittausta '+(T.slipSaltedBefore||0)+', vasta sen jälkeen '+(T.slipSaltedAfter||0)+'.</p>';
+    const A = Object.entries(S.toteuArea||{}).filter(([,c])=>c.ep || c.alarm).sort((x,y)=>(y[1].ep+y[1].alarm)-(x[1].ep+x[1].alarm));
+    if(A.length) h += '<details><summary style="cursor:pointer;font-weight:600">Urakoittain ('+A.length+')</summary>' + tb(['Urakka','Asemavrk','Molemmat','Vain suolaus','Vain ennuste','Suolauskertoja','Ennuste ennakoi','Liukasta jo ennen'], A.map(([a,c])=>[esc(a), c.days, c.both, c.salt, c.alarm, c.ep, c.epPred, c.epReactive])) + '</details>';
+  }
   h += '<p class="muted">Liukas havainto ja indeksi samoilla säännöillä kuin sivulla. Koko raportti maakunnittain: Tiesaa-arkisto, retro/raportti.md.</p>';
   el.innerHTML = h;
 }
