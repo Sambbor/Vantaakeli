@@ -1,0 +1,30 @@
+name: Alustus (kerran)
+# Kopioi keräämä aineisto (data/) yksityisestä säilöstä tähän säilöön säilöjen vaihdossa. Ei tee mitään, jos data/ on jo olemassa.
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  init:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Hae aineisto (yksityinen säilö)
+        uses: actions/checkout@v5
+        with:
+          repository: Sambbor/Vantaakeli-laskenta
+          token: ${{ secrets.CODE_TOKEN }}
+          path: .laskenta
+          sparse-checkout: |
+            data
+      - name: Kopioi ja tallenna
+        run: |
+          if [ -f data/index.json ]; then echo "data/ on jo olemassa – ei kopioida"; exit 0; fi
+          cp -r .laskenta/data data
+          ls data | head -50
+          git config user.name "keli-bot"
+          git config user.email "keli-bot@users.noreply.github.com"
+          git add data
+          git commit -m "Aineisto siirretty yksityisestä säilöstä"
+          git push
