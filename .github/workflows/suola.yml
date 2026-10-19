@@ -1,0 +1,69 @@
+name: Suolamerkintä
+# Päivystäjän arvio tiellä olevasta suolasta. Täytä: Actions → Suolamerkintä → Run workflow.
+# Tasot: vähän = kestää kuuraa 2,5 °C·h tai sadetta 0,2 mm · normaali = 4 °C·h tai 0,5 mm · paljon = 7 °C·h tai 0,8 mm.
+on:
+  workflow_dispatch:
+    inputs:
+      tie:
+        description: 'Tie'
+        type: choice
+        default: 'Kaikki tiet'
+        options: ['Kaikki tiet', 'Tie 3', 'Tie 4', 'Tie 7', 'Tie 45', 'Tie 50', 'Tie 148']
+      maara:
+        description: 'Suolamäärä'
+        type: choice
+        default: 'normaali'
+        options: ['vähän', 'normaali', 'paljon', 'poista merkintä']
+      aika:
+        description: 'Suolausaika, esim. 21.30 (tyhjä = viimeisin Harjan suolaus 24 h sisältä, muuten nyt)'
+        type: string
+        required: false
+      huomio:
+        description: 'Lisätieto (vapaaehtoinen)'
+        type: string
+        required: false
+permissions:
+  contents: write
+concurrency: keli-data
+jobs:
+  merkinta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - name: Hae laskentakoodi (yksityinen säilö)
+        uses: actions/checkout@v5
+        with:
+          repository: Sambbor/Vantaakeli-laskenta
+          token: ${{ secrets.CODE_TOKEN }}
+          path: .laskenta
+          sparse-checkout: |
+            collector
+            laskenta.html
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: node .laskenta/collector/collect.mjs
+        env:
+          SUOLA_TIE: ${{ inputs.tie }}
+          SUOLA_TASO: ${{ inputs.maara }}
+          SUOLA_AIKA: ${{ inputs.aika }}
+          SUOLA_HUOMIO: ${{ inputs.huomio }}
+          SUOLA_KIRJAAJA: ${{ github.actor }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      - name: Pohdinta sivulle
+        continue-on-error: true
+        run: |
+          npm i --prefix .laskenta --no-save --no-audit --no-fund playwright-core@1.48.2 >/dev/null 2>&1
+          node .laskenta/collector/pohdinta.mjs .laskenta/laskenta.html . data/pohdinta.json
+        env:
+          CHROME_CHANNEL: chrome
+      - name: Tallenna merkintä ja aineisto säilöön
+        run: |
+          git config user.name "keli-bot"
+          git config user.email "keli-bot@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet && exit 0
+          git commit -m "Suolamerkintä: ${{ inputs.tie }} ${{ inputs.maara }} (${{ github.actor }})"
+          for i in 1 2 3 4; do git pull --rebase --autostash && git push && exit 0; sleep $((i*5)); done
+          exit 1

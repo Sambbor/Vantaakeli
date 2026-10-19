@@ -1,0 +1,47 @@
+name: Keliaineiston keruu
+# Laskentakoodi haetaan yksityisestä säilöstä (Sambbor/Vantaakeli-laskenta) lukuavaimella CODE_TOKEN; tähän säilöön tallennetaan vain data/.
+on:
+  schedule:
+    - cron: '17,47 * * * *'   # 30 min välein (UTC)
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: keli-data
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - name: Hae laskentakoodi (yksityinen säilö)
+        uses: actions/checkout@v5
+        with:
+          repository: Sambbor/Vantaakeli-laskenta
+          token: ${{ secrets.CODE_TOKEN }}
+          path: .laskenta
+          sparse-checkout: |
+            collector
+            laskenta.html
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Keruu ja liukkausennuste
+        run: node .laskenta/collector/collect.mjs
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      - name: Pohdinta sivulle (laskentasivu Chromessa ilman näyttöä)
+        continue-on-error: true
+        run: |
+          npm i --prefix .laskenta --no-save --no-audit --no-fund playwright-core@1.48.2 >/dev/null 2>&1
+          node .laskenta/collector/pohdinta.mjs .laskenta/laskenta.html . data/pohdinta.json
+        env:
+          CHROME_CHANNEL: chrome
+      - name: Tallenna aineisto säilöön
+        run: |
+          git config user.name "keli-bot"
+          git config user.email "keli-bot@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet && exit 0
+          git commit -m "Keliaineisto $(date -u +%Y-%m-%dT%H:%MZ)"
+          for i in 1 2 3 4; do git pull --rebase --autostash && git push && exit 0; sleep $((i*5)); done
+          exit 1
