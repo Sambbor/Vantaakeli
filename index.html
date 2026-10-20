@@ -486,34 +486,6 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     <div class="panel slip-first" id="slip-first"></div>
   </section>
 
-  <section id="scorecard" class="hide-wall" data-tab="liukkaus">
-    <div class="sec-h"><h2>Talven tuloskortti</h2><span class="note">Viikoittain: osuiko liukkausennuste, kuinka tarkkoja tie- ja säämallit olivat, mitä kameravahti näki</span></div>
-    <div class="panel" id="sc-body"><div class="status">Ladataan…</div></div>
-  </section>
-
-  <section id="rsverif" class="hide-wall" data-tab="liukkaus">
-    <div class="sec-h"><h2>Tienpintaennusteiden vertailu</h2><span class="note">RoadSurf (FMI:n tienpintamalli, koekäyttö) · Digitrafficin tiesääennuste · sivun kiinteä sääntö – verrattuna asemien mittaamaan tienpintaan · päivittyy tunneittain</span></div>
-    <div class="panel" id="rsv-body"><div class="status">Ladataan…</div></div>
-  </section>
-
-  <section id="retro" class="hide-wall" data-tab="liukkaus">
-    <div class="sec-h"><h2>Koko Suomen jälkitarkistus</h2><span class="note">Sivun liukkaussäännöt ajettuna jälkikäteen Tiesää-arkiston noin 525 asemalle · päivittyy kerran vuorokaudessa</span></div>
-    <div class="panel" id="retro-body"><div class="status">Ladataan…</div></div>
-  </section>
-
-  <section id="slipmodel" class="hide-wall" data-tab="liukkaus">
-    <div class="sec-h"><h2>Mallin opettaminen</h2><span class="note">Oma aineisto kerätään tunneittain GitHubiin · osumatarkkuus lasketaan kerätystä aineistosta</span></div>
-    <div class="panel slip-model" id="slip-data"><div class="status">Aineistoa ei ole vielä haettu.</div></div>
-    <details class="panel slip-road"><summary>Kehityspolku: miten malli paranee</summary>
-      <ol>
-        <li><b>Vaihe 1 – nyt:</b> fysiikkapohjainen indeksi. Säännöt kuuralle, märän tien jäätymiselle, lumelle ja jäätävälle sateelle. Paikallisuus tulee aseman omista mittauksista: tienpinnan ero ennusteeseen, kosteus, suola ja jäätymispiste.</li>
-        <li><b>Vaihe 2 – datankeruu (käynnissä):</b> GitHub kerää 30 minuutin välein jokaiselta asemalta mittaukset, tiesääennusteen, FMI:n ennusteen, ajan viimeisestä suolauksesta ja aurauksesta sekä sivun oman liukkausennusteen sellaisenaan. Kerran tunnissa tallennetaan kaikkien urakan tiekohtien ennusteet tieosittaista oppimista varten. Digitraffic säilyttää historiaa vain vuorokauden, joten ilman omaa keruuta opetusaineistoa ei synny.</li>
-        <li><b>Vaihe 3 – asemakohtainen korjaus (2–4 viikkoa dataa):</b> malli oppii, kuinka paljon kunkin aseman tienpinta poikkeaa ennusteesta yöllä ja päivällä, ja korjaa ennustetta. Korjaus otetaan käyttöön automaattisesti, kun asemalta on vähintään 12 vertailua.</li>
-        <li><b>Vaihe 4 – osumatarkkuus ja kynnysten säätö (1 talvi):</b> jokaista 6 tunnin ennustetta verrataan siihen, mitä asema myöhemmin mittasi. Näin nähdään osumat, ohi menneet ja turhat hälytykset, ja rajoja voidaan säätää asemittain.</li>
-        <li><b>Vaihe 5 – opetettu malli:</b> kun liukkaustapahtumia on kertynyt kymmeniä, sääntöjen painot opetetaan aineistosta. Mukaan tulevat myös omat toimenpiteet: kuinka kauan suolaus suojaa sateen ja lämpötilan mukaan. Lopuksi ennuste laajennetaan asemista tieosille.</li>
-      </ol>
-    </details>
-  </section>
 
   <section id="map" data-tab="kartta">
     <div class="sec-h"><h2>Tilannekartta</h2><span class="note">Asemat: tienpinta nyt · tiet: tarkka tiesääennuste lyhyinä pätkinä (sillat paksummalla) · tutka: Ilmatieteen laitos</span></div>
@@ -643,6 +615,35 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
       </form>
       <div id="probe-out"><div class="status">Valitse asema ja ajankohta. Selvitys näyttää aseman mittaukset, lähellä tehdyt työt, Helsinki-Vantaan säähavainnon ja lähimpien kameroiden kuvat.</div></div>
     </div>
+  </section>
+
+  <section id="scorecard" class="hide-wall" data-tab="selvitys">
+    <div class="sec-h"><h2>Talven tuloskortti</h2><span class="note">Viikoittain: osuiko liukkausennuste, kuinka tarkkoja tie- ja säämallit olivat, mitä kameravahti näki</span></div>
+    <div class="panel" id="sc-body"><div class="status">Ladataan…</div></div>
+  </section>
+
+  <section id="rsverif" class="hide-wall" data-tab="selvitys">
+    <div class="sec-h"><h2>Tienpintaennusteiden vertailu</h2><span class="note">RoadSurf (FMI:n tienpintamalli, koekäyttö) · Digitrafficin tiesääennuste · sivun kiinteä sääntö – verrattuna asemien mittaamaan tienpintaan · päivittyy tunneittain</span></div>
+    <div class="panel" id="rsv-body"><div class="status">Ladataan…</div></div>
+  </section>
+
+  <section id="retro" class="hide-wall" data-tab="selvitys">
+    <div class="sec-h"><h2>Koko Suomen jälkitarkistus</h2><span class="note">Sivun liukkaussäännöt ajettuna jälkikäteen Tiesää-arkiston noin 525 asemalle · päivittyy kerran vuorokaudessa</span></div>
+    <div class="panel" id="retro-body"><div class="status">Ladataan…</div></div>
+  </section>
+
+  <section id="slipmodel" class="hide-wall" data-tab="selvitys">
+    <div class="sec-h"><h2>Mallin opettaminen</h2><span class="note">Oma aineisto kerätään tunneittain GitHubiin · osumatarkkuus lasketaan kerätystä aineistosta</span></div>
+    <div class="panel slip-model" id="slip-data"><div class="status">Aineistoa ei ole vielä haettu.</div></div>
+    <details class="panel slip-road"><summary>Kehityspolku: miten malli paranee</summary>
+      <ol>
+        <li><b>Vaihe 1 – nyt:</b> fysiikkapohjainen indeksi. Säännöt kuuralle, märän tien jäätymiselle, lumelle ja jäätävälle sateelle. Paikallisuus tulee aseman omista mittauksista: tienpinnan ero ennusteeseen, kosteus, suola ja jäätymispiste.</li>
+        <li><b>Vaihe 2 – datankeruu (käynnissä):</b> GitHub kerää 30 minuutin välein jokaiselta asemalta mittaukset, tiesääennusteen, FMI:n ennusteen, ajan viimeisestä suolauksesta ja aurauksesta sekä sivun oman liukkausennusteen sellaisenaan. Kerran tunnissa tallennetaan kaikkien urakan tiekohtien ennusteet tieosittaista oppimista varten. Digitraffic säilyttää historiaa vain vuorokauden, joten ilman omaa keruuta opetusaineistoa ei synny.</li>
+        <li><b>Vaihe 3 – asemakohtainen korjaus (2–4 viikkoa dataa):</b> malli oppii, kuinka paljon kunkin aseman tienpinta poikkeaa ennusteesta yöllä ja päivällä, ja korjaa ennustetta. Korjaus otetaan käyttöön automaattisesti, kun asemalta on vähintään 12 vertailua.</li>
+        <li><b>Vaihe 4 – osumatarkkuus ja kynnysten säätö (1 talvi):</b> jokaista 6 tunnin ennustetta verrataan siihen, mitä asema myöhemmin mittasi. Näin nähdään osumat, ohi menneet ja turhat hälytykset, ja rajoja voidaan säätää asemittain.</li>
+        <li><b>Vaihe 5 – opetettu malli:</b> kun liukkaustapahtumia on kertynyt kymmeniä, sääntöjen painot opetetaan aineistosta. Mukaan tulevat myös omat toimenpiteet: kuinka kauan suolaus suojaa sateen ja lämpötilan mukaan. Lopuksi ennuste laajennetaan asemista tieosille.</li>
+      </ol>
+    </details>
   </section>
 
   <footer>
@@ -1806,7 +1807,7 @@ function applyTabs(){
     if((curTab === 'asemat' || wall) && state.stations.length && Date.now()-histFetched >= 15*60e3) loadHistory().then(()=>{ renderStations(); if(state.lastCtx) updateSources(state.lastCtx); });
   }, 0);
   if(curTab === 'asemat' && !wall && state.stations.length) ensureMg();
-  if(curTab === 'liukkaus' && state.stations.length) setTimeout(()=>loadObsData(), 0);
+  if((curTab === 'liukkaus' || curTab === 'selvitys') && state.stations.length) setTimeout(()=>loadObsData(), 0);
   if(curTab === 'kamerat') setTimeout(()=>loadCamWatch(), 0);
 }
 function showTab(t, keepScroll){
@@ -2760,7 +2761,7 @@ function applyData(meta, d, errs, snapshot){
   for(const f of [renderModels, renderActions, renderBrief, renderWorks, fillProbeStations, renderSummary, renderMap, renderRoadFc, renderChart, renderHourly, renderStations, renderRoadFilter, renderCams, renderSlip]){
     try{ f(); }catch(e){ console.error(f.name, e); }
   }
-  if(curTab === 'liukkaus' && !snapshot) loadObsData();
+  if((curTab === 'liukkaus' || curTab === 'selvitys') && !snapshot) loadObsData();
   if(curTab === 'kamerat' && !snapshot) loadCamWatch(true);
   if(snapshot) return;
   loadKeruu(); loadNight();
