@@ -1220,7 +1220,8 @@ function attachRoadExt(){}
 function stationFrostAcc(st){ return POH && POH.frost ? (POH.frost[st.id] || 0) : 0; }
 function computeActions(){
   state.snow12 = POH ? POH.snow12 : null; state.snow24 = POH ? POH.snow24 : null;
-  if(POH && POH.actions && POH.actions.length) return POH.actions;
+  if(POH && POH.actions && POH.actions.length){ const age = pohAge();
+    return age != null && age > 120 ? [{sev:'na', title:'Pohdinta vanhentunut', when:'laskettu '+fmtDT(POH.t)+' ('+ageTxt(age)+' sitten)', lines:['Alla olevat kortit ovat vanhasta laskennasta. Tarkista asemat ja kamerat itse.']}].concat(POH.actions) : POH.actions; }
   return [{sev:'na', title:'Pohdinta puuttuu', when:'tarkista asemat ja kamerat itse', lines:['Laskennan tulosta ei saatu ladattua. Päivitä sivu hetken päästä.']}];
 }
 function pohSlip(st){ return POH && POH.slip ? POH.slip.find(r=>r.st === String(st.id)) : null; }
@@ -2670,7 +2671,7 @@ const VAR_FI = {0:'OK',1:'Varo',2:'Häly',3:'Kuura',4:'Sade'};
 const warnBad = w => w === 2;
 const warnOn = (w, tr) => w === 1 || w === 3 || warnBad(w) || (w === 4 && tr != null && tr <= 1);
 function normalizeStation(values){
-  const okLane = n => { const v = values['TIE_'+n]; return v && v.value!=null && v.value > -45 && v.value < 65 && (!v.measuredTime || Date.now() - new Date(v.measuredTime).getTime() <= 2*36e5); };
+  const okLane = n => { const v = values['TIE_'+n]; return v && v.value!=null && v.value > -45 && v.value < 65 && !(values.ILMA && values.ILMA.value != null && v.value < values.ILMA.value - 10) && (!v.measuredTime || Date.now() - new Date(v.measuredTime).getTime() <= 2*36e5); };
   let lanes = [1,2,3,4].filter(okLane);
   if(!lanes.length) lanes = [1,2,3,4].filter(n=>values['TIE_'+n] && values['TIE_'+n].value!=null);
   if(!lanes.length) return values;
@@ -2680,9 +2681,9 @@ function normalizeStation(values){
   else if(lane !== 1) delete values.TIE_1_DERIVAATTA;
   const keli = values['KELI_'+lane] && values['KELI_'+lane].value>0 ? values['KELI_'+lane] : [1,2,3,4].map(n=>values['KELI_'+n]).find(v=>v && v.value>0);
   if(keli) values.KELI_1 = {...keli, name:'KELI_1'};
-  const kit = ['KITKA1_LUKU','KITKA2_LUKU','KITKA1','KITKA2'].map(k=>values[k]).filter(v=>v && v.value!=null);
+  const kit = ['KITKA1_LUKU','KITKA2_LUKU','KITKA1','KITKA2'].map(k=>values[k]).filter(v=>v && v.value!=null && fresh(v));
   if(kit.length) values.KITKA1_LUKU = {...kit.reduce((a,v)=>v.value<a.value?v:a), name:'KITKA1_LUKU'};
-  const war = [1,2,3,4].map(n=>values['VAROITUS_'+n]).filter(Boolean);
+  const war = [1,2,3,4].map(n=>values['VAROITUS_'+n]).filter(v=>v && fresh(v));
   if(war.length) values.VAROITUS_1 = {...war.reduce((a,v)=>(WARN_RANK[v.value]??0)>(WARN_RANK[a.value]??0)?v:a), name:'VAROITUS_1'};
   if(values.KELI_1 && !values.KELI_1.sensorValueDescriptionFi && KELI_FI[values.KELI_1.value]) values.KELI_1 = {...values.KELI_1, sensorValueDescriptionFi: KELI_FI[values.KELI_1.value]};
   if(values.VAROITUS_1 && !values.VAROITUS_1.sensorValueDescriptionFi && VAR_FI[values.VAROITUS_1.value]) values.VAROITUS_1 = {...values.VAROITUS_1, sensorValueDescriptionFi: VAR_FI[values.VAROITUS_1.value]};
