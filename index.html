@@ -748,7 +748,7 @@ async function loadMeta(){
     fine = (d.features||[]).filter(f=>f.geometry && roads.has(f.properties.roadNumber)).map(f=>({id:f.id, road:f.properties.roadNumber, desc:f.properties.description, len:f.properties.length,
       lines:(f.geometry.type==='MultiLineString'?f.geometry.coordinates:[f.geometry.coordinates]).map(l=>l.map(c=>[Math.round(c[0]*1e5)/1e5, Math.round(c[1]*1e5)/1e5]))}));
   }catch(e){ fine = []; }
-  const m = {t:Date.now(), cams, stations, fine}; saveMetaCache(m); return m;
+  const m = {t:Date.now(), cams, stations, fine}; if(stations.length && cams.length) saveMetaCache(m); return m;
 }
 
 async function loadFMI(){
@@ -1196,7 +1196,7 @@ function renderMg(){
 
 let POH = null;
 async function loadPohdinta(){
-  try{ const j = await fetch('data/pohdinta.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null); if(j && j.v) POH = j; }catch(e){}
+  try{ const j = await fetch('data/pohdinta.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null); if(j && j.v){ POH = j; if(j.rules) RULES_VERSION = j.rules; } }catch(e){}
   return POH;
 }
 const FROST_SLIP = 4;
@@ -1207,7 +1207,7 @@ const hourHel = t => Number(new Date(t).toLocaleString('fi-FI', {hour:'2-digit',
 const isNight = t => { const h = hourHel(t); return h >= 18 || h < 8; };
 const WARN_RANK = {0:0, 4:1, 1:2, 3:3, 2:4};
 const WET_KELI = [2,3,4,8,9];
-const RULES_VERSION = '';
+let RULES_VERSION = '';
 function isRisk(r){ return !!r.risk; }
 function attachRoad(){
   state.road = POH ? POH.road : [];
@@ -2090,7 +2090,7 @@ async function loadCamHistory(cam, preset){
   try{
     const d = await getJSON(DT+'/api/weathercam/v1/stations/'+cam.id+'/history');
     const pr = (d.presets||[]).find(p=>p.id===preset.id);
-    const hist = (pr && (pr.history||[])).filter(h=>h.imageUrl).sort((a,b)=>String(a.lastModified).localeCompare(String(b.lastModified)));
+    const hist = ((pr && pr.history)||[]).filter(h=>h.imageUrl).sort((a,b)=>String(a.lastModified).localeCompare(String(b.lastModified)));
     if(!hist || hist.length<2 || !lbCam || lbCam.id!==cam.id) return;
     const OFFS = [[24,'−24 h'],[12,'−12 h'],[6,'−6 h'],[3,'−3 h'],[2,'−2 h'],[1,'−1 h'],[0.5,'−30 min'],[0,'Uusin']];
     const tLast = new Date(hist[hist.length-1].lastModified).getTime(), used = new Set(), pick = [];
@@ -2222,9 +2222,9 @@ function renderWorks(){
   const moving = state.works.routes.filter(r=>!r.stationary), still = state.works.routes.filter(r=>r.stationary);
   const cnt = {}; moving.forEach(r=>r.cats.forEach(c=>cnt[c]=(cnt[c]||0)+1));
   const last = moving.reduce((a,r)=>!a||r.end>a?r.end:a, null);
-  const stillTxt = still.length ? ' <b>'+still.length+' kirjausta paikallaan seisovalta koneelta jätettiin pois</b> ('+[...new Set(still.flatMap(r=>r.tasks.map(taskFi)))].join(', ').toLowerCase()+', viimeisin '+fmtDT(still.reduce((a,r)=>!a||r.end>a?r.end:a, null))+'): kone ei ole liikkunut 30 m enempää, joten kyse on esim. varikosta tai testiajosta.' : '';
+  const stillTxt = still.length ? ' <b>'+still.length+' kirjausta paikallaan seisovalta koneelta jätettiin pois</b> ('+[...new Set(still.flatMap(r=>r.tasks.map(taskFi)))].map(esc).join(', ').toLowerCase()+', viimeisin '+fmtDT(still.reduce((a,r)=>!a||r.end>a?r.end:a, null))+'): kone ei ole liikkunut 30 m enempää, joten kyse on esim. varikosta tai testiajosta.' : '';
   h += '<div class="status">'+moving.length+' toteumaa kartan alueelta viim. '+state.works.hrs+' h'
-    + (state.works.routes.length ? ' ('+Object.entries(cnt).map(([c,n])=>CAT_FI[c].toLowerCase()+' '+n).join(', ')+'; viimeisin päättyi '+fmtT(last)+')' : '')
+    + (moving.length ? ' ('+Object.entries(cnt).map(([c,n])=>CAT_FI[c].toLowerCase()+' '+n).join(', ')+'; viimeisin päättyi '+fmtT(last)+')' : '')
     + '.'+stillTxt+' Osuudelle kohdistetaan toteumat, jotka kulkevat alle '+(state.fineBySec && Object.keys(state.fineBySec).length ? '120 m päässä tien tarkasta linjasta' : '400 m päässä osuuden karkeasta linjasta')+' (esim. varikolla tai rampeilla kirjatut pisteet eivät kohdistu). Tieto tulee urakoitsijoiden Harja-järjestelmästä, joten sen kattavuus riippuu koneiden raportoinnista.</div>';
   el.innerHTML = h;
 }
@@ -2636,7 +2636,7 @@ function stationIssues(s){
   else {
     if(s.measured && ageMin(s.measured) <= 60 && ageMin(r.measuredTime) > 60) crit.push('tienpinta-anturi ei päivity');
     if(r.value < -45 || r.value > 65) crit.push('epätodennäköinen tienpinta '+n1(r.value)+' °C');
-    else { const ta = sv(s,'ILMA'); if(ta && r.value < ta.value - 10) crit.push('epäuskottava tienpinta '+n1(r.value)+' °C (ilma '+n1(ta.value)+' °C) – anturipiikki?'); }
+    else { const ta = sv(s,'ILMA'); if(ta && ta.value != null && r.value < ta.value - 10) crit.push('epäuskottava tienpinta '+n1(r.value)+' °C (ilma '+n1(ta.value)+' °C) – anturipiikki?'); }
   }
   if(!sv(s,'KASTEPISTE')) minor.push('ei kastepistettä');
   const h = state.hist && state.hist[s.id] && state.hist[s.id].pts;
@@ -2756,8 +2756,10 @@ function applyData(meta, d, errs, snapshot){
   state.lastCtx = {fcRes, fcFine, wsData, camData, fmi, works, models, errs};
   updateSources(state.lastCtx);
   state.secWorks = sectionWorks();
-  attachRoadExt(); renderModels(); renderActions(); renderBrief(); renderWorks(); fillProbeStations();
-  renderSummary(); renderMap(); renderRoadFc(); renderChart(); renderHourly(); renderStations(); renderRoadFilter(); renderCams(); renderSlip();
+  attachRoadExt();
+  for(const f of [renderModels, renderActions, renderBrief, renderWorks, fillProbeStations, renderSummary, renderMap, renderRoadFc, renderChart, renderHourly, renderStations, renderRoadFilter, renderCams, renderSlip]){
+    try{ f(); }catch(e){ console.error(f.name, e); }
+  }
   if(curTab === 'liukkaus' && !snapshot) loadObsData();
   if(curTab === 'kamerat' && !snapshot) loadCamWatch(true);
   if(snapshot) return;
