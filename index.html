@@ -1069,10 +1069,10 @@ function renderMg(){
   const lastOf = a => a && a.length ? a[a.length-1][1] : null;
   const rNow = cur('TIE_1'), fzNow = lastOf(frz), saltNow = cur('SUOLAN_MÄÄRÄ_'+lane) ?? cur('SUOLAN_MÄÄRÄ_1'), concNow = cur('SUOLAN_VÄKEVYYS_'+lane) ?? cur('SUOLAN_VÄKEVYYS_1');
   const kv = (k, v, cls, title) => '<div'+(cls?' class="'+cls+'"':'')+(title?' title="'+esc(title)+'"':'')+'><span>'+k+'</span><b>'+v+'</b></div>';
-  const margin = (rNow!=null && fzNow!=null) ? rNow - fzNow : null;
+  const dewNow = cur('KASTEPISTE'), dGap = (rNow!=null && dewNow!=null) ? rNow - dewNow : null;
   $('#mg-now').innerHTML = kv('Tienpinta', n1(rNow)+' °C', rNow!=null && rNow<=0 ? 'hot' : '')
     + kv('Jäätymispiste', fzNow!=null ? n1(fzNow)+' °C' : '–', '', 'Tienpinnan liuoksen jäätymispiste – suolaus laskee sitä nollan alle')
-    + kv('Tie − jäätymisp.', margin!=null ? n1(margin)+' °C' : '–', margin!=null ? (margin<=1 ? 'hot' : 'ok') : '', 'Kuinka paljon tienpinta voi vielä jäähtyä ennen kuin tiellä oleva kosteus jäätyy')
+    + kv('Tie − kastepiste', dGap!=null ? n1(dGap)+' °C' : '–', dGap!=null ? (dGap<=0 ? 'hot' : 'ok') : '', 'Tienpinta miinus ilman kastepiste. Nolla tai alle: kosteutta tiivistyy tielle (pakkasella kuuraa).')
     + kv('Suola', saltNow!=null ? n1(saltNow)+' g/m²' : '–', '', concNow!=null ? 'Suolan väkevyys '+n1(concNow)+' %' : '')
     + kv('Vesi / lumi / jää', [lastOf(water), lastOf(snow), lastOf(ice)].map(v=>v==null?'–':n1(v)).join(' / ')+' mm', (lastOf(ice)||0) > 0 ? 'hot' : '')
     + kv('Keli', esc(svd(st,'KELI_1')||'–'))
