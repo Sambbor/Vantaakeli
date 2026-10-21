@@ -1634,10 +1634,13 @@ function renderSummary(){
     const cnt = state.fc.filter(s=>s.forecasts.some(f=>rank[f.overallRoadCondition]>=2)).length;
     tiles.push({cls: cls==='na'?'':cls, k:'Ajokeli 12 h (huonoin)', v:lbl, d: cnt ? cnt+' reittiosuutta, joilla huonoa keliä · ensin '+esc(worst.s.description.split(':')[0])+' '+(worst.f.type==='OBSERVATION'?'nyt':'+'+esc(worst.f.forecastName)) : 'Kaikilla '+state.fc.length+' osuudella normaali'});
     let minRoad = Infinity, where = 'Tiesääennusteen reittiosuudet';
-    const cb = Object.values(coldestBySec()).sort((a,b)=>a.f.roadTemperature-b.f.roadTemperature)[0];
-    if(cb){ minRoad = cb.f.roadTemperature; where = segLabel(cb.s)+(cb.f.type==='OBSERVATION'?' nyt':' klo '+fmtT(cb.f.time)); }
+    const own = (state.fmi||[]).filter(r=>r.road!=null && new Date(r.t).getTime() <= Date.now()+12*36e5);
+    const om = own.length ? own.reduce((a,r)=>r.road<a.road?r:a, own[0]) : null;
+    const cb = om ? null : Object.values(coldestBySec()).sort((a,b)=>a.f.roadTemperature-b.f.roadTemperature)[0];
+    if(om){ minRoad = om.road; where = (om.roadSec ? String(om.roadSec).split(':')[0]+' ' : '')+'klo '+fmtT(om.t)+' · asemiin kiinnitetty ennuste'; }
+    else if(cb){ minRoad = cb.f.roadTemperature; where = segLabel(cb.s)+(cb.f.type==='OBSERVATION'?' nyt':' klo '+fmtT(cb.f.time)); }
     else for(const s of state.fc) for(const f of s.forecasts) if(f.roadTemperature!=null) minRoad = Math.min(minRoad, f.roadTemperature);
-    tiles.push(isFinite(minRoad) ? {cls: minRoad<=0?'bad':minRoad<=2?'warn':'ok', k:'Tienpinta, alin ennuste 12 h', v: n0(minRoad)+' °C', d: esc(where)} : {cls:'', k:'Tienpinta, alin ennuste 12 h', v:'–', d:'ei tienpinnan ennustetta'});
+    tiles.push(isFinite(minRoad) ? {cls: minRoad<=0?'bad':minRoad<=2?'warn':'ok', k:'Tienpinta, alin ennuste 12 h', v: n1(minRoad)+' °C', d: esc(where)} : {cls:'', k:'Tienpinta, alin ennuste 12 h', v:'–', d:'ei tienpinnan ennustetta'});
     }
   }
   const roads = okStations().map(s=>s.values&&s.values.TIE_1&&s.values.TIE_1.value).filter(v=>v!=null);
@@ -2523,7 +2526,8 @@ const segMin = sg => Math.min(...sg.forecasts.map(f=>f.roadTemperature).filter(v
 const HCLASS = [['rain','vesisade','#04857A',[4,133,122]],['wetsnow','märkä lumi','#33D3FA',[51,211,250]],['drysnow','kuiva lumi','#046FA6',[4,111,166]],
   ['graupel','lumirakeita','#FCA50C',[252,165,12]],['hail','jäärakeita','#BB1717',[187,23,23]]];
 const RADAR_LAYERS = {dbz:{layer:'Radar:suomi_dbz_eureffin', style:'', name:'Sadeintensiteetti (tutkayhdistelmä)'},
-                      type:{layer:'Radar:vihti_hclass', style:'Radar hydroclass', name:'Sadetyyppi (Vihdin tutka)'}};
+                      type:{layer:'Radar:radar_fivih_ppi_hclass', style:'Radar hydroclass',
+                      name:'Sadetyyppi (Vihdin tutka)'}};
 function radarLegend(){
   const el = $('#radar-legend'); if(!el) return;
   el.innerHTML = settings.radarMode==='type' ? HCLASS.map(c=>'<span><i class="sq" style="background:'+c[2]+'"></i>'+c[1]+'</span>').join('') : '<span>Sadeintensiteetti: sininen heikko → punainen voimakas</span>';
