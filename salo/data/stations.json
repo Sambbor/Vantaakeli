@@ -1,0 +1,82 @@
+{
+ "t": 1792567975799,
+ "stations": [
+  {
+   "id": 2004,
+   "name": "Tie 110 Salo, Tupuri",
+   "road": 110,
+   "lon": 23.232385,
+   "lat": 60.383077
+  },
+  {
+   "id": 2018,
+   "name": "Tie 52 Salo, Perniö",
+   "road": 52,
+   "lon": 23.148542,
+   "lat": 60.173689
+  },
+  {
+   "id": 2032,
+   "name": "Tie 110 Salo, Korvenpää",
+   "road": 110,
+   "lon": 22.948212,
+   "lat": 60.377119
+  },
+  {
+   "id": 2045,
+   "name": "Tie 1 Salo, Hajala",
+   "road": 1,
+   "lon": 22.969139,
+   "lat": 60.435149
+  },
+  {
+   "id": 2047,
+   "name": "Tie 1 Salo, Halikko",
+   "road": 1,
+   "lon": 23.106354,
+   "lat": 60.4173
+  },
+  {
+   "id": 2049,
+   "name": "Tie 1 Salo, Haukkala",
+   "road": 1,
+   "lon": 23.211233,
+   "lat": 60.407402
+  },
+  {
+   "id": 2059,
+   "name": "Tie 1 Salo, Muurla",
+   "road": 1,
+   "lon": 23.291923,
+   "lat": 60.388679
+  },
+  {
+   "id": 2061,
+   "name": "Tie 110 Salo, Kettulanmäki",
+   "road": 110,
+   "lon": 23.748878,
+   "lat": 60.381313
+  },
+  {
+   "id": 2062,
+   "name": "Tie 110 Salo, Kolmperä",
+   "road": 110,
+   "lon": 23.663891,
+   "lat": 60.372046
+  },
+  {
+   "id": 2063,
+   "name": "Tie 110 Salo, Aneriojärvi",
+   "road": 110,
+   "lon": 23.575594,
+   "lat": 60.380729
+  },
+  {
+   "id": 2065,
+   "name": "Tie 110 Salo, Valkjärvi",
+   "road": 110,
+   "lon": 23.413415,
+   "lat": 60.36956
+  }
+ ]
+}
