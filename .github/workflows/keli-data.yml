@@ -10,7 +10,7 @@ concurrency: keli-data
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - name: Hae laskentakoodi (yksityinen säilö)
@@ -36,11 +36,25 @@ jobs:
           node .laskenta/collector/pohdinta.mjs .laskenta/laskenta.html . data/pohdinta.json
         env:
           CHROME_CHANNEL: chrome
+      # ur1 (21.10.2026): Salon urakka pilottina – sama koodi, data kansioon salo/data, sivu ?u=salo. Virhe ei estä Vantaan tallennusta.
+      - name: Salo (pilotti) – keruu
+        continue-on-error: true
+        working-directory: salo
+        run: mkdir -p data && node ../.laskenta/collector/collect.mjs
+        env:
+          URAKKA: salo
+      - name: Salo (pilotti) – pohdinta
+        continue-on-error: true
+        run: node .laskenta/collector/pohdinta.mjs .laskenta/laskenta.html . salo/data/pohdinta.json
+        env:
+          URAKKA: salo
+          CHROME_CHANNEL: chrome
       - name: Tallenna aineisto säilöön
         run: |
           git config user.name "keli-bot"
           git config user.email "keli-bot@users.noreply.github.com"
           git add data
+          git add salo/data 2>/dev/null || true
           git diff --cached --quiet && exit 0
           git commit -m "Keliaineisto $(date -u +%Y-%m-%dT%H:%MZ)"
           for i in 1 2 3 4; do git pull --rebase --autostash && git push && exit 0; sleep $((i*5)); done
