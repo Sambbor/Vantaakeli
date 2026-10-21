@@ -1,16 +1,23 @@
 name: Keliaineiston keruu
 # Laskentakoodi haetaan yksityisestä säilöstä (Sambbor/Vantaakeli-laskenta) lukuavaimella CODE_TOKEN; tähän säilöön tallennetaan vain data/.
+# pg1 (21.10.2026): sivu julkaistaan tästä ajosta (GitHub Pages: lähde GitHub Actions). Pohdintatiedostot (data/pohdinta.json,
+# salo/data/pohdinta.json) menevät vain julkaisuun, eivät säilön historiaan – ne lasketaan joka ajo kokonaan uudelleen (~0,9 Mt).
 on:
   schedule:
     - cron: '17,47 * * * *'   # 30 min välein (UTC)
   workflow_dispatch:
 permissions:
   contents: write
+  pages: write
+  id-token: write
 concurrency: keli-data
 jobs:
   collect:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
       - name: Hae laskentakoodi (yksityinen säilö)
@@ -25,6 +32,12 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+      - name: Edellinen pohdinta varalle (jos laskenta epäonnistuu, sivu näyttää vanhan ja varoittaa)
+        continue-on-error: true
+        run: |
+          mkdir -p data salo/data
+          curl -fsS -m 30 -o data/pohdinta.json https://sambbor.github.io/Vantaakeli/data/pohdinta.json || true
+          curl -fsS -m 30 -o salo/data/pohdinta.json https://sambbor.github.io/Vantaakeli/salo/data/pohdinta.json || true
       - name: Keruu ja liukkausennuste
         run: node .laskenta/collector/collect.mjs
         env:
@@ -49,13 +62,28 @@ jobs:
         env:
           URAKKA: salo
           CHROME_CHANNEL: chrome
-      - name: Tallenna aineisto säilöön
+      - name: Tallenna aineisto säilöön (ilman pohdintaa)
         run: |
           git config user.name "keli-bot"
           git config user.email "keli-bot@users.noreply.github.com"
+          git rm -q --cached --ignore-unmatch data/pohdinta.json salo/data/pohdinta.json
           git add data
           git add salo/data 2>/dev/null || true
           git diff --cached --quiet && exit 0
           git commit -m "Keliaineisto $(date -u +%Y-%m-%dT%H:%MZ)"
           for i in 1 2 3 4; do git pull --rebase --autostash && git push && exit 0; sleep $((i*5)); done
           exit 1
+      - name: Kokoa julkaisu (säilön tiedostot + pohdinta; ei laskentakoodia)
+        run: |
+          rm -rf _site && mkdir _site
+          git ls-files -z | grep -zv '^\.github/' | xargs -0 cp --parents -t _site
+          for f in data/pohdinta.json salo/data/pohdinta.json; do [ -s "$f" ] && cp --parents "$f" _site/ || echo "puuttuu: $f"; done
+          test ! -e _site/.laskenta && test -s _site/index.html
+          touch _site/.nojekyll
+          du -sh _site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Julkaise sivu
+        id: deploy
+        uses: actions/deploy-pages@v4
