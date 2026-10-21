@@ -481,7 +481,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
       <div class="slip-lg"><span><i class="sc s0"></i>0–19 ei riskiä</span><span><i class="sc s1"></i>20–49 mahdollinen</span><span><i class="sc s2"></i>50–79 todennäköinen</span><span><i class="sc s3"></i>80–100 lähes varma</span><span><i class="sc s1 ext"></i>12–24 h: suuntaa-antava</span><span id="slip-learn-note" class="muted"></span></div>
       <div class="slip-grid" id="slip-grid"><div class="status">Lasketaan…</div></div>
       <p class="rule"><b>Mallien yksimielisyys:</b> indeksi lasketaan myös MEPS-, ECMWF- ja MET Norway -ennusteella. Katkoviivareunus = indeksi ≥ 50, mutta enintään puolet malleista on samaa mieltä (epävarma). Pisteviivareunus = indeksi alle 50, mutta useimmat muut mallit näkevät riskin. Napauta ruutua nähdäksesi mallien arvot.</p>
-      <p class="rule" id="slip-rule">Indeksi yhdistää aseman nykytilan (tienpinta, kosteus, lumi ja jää tiellä, suolan jäätymispiste), lähimmän tiekohdan tienpintaennusteen (Digitraffic, 12 h) ja Ilmatieteen laitoksen ennusteen (kastepiste, sade, lumi, tuuli). Riskityypit: kuura (kertymä: tienpinta kuurapistettä kylmempi useamman tunnin ajan), märän tien jäätyminen, lumi ja sohjo, jäätävä sade sekä aseman jo mittaama liukkaus, joka laimenee ennusteessa muutamassa tunnissa. Napauta ruutua nähdäksesi perusteet.</p>
+      <p class="rule" id="slip-rule">Indeksi yhdistää aseman nykytilan (tienpinta, kosteus, lumi ja jää tiellä, suolan jäätymispiste), lähimmän tiekohdan tienpintaennusteen (Digitraffic, 12 h) ja Ilmatieteen laitoksen ennusteen (kastepiste, sade, lumi, tuuli). Riskityypit: kuura (kertymä: tienpinta kastepistettä kylmempi useamman tunnin ajan), märän tien jäätyminen, lumi ja sohjo, jäätävä sade sekä aseman jo mittaama liukkaus, joka laimenee ennusteessa muutamassa tunnissa. Napauta ruutua nähdäksesi perusteet.</p>
     </div>
     <div class="panel slip-first" id="slip-first"></div>
   </section>
@@ -541,7 +541,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
           <span><i style="background:var(--risk);height:10px;border:1px solid var(--bad)"></i>Liukkausriski</span>
           <span><svg width="13" height="13" viewBox="-7 -7 14 14" style="vertical-align:-2px;margin-right:3px"><circle r="6" fill="none" stroke="currentColor"/><path d="M0 0 L0 -6 A6 6 0 0 1 6 0 Z" fill="currentColor"/></svg>pilvisyys · ↑ tuuli m/s, suluissa puuska (≥ 15 keltainen, ≥ 21 punainen)</span>
         </div>
-        <p class="rule">Liukkausriski: tie (tai ilma, kun tieennustetta ei ole) ≤ +1 °C ja lisäksi sadetta tai kuuraa kertynyt niin, että tie on liukas (tienpinta kuurapistettä kylmempi useamman tunnin ajan; mitä suurempi ero, sitä nopeammin). Ilman tieennustetta: ilma enintään 1 °C kastepisteen yläpuolella. Tielämpötilan ennuste ulottuu 12 tuntiin; ennusteaskelten (2, 4, 6 ja 12 h) väliset tunnit on interpoloitu.</p>
+        <p class="rule">Liukkausriski: tie (tai ilma, kun tieennustetta ei ole) ≤ +1 °C ja lisäksi sadetta tai kuuraa kertynyt niin, että tie on liukas (tienpinta kastepistettä kylmempi useamman tunnin ajan; mitä suurempi ero, sitä nopeammin). Ilman tieennustetta: ilma enintään 1 °C kastepisteen yläpuolella. Tielämpötilan ennuste ulottuu 12 tuntiin; ennusteaskelten (2, 4, 6 ja 12 h) väliset tunnit on interpoloitu.</p>
         <div id="chart"><div class="status">Ladataan…</div></div>
       </div>
       <div class="scroll" id="hourly"></div>
@@ -938,7 +938,7 @@ function renderHourly(){
 function renderStations(){
   const el = $('#stations-body');
   if(!state.stations.length){ el.innerHTML='<div class="status">Ei asemia.</div>'; return; }
-  let h = '<table><thead><tr><th>Asema</th><th>Mitattu</th><th>Tie °C</th><th>Trendi</th><th>24 h</th><th>Ilma °C</th><th>Kastep. °C</th><th>Tie–kastep.</th><th>Tie–kuurap.</th><th title="Kuurakertymä °C·h: tienpinta kuurapistettä kylmempi × tunnit. 4 °C·h ≈ mahdollisesti liukas">Kuura °C·h</th><th>Keli</th><th>Varoitus</th><th>Kitka</th><th>Sade</th><th title="Aseman mittaama sademäärä viimeisen 12 tunnin aikana (sateen intensiteetistä)">Sade 12 h mm</th><th>Tuuli m/s</th><th>Näk. km</th></tr></thead><tbody>';
+  let h = '<table><thead><tr><th>Asema</th><th>Mitattu</th><th>Tie °C</th><th>Trendi</th><th>24 h</th><th>Ilma °C</th><th>Kastep. °C</th><th>Tie–kastep.</th><th title="Kuurakertymä °C·h: tienpinta kastepistettä kylmempi × tunnit. 4 °C·h ≈ mahdollisesti liukas">Kuura °C·h</th><th>Keli</th><th>Varoitus</th><th>Kitka</th><th>Sade</th><th title="Aseman mittaama sademäärä viimeisen 12 tunnin aikana (sateen intensiteetistä)">Sade 12 h mm</th><th>Tuuli m/s</th><th>Näk. km</th></tr></thead><tbody>';
   for(const s of state.stations){
     const v = k => s.values && s.values[k];
     const num = k => v(k) ? n1(v(k).value) : '–';
@@ -957,7 +957,6 @@ function renderStations(){
       + '<td>'+spark(state.hist[s.id] && state.hist[s.id].pts)+'</td>'
       + '<td class="num">'+num('ILMA')+'</td><td class="num">'+num('KASTEPISTE')+'</td>'
       + '<td class="num"'+diffCls+'>'+n1(diff)+'</td>'
-      + (()=>{ const k = v('KUURAPISTE_ERO_TIE'); if(!k) return '<td class="num">–</td>'; return '<td class="num"'+(k.value<=0 && road && road.value<=0.5?' style="color:var(--bad);font-weight:600"':'')+'>'+n1(k.value)+'</td>'; })()
       + (()=>{ const a = road ? stationFrostAcc(s) : null; if(a == null) return '<td class="num">–</td>'; return '<td class="num"'+(a >= FROST_SLIP ? ' style="color:var(--bad);font-weight:600"' : a >= FROST_SLIP/2 ? ' style="color:var(--warn);font-weight:600"' : '')+' title="Kuurakertymä – mahdollisesti liukas '+n1(FROST_SLIP)+' °C·h alkaen">'+n1(a)+'</td>'; })()
       + '<td>'+desc('KELI_1')+'</td>'
       + '<td><span class="pill p-'+wcls+'">'+desc('VAROITUS_1')+'</span></td>'
@@ -2630,7 +2629,6 @@ function normalizeStation(values){
   if(values.VAROITUS_1 && !values.VAROITUS_1.sensorValueDescriptionFi && VAR_FI[values.VAROITUS_1.value]) values.VAROITUS_1 = {...values.VAROITUS_1, sensorValueDescriptionFi: VAR_FI[values.VAROITUS_1.value]};
   const r1 = x => Math.round(x*10)/10;
   if(values.KASTEPISTE) values.KASTEPISTE_ERO_TIE = {...values.KASTEPISTE, name:'KASTEPISTE_ERO_TIE', value:r1(values.TIE_1.value-values.KASTEPISTE.value)};
-  if(values.KUURAPISTE) values.KUURAPISTE_ERO_TIE = {...values.KUURAPISTE, name:'KUURAPISTE_ERO_TIE', value:r1(values.TIE_1.value-values.KUURAPISTE.value)};
   return values;
 }
 
