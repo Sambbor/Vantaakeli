@@ -451,10 +451,6 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 
   <section id="actions" data-tab="tilanne">
     <div class="sec-h"><h2>Toimenpidetarve</h2><span class="note">Päätöstuki seuraavalle 24 tunnille – tarkista aina asemilta ja kameroista</span></div>
-    <div class="act-settings hide-wall">
-      <label for="snowlimit">Aurauksen lähtöraja</label><input id="snowlimit" type="number" min="0.5" max="20" step="0.5"> cm
-      <label for="saltlimit">Jäännössuolan raja</label><input id="saltlimit" type="number" min="0" max="50" step="1"> g/m²
-    </div>
     <div class="salt-strip" id="salt-strip"></div>
     <div class="act-top">
       <div class="actions" id="actions-body"><div class="status">Lasketaan…</div></div>
@@ -943,7 +939,7 @@ function renderHourly(){
 function renderStations(){
   const el = $('#stations-body');
   if(!state.stations.length){ el.innerHTML='<div class="status">Ei asemia.</div>'; return; }
-  let h = '<table><thead><tr><th>Asema</th><th>Mitattu</th><th>Tie °C</th><th>Trendi</th><th>24 h</th><th>Ilma °C</th><th>Kastep. °C</th><th>Tie–kastep.</th><th>Tie–kuurap.</th><th title="Kuurakertymä °C·h: tienpinta kuurapistettä kylmempi × tunnit. 4 °C·h ≈ mahdollisesti liukas">Kuura °C·h</th><th>Keli</th><th>Varoitus</th><th>Kitka</th><th>Suola g/m²</th><th>Sade</th><th title="Aseman mittaama sademäärä viimeisen 12 tunnin aikana (sateen intensiteetistä)">Sade 12 h mm</th><th>Tuuli m/s</th><th>Näk. km</th></tr></thead><tbody>';
+  let h = '<table><thead><tr><th>Asema</th><th>Mitattu</th><th>Tie °C</th><th>Trendi</th><th>24 h</th><th>Ilma °C</th><th>Kastep. °C</th><th>Tie–kastep.</th><th>Tie–kuurap.</th><th title="Kuurakertymä °C·h: tienpinta kuurapistettä kylmempi × tunnit. 4 °C·h ≈ mahdollisesti liukas">Kuura °C·h</th><th>Keli</th><th>Varoitus</th><th>Kitka</th><th>Sade</th><th title="Aseman mittaama sademäärä viimeisen 12 tunnin aikana (sateen intensiteetistä)">Sade 12 h mm</th><th>Tuuli m/s</th><th>Näk. km</th></tr></thead><tbody>';
   for(const s of state.stations){
     const v = k => s.values && s.values[k];
     const num = k => v(k) ? n1(v(k).value) : '–';
@@ -967,7 +963,6 @@ function renderStations(){
       + '<td>'+desc('KELI_1')+'</td>'
       + '<td><span class="pill p-'+wcls+'">'+desc('VAROITUS_1')+'</span></td>'
       + '<td class="num"'+(fr && fr.value<0.4?' style="color:var(--bad);font-weight:600"':'')+'>'+(fr?n1(fr.value):'–')+'</td>'
-      + '<td class="num">'+num('SUOLAN_MÄÄRÄ_1')+'</td>'
       + '<td>'+desc('SADE')+'</td>'
       + (()=>{ const r12 = state.rain12 && state.rain12[s.id]; return r12 == null ? '<td class="num" title="Lasketaan, kun Asemat-välilehti on auki">–</td>' : '<td class="num"'+(r12 >= 1 ? ' style="color:var(--rain);font-weight:600"' : '')+'>'+n1(r12)+'</td>'; })()
       + '<td class="num">'+num('KESKITUULI')+'</td><td class="num">'+num('NÄKYVYYS_KM')+'</td></tr>';
@@ -985,7 +980,7 @@ function renderStations(){
       + '<div class="stc-k">'+(dsc('KELI_1') ? '<span class="pill p-'+(/kuiva/i.test(dsc('KELI_1'))?'ok':/jää|kuura|lumi|sohjo/i.test(dsc('KELI_1'))?'bad':'warn')+'">'+esc(dsc('KELI_1'))+'</span>' : '')
       + (wv>0 ? ' <span class="pill p-'+(warnBad(wv)?'bad':'warn')+'">'+esc(dsc('VAROITUS_1')||'varoitus')+'</span>' : '')+'</div>'
       + '<div class="stc-g">'+kv('Ilma',n1(val('ILMA')))+kv('Kastep.',n1(dew))+kv('Tie–kastep.',n1(diff), diff!=null && diff<=1 && r<=1 ? 'hot' : '')
-      + kv('Kitka',val('KITKA1_LUKU')!=null?n1(val('KITKA1_LUKU')):'–')+kv('Suola',n1(val('SUOLAN_MÄÄRÄ_1')))+kv('Tuuli',n1(val('KESKITUULI')))
+      + kv('Kitka',val('KITKA1_LUKU')!=null?n1(val('KITKA1_LUKU')):'–')+kv('Tuuli',n1(val('KESKITUULI')))
       + (()=>{ const a = r!=null && iss.ok ? stationFrostAcc(s) : null; return kv('Kuura °C·h', a==null?'–':n1(a), a!=null && a >= FROST_SLIP ? 'hot' : ''); })()
       + kv('Sade 12 h', state.rain12 && state.rain12[s.id]!=null ? n1(state.rain12[s.id])+' mm' : '–')+'</div>'
       + (state.hist[s.id] && state.hist[s.id].pts ? '<div class="stc-sp">'+spark(state.hist[s.id].pts)+'</div>' : '')
@@ -1099,13 +1094,12 @@ function renderMg(){
   const {seg, segD, rfc, rNow0, rBase} = mgSeg(st);
   const cur = k => { const v = sv(st,k); return v ? v.value : null; };
   const lastOf = a => a && a.length ? a[a.length-1][1] : null;
-  const rNow = cur('TIE_1'), fzNow = lastOf(frz), saltNow = cur('SUOLAN_MÄÄRÄ_'+lane) ?? cur('SUOLAN_MÄÄRÄ_1'), concNow = cur('SUOLAN_VÄKEVYYS_'+lane) ?? cur('SUOLAN_VÄKEVYYS_1');
+  const rNow = cur('TIE_1'), fzNow = lastOf(frz);
   const kv = (k, v, cls, title) => '<div'+(cls?' class="'+cls+'"':'')+(title?' title="'+esc(title)+'"':'')+'><span>'+k+'</span><b>'+v+'</b></div>';
   const dewNow = cur('KASTEPISTE'), dGap = (rNow!=null && dewNow!=null) ? rNow - dewNow : null;
   $('#mg-now').innerHTML = kv('Tienpinta', n1(rNow)+' °C', rNow!=null && rNow<=0 ? 'hot' : '')
     + kv('Jäätymispiste', fzNow!=null ? n1(fzNow)+' °C' : '–', '', 'Tienpinnan liuoksen jäätymispiste – suolaus laskee sitä nollan alle')
     + kv('Tie − kastepiste', dGap!=null ? n1(dGap)+' °C' : '–', dGap!=null ? (dGap<=0 ? 'hot' : 'ok') : '', 'Tienpinta miinus ilman kastepiste. Nolla tai alle: kosteutta tiivistyy tielle (pakkasella kuuraa).')
-    + kv('Suola', saltNow!=null ? n1(saltNow)+' g/m²' : '–', '', concNow!=null ? 'Suolan väkevyys '+n1(concNow)+' %' : '')
     + kv('Vesi / lumi / jää', [lastOf(water), lastOf(snow), lastOf(ice)].map(v=>v==null?'–':n1(v)).join(' / ')+' mm', (lastOf(ice)||0) > 0 ? 'hot' : '')
     + kv('Keli', esc(svd(st,'KELI_1')||'–'))
     + kv('Kitka', cur('KITKA1_LUKU')!=null ? n1(cur('KITKA1_LUKU')) : '–', cur('KITKA1_LUKU')!=null && cur('KITKA1_LUKU')<0.4 ? 'hot' : '')
@@ -1726,7 +1720,7 @@ function renderSummary(){
     const risk = d24.filter(d=>d.risk); const snow = d24.some(d=>isSnowy(Math.round(d.WeatherSymbol3)));
     tiles.push({cls: risk.length?'bad':(minT<=2?'warn':'ok'), k:'Liukkausriski 24 h', v: risk.length ? risk.length+' h' : 'Ei', d: risk.length ? 'alkaen '+fmtDT(risk[0].t) : 'FMI-ennuste + tielämpötilaennuste'});
     const snowCm = d24.reduce((a,d)=>a+snowOf(d),0);
-    tiles.push({cls: snowCm>=settings.snow?'bad':snowCm>=0.5?'warn':'', k:'Sade 24 h', v: n1(sumP)+' mm', d: (snowCm>=0.1?'lunta ~'+n1(snowCm)+' cm · ':(snow?'räntää/lunta mahdollista · ':''))+'alin ilma '+n1(minT)+' °C'});
+    tiles.push({cls: snowCm>=SNOW_LIMIT?'bad':snowCm>=0.5?'warn':'', k:'Sade 24 h', v: n1(sumP)+' mm', d: (snowCm>=0.1?'lunta ~'+n1(snowCm)+' cm · ':(snow?'räntää/lunta mahdollista · ':''))+'alin ilma '+n1(minT)+' °C'});
   }
   $('#summary').innerHTML = tiles.map(t=>'<div class="tile '+(t.cls||'')+'"><span class="k">'+t.k+'</span><span class="v">'+t.v+'</span><span class="d">'+t.d+'</span></div>').join('');
 }
@@ -1739,7 +1733,8 @@ const inMap = c => c && c[0]>=MAP.w && c[0]<=MAP.e && c[1]>=MAP.s && c[1]<=MAP.n
 const PLACES = U.places;
 const SETTINGS_KEY = U.key+'-settings';
 const HIST_KEY = U.key+'-hist-v1';
-const settings = (()=>{ try{ return Object.assign({snow:3, salt:5, wall:false, worksHours:12, worksMap:true, radarMode:'dbz', roadMode:'cond'}, JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}); }catch(e){ return {snow:3, salt:5, wall:false}; } })();
+const SNOW_LIMIT = 2;
+const settings = (()=>{ try{ return Object.assign({wall:false, worksHours:12, worksMap:true, radarMode:'dbz', roadMode:'cond'}, JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}); }catch(e){ return {snow:3, salt:5, wall:false}; } })();
 const saveSettings = () => { try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){} };
 const SEV = { bad:['KIIREELLINEN',3], na:['TIEDOT PUUTTUVAT',2.5], warn:['VALMISTAUDU',2], info:['SEURAA',1], ok:['EI TOIMENPIDETARVETTA',0] };
 const sv = (s,k) => s && s.values && s.values[k];
@@ -1822,9 +1817,6 @@ $('#copybrief').addEventListener('click', async () => {
   setTimeout(()=>{ $('#copybrief').textContent = 'Kopioi teksti'; }, 2500);
 });
 
-$('#snowlimit').value = settings.snow; $('#saltlimit').value = settings.salt;
-$('#snowlimit').addEventListener('change', e=>{ const v = parseFloat(e.target.value); if(v>0){ settings.snow = v; saveSettings(); if(state.fmi.length){ renderActions(); renderBrief(); } } });
-$('#saltlimit').addEventListener('change', e=>{ const v = parseFloat(e.target.value); if(v>=0){ settings.salt = v; saveSettings(); if(state.fmi.length){ renderActions(); renderBrief(); } } });
 const TAB_IDS = [...document.querySelectorAll('#tabs .tab')].map(b=>b.dataset.tab);
 let curTab = (location.hash||'').slice(1); if(!TAB_IDS.includes(curTab)){ try{ curTab = localStorage.getItem(U.key+'-tab') || ''; }catch(e){} } if(!TAB_IDS.includes(curTab)) curTab = 'tilanne';
 function applyTabs(){
@@ -2340,7 +2332,7 @@ function modelSummary(){
   const frz = ms.map(m=>m.rows.find(r=>r.Temperature <= 0)).filter(Boolean), mins = rng(ms.map(m=>Math.min(...m.rows.map(r=>r.Temperature))));
   li.push(frz.length ? '<b>Ilma pakkaselle '+frz.length+'/'+ms.length+' mallissa</b>, alkaa '+span(frz.map(r=>r.t))+' · alin lämpötila '+n1(mins.lo)+' … '+n1(mins.hi)+' °C'
     : '<b>Ei pakkasta yhdessäkään mallissa</b> · alin lämpötila '+n1(mins.lo)+' … '+n1(mins.hi)+' °C');
-  const lim = Number(($('#snowlimit')||{}).value) || 3;
+  const lim = SNOW_LIMIT;
   const sn = ms.map(m=>({first:m.rows.find(r=>(r.snow||0) >= 0.1), tot:m.rows.reduce((a,r)=>a+(r.snow||0),0)})), snowy = sn.filter(x=>x.first);
   if(snowy.length){ const tot = rng(sn.map(x=>x.tot)); li.push('<b>Lumisadetta '+snowy.length+'/'+ms.length+' mallissa</b>, alkaa '+span(snowy.map(x=>x.first.t))+' · kertymä '+n1(tot.lo)+'–'+n1(tot.hi)+' cm / 24 h · aurauksen lähtöraja '+n1(lim)+' cm ylittyy '+sn.filter(x=>x.tot >= lim).length+'/'+ms.length+' mallissa'); }
   else { const pr = rng(ms.map(m=>m.rows.reduce((a,r)=>a+(isFinite(r.P)?r.P:0),0))); li.push('<b>Ei lumisadetta</b> · sadetta '+n1(pr.lo)+'–'+n1(pr.hi)+' mm / 24 h'); }
@@ -2430,7 +2422,7 @@ function fillProbeStations(){
   if(!$('#probe-t').value){ const d = new Date(Date.now()-2*36e5); d.setMinutes(0,0,0);
     const loc = new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16); $('#probe-t').value = loc; }
 }
-const PROBE_SENS = [['TIE_1','Tie °C'],['ILMA','Ilma °C'],['KASTEPISTE','Kastepiste °C'],['KELI_1','Keli'],['VAROITUS_1','Varoitus'],['KITKA1_LUKU','Kitka'],['SUOLAN_MÄÄRÄ_1','Suola g/m²'],['SADE','Sade'],['SADE_INTENSITEETTI','Sade mm/h'],['KESKITUULI','Tuuli m/s'],['NÄKYVYYS_KM','Näk. km']];
+const PROBE_SENS = [['TIE_1','Tie °C'],['ILMA','Ilma °C'],['KASTEPISTE','Kastepiste °C'],['KELI_1','Keli'],['VAROITUS_1','Varoitus'],['KITKA1_LUKU','Kitka'],['SADE','Sade'],['SADE_INTENSITEETTI','Sade mm/h'],['KESKITUULI','Tuuli m/s'],['NÄKYVYYS_KM','Näk. km']];
 let probeReport = null;
 async function runProbe(){
   const st = state.stations.find(s=>String(s.id)===$('#probe-st').value); const out = $('#probe-out');
@@ -2719,8 +2711,6 @@ function normalizeStation(values){
   const r1 = x => Math.round(x*10)/10;
   if(values.KASTEPISTE) values.KASTEPISTE_ERO_TIE = {...values.KASTEPISTE, name:'KASTEPISTE_ERO_TIE', value:r1(values.TIE_1.value-values.KASTEPISTE.value)};
   if(values.KUURAPISTE) values.KUURAPISTE_ERO_TIE = {...values.KUURAPISTE, name:'KUURAPISTE_ERO_TIE', value:r1(values.TIE_1.value-values.KUURAPISTE.value)};
-  const salt = [1,2].map(n=>values['SUOLAN_MÄÄRÄ_'+n]).filter(Boolean);
-  if(salt.length) values['SUOLAN_MÄÄRÄ_1'] = {...salt.reduce((a,v)=>v.value>a.value?v:a), name:'SUOLAN_MÄÄRÄ_1'};
   return values;
 }
 
