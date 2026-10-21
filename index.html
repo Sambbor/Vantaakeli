@@ -1283,7 +1283,7 @@ const SALT_FORM = U.saltForm;
 const saltInfo = id => { const T = typeof keruu !== 'undefined' && keruu.salt; const x = T && T.stations && T.stations[id]; return x || null; };
 const saltActive = id => { const x = saltInfo(id); return x && x.active && Date.now() <= new Date(x.end).getTime() ? x : null; };
 const saltArgP = id => { const x = saltActive(id); return x ? {frost: x.left.frost, rain: x.left.rain, end: new Date(x.end).getTime()} : null; };
-const saltSrc = x => (x.src === 'harja' ? 'Harja' : 'merkintä'+(x.by ? ' '+esc(x.by) : ''))+' '+fmtT(x.t);
+const saltSrcT = x => (x.src === 'harja' ? 'Harja' : 'merkintä'+(x.by ? ' '+x.by : ''))+' '+fmtT(x.t), saltSrc = x => esc(saltSrcT(x));
 const saltTag = s => { const x = saltActive(s.id); return x ? ' ('+esc(x.lvl)+', '+saltSrc(x)+')' : ''; };
 const saltEnd = s => { if(!saltActive(s.id)) return null; const r = stationSlipSeries(s); const c = r && r.rows.find(c=>c.salt === 0); return c ? c.t : null; };
 const saltAt = (s, t) => { if(!saltActive(s.id)) return false; const e = saltEnd(s); return e == null || e > new Date(t).getTime() + 30*60e3; };
@@ -1292,13 +1292,15 @@ function renderSaltStrip(){
   const T = keruu.salt;
   if(!T || !T.stations){ el.innerHTML = '<span class="muted">Suola tiellä: ei tietoa vielä</span>'+(SALT_FORM ? ' <a class="salt-btn" href="'+SALT_FORM+'" target="_blank" rel="noopener">Merkitse suola →</a>' : ''); return; }
   const byRoad = {}; for(const s of state.stations){ const x = saltInfo(s.id); if(!x) continue; const rd = x.road ?? s.road; (byRoad[rd] = byRoad[rd] || []).push({s, x}); }
-  const items = Object.entries(byRoad).sort((a,b)=>Number(a[0])-Number(b[0])).map(([road, a])=>{
-    const on = a.filter(q=>saltActive(q.s.id)), q = on[0] || a[0], x = q.x;
-    if(!on.length) return '<span><b>Tie '+esc(road)+'</b> <span class="pill p-na">ei suolaa</span> <small class="muted">'+esc(x.why || '')+'</small></span>';
-    const left = on.reduce((m, z)=>({frost: Math.min(m.frost, z.x.left.frost), rain: Math.min(m.rain, z.x.left.rain)}), {frost: Infinity, rain: Infinity});
-    const ends = on.map(z=>saltEnd(z.s)).filter(v=>v!=null), end = ends.length ? Math.min(...ends) : null;
-    return '<span title="'+esc(on.map(z=>z.s.name).join(', ')+(x.note ? ' · '+x.note : ''))+'"><b>Tie '+esc(road)+'</b> <span class="pill p-ok">'+esc(x.lvl)+'</span> <small class="muted">'+saltSrc(x)
-      + ' · kestää vielä kuuraa '+n1(left.frost)+' °C·h, sadetta '+n1(left.rain)+' mm'+(end ? ' · <b>loppuu arviolta klo '+fmtT(end)+'</b>' : '')+'</small></span>'; });
+  const grp = new Map(); for(const [road, a] of Object.entries(byRoad).sort((a,b)=>Number(a[0])-Number(b[0]))){
+    const on = a.filter(q=>saltActive(q.s.id)), x = (on[0] || a[0]).x, tip = (on.length ? on : a).map(z=>z.s.name.replace(/^Tie \d+,?\s*/, '')+' – '+saltSrcT(z.x)+(z.x.note ? ' · '+z.x.note : '')).join('; ');
+    let key, body;
+    if(!on.length){ key = 'x|'+(x.why || ''); body = '<span class="pill p-na">ei suolaa</span> <small class="muted">'+esc(x.why || '')+'</small>'; }
+    else { const left = on.reduce((m, z)=>({frost: Math.min(m.frost, z.x.left.frost), rain: Math.min(m.rain, z.x.left.rain)}), {frost: Infinity, rain: Infinity});
+      const ends = on.map(z=>saltEnd(z.s)).filter(v=>v!=null), end = ends.length ? Math.min(...ends) : null;
+      body = '<span class="pill p-ok">'+esc(x.lvl)+'</span> <small class="muted">kestää vielä kuuraa '+n1(left.frost)+' °C·h, sadetta '+n1(left.rain)+' mm'+(end ? ' · <b>loppuu arviolta klo '+fmtT(end)+'</b>' : '')+'</small>'; key = 'o|'+x.lvl+'|'+body; }
+    const g = grp.get(key) || grp.set(key, {roads: [], tips: [], body}).get(key); g.roads.push(road); g.tips.push('Tie '+road+': '+tip); }
+  const items = [...grp.values()].map(g=>'<span title="'+esc(g.tips.join('\n'))+'"><b>'+(g.roads.length > 1 ? 'Tiet ' : 'Tie ')+esc(g.roads.join(', '))+'</b> '+g.body+'</span>');
   el.innerHTML = '<b>Suola tiellä:</b> '+(items.length ? items.join('') : '<span class="muted">ei suolauksia 48 h aikana</span>')
     + (SALT_FORM ? ' <a class="salt-btn" href="'+SALT_FORM+'" target="_blank" rel="noopener" title="GitHub: Actions → Suolamerkintä → Run workflow">Merkitse suola →</a>' : '');
 }
