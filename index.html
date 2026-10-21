@@ -365,6 +365,8 @@ body.wall .tabs{display:none}
 .mg-bar select{font-weight:600;max-width:100%}
 .mg-now{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px 14px;padding:10px 12px;border-bottom:1px solid var(--line)}
 .mg-now div{display:flex;flex-direction:column} .mg-now span{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.mg-now .mg-cam button{padding:0;border:0;background:none;cursor:zoom-in;width:64px;height:36px;margin-top:3px;border-radius:4px;overflow:hidden}
+.mg-now .mg-cam img{width:100%;height:100%;object-fit:cover;display:block;background:var(--soft)}
 .mg-now b{font:600 16px var(--f-mono)} .mg-now .hot b{color:var(--bad)} .mg-now .ok b{color:var(--ok)}
 .mg-wrap{position:relative;padding:6px 4px 0}
 .mg-wrap svg{display:block;width:100%;height:auto;touch-action:pan-y}
@@ -1101,7 +1103,11 @@ function renderMg(){
     + kv('Vesi / lumi / jää', [lastOf(water), lastOf(snow), lastOf(ice)].map(v=>v==null?'–':n1(v)).join(' / ')+' mm', (lastOf(ice)||0) > 0 ? 'hot' : '')
     + kv('Keli', esc(svd(st,'KELI_1')||'–'))
     + kv('Kitka', cur('KITKA1_LUKU')!=null ? n1(cur('KITKA1_LUKU')) : '–', cur('KITKA1_LUKU')!=null && cur('KITKA1_LUKU')<0.4 ? 'hot' : '')
-    + kv('Ilma / kastep.', n1(cur('ILMA'))+' / '+n1(cur('KASTEPISTE'))+' °C');
+    + kv('Ilma / kastep.', n1(cur('ILMA'))+' / '+n1(cur('KASTEPISTE'))+' °C')
+    + (()=>{ const nc = nearCam(st); if(!nc) return ''; const mt = state.camData && state.camData[nc.p.id];
+        return '<div class="mg-cam"><span>Kamera'+(nc.d > 150 ? ' '+(nc.d/1000).toFixed(1).replace('.',',')+' km' : '')+'</span>'
+          + '<button type="button" data-cam="'+esc(nc.c.id)+'" data-preset="'+esc(nc.p.id)+'" title="'+esc(nc.c.name+' – '+(nc.p.name||'')+(mt?' · '+fmtT(mt):''))+' – suurenna" aria-label="Kamerakuva: '+esc(nc.c.name)+'">'
+          + '<img loading="lazy" alt="" src="'+esc(nc.p.url+'?thumbnail=true&t='+encodeURIComponent(mt||Date.now()))+'"></button></div>'; })();
   $('#mg-info').textContent = (st.measured ? 'mitattu '+fmtT(st.measured) : '') + (seg ? ' · tieennuste: '+segLabel(seg)+(segD>150?' ('+(segD/1000).toFixed(1).replace('.',',')+' km)':'') : ' · ei tieennustetta lähellä') + (rsSeries(st) ? ' · RoadSurf-ajo '+fmtT(rsSeries(st).f0) : '') + (c.err.length ? ' · puuttuu: '+c.err.join(', ') : '');
   try{ renderMgTable(st); }catch(e){ console.warn('mt1', e); }
   const W = Math.max(340, Math.round($('#mg-wrap').clientWidth - 8) || 900), narrow = W < 640;
@@ -1591,6 +1597,12 @@ function renderCams(){
 }
 
 let lbCam = null;
+function nearCam(st){ const cams = state.cams || []; if(!st) return null;
+  const dist = k => (k.lat == null || st.lat == null) ? 0 : Math.hypot((k.lon-st.lon)*M_LON, (k.lat-st.lat)*M_LAT);
+  let c = cams.find(k=>String(k.nearestWs) === String(st.id) && k.presets && k.presets.length), d = c ? dist(c) : 3000;
+  if(!c) for(const k of cams){ if(k.lat == null || !k.presets || !k.presets.length) continue; const x = dist(k); if(x < d){ d = x; c = k; } }
+  return c ? {c, p: c.presets[0], d} : null; }
+$('#mg-now').addEventListener('click', e => { const b = e.target.closest('.mg-cam button'); if(b) openLb(b.dataset.cam, b.dataset.preset); });
 function openLb(camId, presetId){
   const c = state.cams.find(x=>x.id===camId); if(!c) return; lbCam = c;
   const p = c.presets.find(x=>x.id===presetId) || c.presets[0];
