@@ -1,2 +1,5 @@
 .laskenta/
 node_modules/
+_site/
+data/pohdinta.json
+salo/data/pohdinta.json
