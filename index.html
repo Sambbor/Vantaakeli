@@ -664,16 +664,47 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 (() => {
 'use strict';
 const fetch = (u, o) => window.fetch(u, (o && o.signal) || typeof AbortSignal === 'undefined' || !AbortSignal.timeout ? o : {...(o||{}), signal: AbortSignal.timeout(25000)});
-const CONTRACT_CODE = 301;
-const BBOX = {xMin:24.55, yMin:60.15, xMax:25.45, yMax:60.50};
-const FC_BBOX = 'xMin=24.7&yMin=60.18&xMax=25.3&yMax=60.42';
-const FC_SECTIONS = ['00003_101_000_0','00003_101_001_0','00004_101_000_0','00004_103_000_0','00007_001_000_0',
-  '00045_001_000_0','00045_002_000_0','00050_003_000_0','00050_006_000_0','00101_001_000_0','00101_006_000_0'];
-const FMI_POINT = '60.30,24.97';
+const URAKAT = {
+  vantaa: {id:'vantaa', name:'Vantaa', gen:'Vantaan', ade:'Vantaalla', code:301,
+    bbox:{xMin:24.55, yMin:60.15, xMax:25.45, yMax:60.50}, fcBbox:'xMin=24.7&yMin=60.18&xMax=25.3&yMax=60.42',
+    fcSections:['00003_101_000_0','00003_101_001_0','00004_101_000_0','00004_103_000_0','00007_001_000_0',
+      '00045_001_000_0','00045_002_000_0','00050_003_000_0','00050_006_000_0','00101_001_000_0','00101_006_000_0'], fineRoads:null,
+    fmi:'60.30,24.97', fmiLbl:'60,30 N 24,97 E', obs:{fmisid:100968, name:'Helsinki-Vantaan lentoasema', gen:'Helsinki-Vantaan'},
+    map:{w:24.60, e:25.40, s:60.16, n:60.46}, center:[25.0, 60.305],
+    places:[['Tikkurila',25.044,60.292],['Lentoasema',24.963,60.317],['Myyrmäki',24.853,60.262],['Kivistö',24.85,60.316],
+      ['Hakunila',25.108,60.279],['Korso',25.08,60.35],['Kerava',25.105,60.403],['Helsinki',24.941,60.171],['Leppävaara',24.813,60.219],['Itäkeskus',25.082,60.21]],
+    locs:[['Martinlaakso',24.85,60.279],['Koivukylä',25.06,60.32],['Aviapolis',24.96,60.305],['Malmi',25.01,60.25],
+      ['Pakila',24.94,60.245],['Keimola',24.86,60.335],['Länsisalmi',25.16,60.28],['Jakomäki',25.08,60.26],['Hämeenkylä',24.87,60.25],
+      ['Konala',24.84,60.235],['Hyrylä',25.03,60.40],['Kuninkaanmäki',25.09,60.30]],
+    areaRe:/uusimaa|vantaa|helsinki|espoo|kerava|sipoo|tuusula|pääkaupunkiseu|nyland/i,
+    saltForm:'https://github.com/Sambbor/Vantaakeli/actions/workflows/suola.yml', data:'data/', key:'vantaa-keli'},
+  salo: {id:'salo', name:'Salo', gen:'Salon', ade:'Salossa', code:333,
+    bbox:{xMin:22.75, yMin:60.05, xMax:23.85, yMax:60.62}, fcBbox:'xMin=22.8&yMin=60.08&xMax=23.82&yMax=60.6',
+    fcSections:['00001_022_000_0'], fineRoads:[1,52,110,183,186,224],
+    fmi:'60.385,23.125', fmiLbl:'60,39 N 23,13 E', obs:{fmisid:100955, name:'Salo Kärkkä', gen:'Salo Kärkän'},
+    map:{w:22.80, e:23.82, s:60.08, n:60.60}, center:[23.13, 60.385],
+    places:[['Salo',23.128,60.385],['Perniö',23.136,60.204],['Halikko',23.07,60.407],['Muurla',23.287,60.36],['Kisko',23.48,60.236],['Suomusjärvi',23.64,60.36],['Kiikala',23.53,60.46]],
+    locs:[],
+    areaRe:/varsinais-suomi|egentliga finland|salo|perniö|halikko|muurla|kisko|suomusjärvi|kiikala/i,
+    saltForm:null, data:'salo/data/', key:'salo-keli'}
+};
+const U = URAKAT[new URLSearchParams(location.search).get('u')] || URAKAT.vantaa;
+const CONTRACT_CODE = U.code;
+const BBOX = U.bbox;
+const FC_BBOX = U.fcBbox;
+const FC_SECTIONS = U.fcSections;
+const FMI_POINT = U.fmi;
 const DT = 'https://tie.digitraffic.fi';
+if(U.id !== 'vantaa'){
+  const rep = h => h.replace('URAKKA 301', 'URAKKA '+U.code).replace('Vantaan <span class="lg">', U.gen+' <span class="lg">').replace('Sääennuste 72 h – Vantaa', 'Sääennuste 72 h – '+U.name)
+    .replace('(60,30 N 24,97 E)', '('+U.fmiLbl+')').replace('Vantaan pisteessä', U.gen+' pisteessä').replace('Helsinki-Vantaan säähavainnon', U.obs.gen+' säähavainnon')
+    .replace('contractArea = Vantaa (301)', 'contractArea = '+U.name+' ('+U.code+')');
+  document.title = U.gen+' urakan keli';
+  document.querySelectorAll('.brand, .sec-h, #probe-out, footer').forEach(el => { el.innerHTML = rep(el.innerHTML); });
+}
 const HDR = {headers:{'Digitraffic-User':'Vantaa-urakka-keliennuste'}};
 const TZ = 'Europe/Helsinki';
-const META_KEY = 'vantaa-keli-meta-v4';
+const META_KEY = U.key+'-meta-v4';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -744,7 +775,7 @@ async function loadMeta(){
   })).sort((a,b)=>a.road-b.road || a.name.localeCompare(b.name,'fi'));
   let fine = [];
   try{
-    const roads = new Set(FC_SECTIONS.map(id=>Number(id.slice(0,5))));
+    const roads = new Set(U.fineRoads || FC_SECTIONS.map(id=>Number(id.slice(0,5))));
     const d = await getJSON(DT+'/api/weather/v1/forecast-sections?'+FC_BBOX);
     fine = (d.features||[]).filter(f=>f.geometry && roads.has(f.properties.roadNumber)).map(f=>({id:f.id, road:f.properties.roadNumber, desc:f.properties.description, len:f.properties.length,
       lines:(f.geometry.type==='MultiLineString'?f.geometry.coordinates:[f.geometry.coordinates]).map(l=>l.map(c=>[Math.round(c[0]*1e5)/1e5, Math.round(c[1]*1e5)/1e5]))}));
@@ -990,14 +1021,14 @@ function wxStrip(rows, x, y0, minGapPx){
 function mgStations(){ return state.stations.filter(s=>s.lon); }
 function fillMgSelect(){
   const sel = $('#mg-st'); const list = mgStations();
-  const cur = mg.id || (()=>{ try{ return localStorage.getItem('vantaa-keli-mg'); }catch(e){ return null; } })();
+  const cur = mg.id || (()=>{ try{ return localStorage.getItem(U.key+'-mg'); }catch(e){ return null; } })();
   sel.innerHTML = list.map(s=>'<option value="'+s.id+'">'+esc(s.name)+' ('+s.id+')</option>').join('');
   let id = list.some(s=>String(s.id)===String(cur)) ? String(cur) : null;
   if(!id){ const c = okStations().filter(s=>s.lon && svv(s,'TIE_1')!=null).sort((a,b)=>svv(a,'TIE_1')-svv(b,'TIE_1'))[0]; id = c ? String(c.id) : (list[0] && String(list[0].id)); }
   sel.value = id || ''; mg.id = id;
 }
-$('#mg-st').addEventListener('change', e=>{ mg.id = e.target.value; try{ localStorage.setItem('vantaa-keli-mg', mg.id); }catch(_){} ensureMg(); });
-function openMg(id){ mg.id = String(id); try{ localStorage.setItem('vantaa-keli-mg', mg.id); }catch(_){} showTab('asemat'); if($('#mg-st').options.length) $('#mg-st').value = mg.id; ensureMg(); $('#stmg').scrollIntoView({behavior:'smooth', block:'start'}); }
+$('#mg-st').addEventListener('change', e=>{ mg.id = e.target.value; try{ localStorage.setItem(U.key+'-mg', mg.id); }catch(_){} ensureMg(); });
+function openMg(id){ mg.id = String(id); try{ localStorage.setItem(U.key+'-mg', mg.id); }catch(_){} showTab('asemat'); if($('#mg-st').options.length) $('#mg-st').value = mg.id; ensureMg(); $('#stmg').scrollIntoView({behavior:'smooth', block:'start'}); }
 $('#stations-body').addEventListener('click', e=>{ const b = e.target.closest('[data-mg]'); if(b) openMg(b.dataset.mg); });
 async function fmiAt(lat, lon){
   const url = 'https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::forecast::edited::weather::scandinavia::point::simple&latlon='+lat.toFixed(4)+','+lon.toFixed(4)
@@ -1011,7 +1042,7 @@ async function fmiAt(lat, lon){
 }
 async function loadRs(){
   if(mg.rs && Date.now() - mg.rsT < 10*60e3) return mg.rs;
-  mg.rs = await fetch('data/roadsurf.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null); mg.rsT = Date.now();
+  mg.rs = await fetch(U.data+'roadsurf.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null); mg.rsT = Date.now();
   return mg.rs;
 }
 function rsSeries(st){
@@ -1197,7 +1228,7 @@ function renderMg(){
 
 let POH = null;
 async function loadPohdinta(){
-  try{ const j = await fetch('data/pohdinta.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null); if(j && j.v){ POH = j; if(j.rules) RULES_VERSION = j.rules; } }catch(e){}
+  try{ const j = await fetch(U.data+'pohdinta.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null); if(j && j.v){ POH = j; if(j.rules) RULES_VERSION = j.rules; } }catch(e){}
   return POH;
 }
 const FROST_SLIP = 4;
@@ -1250,7 +1281,7 @@ $('#mg-tbl').addEventListener('click', e=>{ const tr = e.target.closest('tr.mgt-
   const st = state.stations.find(s=>String(s.id)===String(mg.id)); if(st) renderMgTable(st); });
 
 const slip = {data:null, dataT:0, dataErr:null, learn:null, sel:null};
-const SALT_FORM = 'https://github.com/Sambbor/Vantaakeli/actions/workflows/suola.yml';
+const SALT_FORM = U.saltForm;
 const saltInfo = id => { const T = typeof keruu !== 'undefined' && keruu.salt; const x = T && T.stations && T.stations[id]; return x || null; };
 const saltActive = id => { const x = saltInfo(id); return x && x.active && Date.now() <= new Date(x.end).getTime() ? x : null; };
 const saltArgP = id => { const x = saltActive(id); return x ? {frost: x.left.frost, rain: x.left.rain, end: new Date(x.end).getTime()} : null; };
@@ -1261,7 +1292,7 @@ const saltAt = (s, t) => { if(!saltActive(s.id)) return false; const e = saltEnd
 function renderSaltStrip(){
   const el = $('#salt-strip'); if(!el) return;
   const T = keruu.salt;
-  if(!T || !T.stations){ el.innerHTML = '<span class="muted">Suola tiellä: ei tietoa vielä</span> <a class="salt-btn" href="'+SALT_FORM+'" target="_blank" rel="noopener">Merkitse suola →</a>'; return; }
+  if(!T || !T.stations){ el.innerHTML = '<span class="muted">Suola tiellä: ei tietoa vielä</span>'+(SALT_FORM ? ' <a class="salt-btn" href="'+SALT_FORM+'" target="_blank" rel="noopener">Merkitse suola →</a>' : ''); return; }
   const byRoad = {}; for(const s of state.stations){ const x = saltInfo(s.id); if(!x) continue; const rd = x.road ?? s.road; (byRoad[rd] = byRoad[rd] || []).push({s, x}); }
   const items = Object.entries(byRoad).sort((a,b)=>Number(a[0])-Number(b[0])).map(([road, a])=>{
     const on = a.filter(q=>saltActive(q.s.id)), q = on[0] || a[0], x = q.x;
@@ -1271,7 +1302,7 @@ function renderSaltStrip(){
     return '<span title="'+esc(on.map(z=>z.s.name).join(', ')+(x.note ? ' · '+x.note : ''))+'"><b>Tie '+esc(road)+'</b> <span class="pill p-ok">'+esc(x.lvl)+'</span> <small class="muted">'+saltSrc(x)
       + ' · kestää vielä kuuraa '+n1(left.frost)+' °C·h, sadetta '+n1(left.rain)+' mm'+(end ? ' · <b>loppuu arviolta klo '+fmtT(end)+'</b>' : '')+'</small></span>'; });
   el.innerHTML = '<b>Suola tiellä:</b> '+(items.length ? items.join('') : '<span class="muted">ei suolauksia 48 h aikana</span>')
-    + ' <a class="salt-btn" href="'+SALT_FORM+'" target="_blank" rel="noopener" title="GitHub: Actions → Suolamerkintä → Run workflow">Merkitse suola →</a>';
+    + (SALT_FORM ? ' <a class="salt-btn" href="'+SALT_FORM+'" target="_blank" rel="noopener" title="GitHub: Actions → Suolamerkintä → Run workflow">Merkitse suola →</a>' : '');
 }
 const MODEL_SHORT = {fmi:'FMI', meps:'MEPS', ecmwf:'ECMWF', met:'MET'};
 function agreeAt(r, i){ const v = (r.models||[]).map(m=>m.rows[i]).filter(c=>c && c.idx != null); return {k: v.filter(c=>c.idx >= 50).length, n: v.length}; }
@@ -1313,11 +1344,11 @@ async function loadObsData(){
   if(slip.dataT && Date.now() - slip.dataT < 30*60e3) return;
   slip.dataT = Date.now();
   try{
-    const L = await fetch('data/learn.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+    const L = await fetch(U.data+'learn.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
     slip.learn = L; slip.data = true; slip.dataErr = null;
   }catch(e){ slip.learn = null; slip.data = null; slip.dataErr = e.message; }
-  slip.sc = await fetch('data/scorecard.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
-  slip.rsv = await fetch('data/roadsurf-verif.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  slip.sc = await fetch(U.data+'scorecard.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  slip.rsv = await fetch(U.data+'roadsurf-verif.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   slip.retro = await fetch(RETRO_URL+'?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   renderSlipModel(); renderSlip(); renderScorecard(); renderRsVerif(); renderRetro();
 }
@@ -1396,7 +1427,7 @@ function renderScorecard(){
   const agg = {}; for(const w of S.weeks) for(const [m, v] of Object.entries(w.models||{})) for(const [L, x] of Object.entries(v)) if(x){ const a = ((agg[m] = agg[m] || {})[L] = agg[m][L] || {n:0, s:0, b:0}); a.n += x.n; a.s += x.mae*x.n; a.b += x.bias*x.n; }
   const ms = Object.keys(agg).sort((a,b)=>((agg[a][12]||{s:1e9,n:1}).s/(agg[a][12]||{n:1}).n)-((agg[b][12]||{s:1e9,n:1}).s/(agg[b][12]||{n:1}).n));
   const cell = a => a && a.n ? n1(a.s/a.n)+' °C <small class="muted">('+(a.b/a.n>0?'+':'')+n1(a.b/a.n)+')</small>' : '–';
-  if(ms.length) h += '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Säämallien osuvuus koko jaksolla (ilman lämpötila Vantaalla)</summary><div class="scroll"><table><thead><tr><th>Malli</th><th>6 h</th><th>12 h</th><th>24 h</th></tr></thead><tbody>'
+  if(ms.length) h += '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Säämallien osuvuus koko jaksolla (ilman lämpötila '+U.ade+')</summary><div class="scroll"><table><thead><tr><th>Malli</th><th>6 h</th><th>12 h</th><th>24 h</th></tr></thead><tbody>'
     + ms.map(m=>'<tr><td class="name">'+esc(m)+'</td>'+[6,12,24].map(L=>'<td class="num">'+cell(agg[m][L])+'</td>').join('')+'</tr>').join('') + '</tbody></table></div>'
     + '<p class="muted">Keskimääräinen virhe asemien mittaamaan ilman lämpötilaan; suluissa harha (+ = ennuste liian lämmin). Järjestys 12 h virheen mukaan.</p></details>';
   const L = S.learned || {};
@@ -1452,8 +1483,8 @@ async function loadCamWatch(force){
   cw.t = Date.now();
   const q = '?'+Math.floor(Date.now()/6e4);
   try{
-    const [l, e] = await Promise.all([fetch('data/cam/latest.json'+q, {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }),
-      fetch('data/cam/events.json'+q, {cache:'no-store'}).then(r=>r.ok ? r.json() : [])]);
+    const [l, e] = await Promise.all([fetch(U.data+'cam/latest.json'+q, {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }),
+      fetch(U.data+'cam/events.json'+q, {cache:'no-store'}).then(r=>r.ok ? r.json() : [])]);
     cw.latest = l; cw.events = e; cw.err = null;
   }catch(err){ cw.latest = null; cw.events = null; cw.err = err.message; }
   renderCamWatch();
@@ -1464,8 +1495,8 @@ const nightS = {t:0, d:null};
 async function loadNight(){
   if(nightS.t && Date.now() - nightS.t < 10*60e3){ renderNight(); renderKomento(); return; }
   nightS.t = Date.now();
-  nightS.d = await fetch('data/night.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
-  nightS.k = await fetch('data/komento.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  nightS.d = await fetch(U.data+'night.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  nightS.k = await fetch(U.data+'komento.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   renderNight(); renderKomento();
 }
 const KLEVEL = {toimenpide:['p-bad','Toimenpide'], seuranta:['p-warn','Seuranta'], ei:['p-ok','Ei toimenpiteitä']};
@@ -1539,7 +1570,7 @@ async function loadKeruu(){
   if(!keruu.t || Date.now() - keruu.t >= 10*60e3){
     keruu.t = Date.now();
     const q = '?'+Math.floor(Date.now()/6e4), j = u => fetch(u+q, {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
-    [keruu.idx, keruu.cam, keruu.salt] = await Promise.all([j('data/index.json'), j('data/cam/latest.json'), j('data/suola_tila.json')]);
+    [keruu.idx, keruu.cam, keruu.salt] = await Promise.all([j(U.data+'index.json'), j(U.data+'cam/latest.json'), j(U.data+'suola_tila.json')]);
     if(((keruu.idx && keruu.idx.frost) || keruu.salt) && state.fmi && state.fmi.length){ areaFrost(); renderActions(); renderSlip(); renderChart(); }
   }
   renderKeruu();
@@ -1582,8 +1613,8 @@ function renderCamWatch(){
       const fcTxt = fc ? (e.surprise ? '<span class="cw-sur">Ennuste ei luvannut liukkautta</span> (keli '+esc((OVERALL[fc.cond]||['?'])[0].toLowerCase())+', tie '+n1(fc.tr)+' → '+n1(fc.tr2)+' °C 2 h) – vahti olisi ollut ennustetta aiemmin.'
         : '<span class="cw-conf">Ennuste jo varoitti</span> ('+esc((fc.reasons||[]).map(r=>tr(r)).join(', ') || (OVERALL[fc.cond]||['?'])[0].toLowerCase())+', tie '+n1(fc.tr)+' °C).') : 'Ei tiesääennustetta kameran lähellä.';
       h += '<div class="cw-ev"><div class="cw-imgs">'
-        + (e.img_prev ? '<figure><img loading="lazy" src="data/'+esc(e.img_prev)+'" alt="Vertailukuva"><figcaption>'+(e.img_prev_t?fmtT(e.img_prev_t):'ennen')+'</figcaption></figure>' : '')
-        + (e.img ? '<figure><img loading="lazy" src="data/'+esc(e.img)+'" alt="Havaintokuva"><figcaption>'+fmtT(e.start)+' havainto</figcaption></figure>' : '')
+        + (e.img_prev ? '<figure><img loading="lazy" src="'+U.data+esc(e.img_prev)+'" alt="Vertailukuva"><figcaption>'+(e.img_prev_t?fmtT(e.img_prev_t):'ennen')+'</figcaption></figure>' : '')
+        + (e.img ? '<figure><img loading="lazy" src="'+U.data+esc(e.img)+'" alt="Havaintokuva"><figcaption>'+fmtT(e.start)+' havainto</figcaption></figure>' : '')
         + '</div><div><h4>'+fmtT(e.start)+(e.last !== e.start ? '–'+fmtT(e.last) : '')+' · '+esc(e.name)+(e.dir?' → '+esc(e.dir):'')+(e.road?' <small class="muted">tie '+e.road+'</small>':'')+'</h4>'
         + '<p><span class="pill p-'+(e.status==='vahvistettu'?'bad':'warn')+'">'+esc(e.status)+'</span> '+esc(e.reason)+(e.n>1?' · '+e.n+' peräkkäistä kuvaa':'')+(e.test?' · <span class="muted">testiajo päivällä</span>':'')+(e.mode==='ir'?' · yökuva (mustavalko)':'')+'</p>'
         + '<p>'+fcTxt+'</p>'
@@ -1600,7 +1631,7 @@ function renderCamWatch(){
 }
 
 function camRegionCard(e){
-  const fig = (src, cap) => '<figure><img loading="lazy" src="data/'+esc(src)+'" alt="'+esc(cap)+'"><figcaption>'+esc(cap)+'</figcaption></figure>';
+  const fig = (src, cap) => '<figure><img loading="lazy" src="'+U.data+esc(src)+'" alt="'+esc(cap)+'"><figcaption>'+esc(cap)+'</figcaption></figure>';
   const imgs = (e.imgs||[]).slice(0,3), first = imgs[0];
   let im = '';
   if(first && first.img_prev) im += fig(first.img_prev, (first.img_prev_t ? fmtT(first.img_prev_t)+' ' : 'ennen · ')+first.name);
@@ -1663,8 +1694,8 @@ $('#lb-presets').addEventListener('click', e => { const b = e.target.closest('bu
 $('#lb-close').addEventListener('click', closeLb);
 $('#lightbox').addEventListener('click', e => { if(e.target.id==='lightbox') closeLb(); });
 document.addEventListener('keydown', e => { if(e.key==='Escape' && !$('#lightbox').hidden) closeLb(); });
-$('#roadfilter').addEventListener('change', () => { renderCams(); try{localStorage.setItem('vantaa-keli-road',$('#roadfilter').value)}catch(e){} });
-$('#onlyfirst').addEventListener('change', () => { renderCams(); try{localStorage.setItem('vantaa-keli-only',$('#onlyfirst').checked?'1':'')}catch(e){} });
+$('#roadfilter').addEventListener('change', () => { renderCams(); try{localStorage.setItem(U.key+'-road',$('#roadfilter').value)}catch(e){} });
+$('#onlyfirst').addEventListener('change', () => { renderCams(); try{localStorage.setItem(U.key+'-only',$('#onlyfirst').checked?'1':'')}catch(e){} });
 
 function renderSummary(){
   const tiles = [];
@@ -1700,15 +1731,14 @@ function renderSummary(){
   $('#summary').innerHTML = tiles.map(t=>'<div class="tile '+(t.cls||'')+'"><span class="k">'+t.k+'</span><span class="v">'+t.v+'</span><span class="d">'+t.d+'</span></div>').join('');
 }
 
-const MAP = {w:24.60, e:25.40, s:60.16, n:60.46};
+const MAP = U.map;
 const MAP_W = 1000, MAP_H = Math.round(MAP_W * (MAP.n-MAP.s) / ((MAP.e-MAP.w)*Math.cos(60.31*Math.PI/180)));
 const px = lon => (lon-MAP.w)/(MAP.e-MAP.w)*MAP_W;
 const py = lat => (MAP.n-lat)/(MAP.n-MAP.s)*MAP_H;
 const inMap = c => c && c[0]>=MAP.w && c[0]<=MAP.e && c[1]>=MAP.s && c[1]<=MAP.n;
-const PLACES = [['Tikkurila',25.044,60.292],['Lentoasema',24.963,60.317],['Myyrmäki',24.853,60.262],['Kivistö',24.85,60.316],
-  ['Hakunila',25.108,60.279],['Korso',25.08,60.35],['Kerava',25.105,60.403],['Helsinki',24.941,60.171],['Leppävaara',24.813,60.219],['Itäkeskus',25.082,60.21]];
-const SETTINGS_KEY = 'vantaa-keli-settings';
-const HIST_KEY = 'vantaa-keli-hist-v1';
+const PLACES = U.places;
+const SETTINGS_KEY = U.key+'-settings';
+const HIST_KEY = U.key+'-hist-v1';
 const settings = (()=>{ try{ return Object.assign({snow:3, salt:5, wall:false, worksHours:12, worksMap:true, radarMode:'dbz', roadMode:'cond'}, JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}); }catch(e){ return {snow:3, salt:5, wall:false}; } })();
 const saveSettings = () => { try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){} };
 const SEV = { bad:['KIIREELLINEN',3], na:['TIEDOT PUUTTUVAT',2.5], warn:['VALMISTAUDU',2], info:['SEURAA',1], ok:['EI TOIMENPIDETARVETTA',0] };
@@ -1744,14 +1774,14 @@ function renderActions(){
   $('#actions-body').innerHTML = acts.map(a=>'<article class="act a-'+a.sev+(actOpen.has(a.title)?' open':'')+'" data-t="'+esc(a.title)+'"><div class="act-hd" tabindex="0" role="button" aria-expanded="'+actOpen.has(a.title)+'"><div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
     + '<div class="act-when">'+a.when+'</div></div><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></article>').join('');
   const top = acts[0] ? SEV[acts[0].sev][1] : 0;
-  document.title = (top>=3 ? '(!) ' : '') + 'Vantaan urakan keli';
+  document.title = (top>=3 ? '(!) ' : '') + U.gen+' urakan keli';
   tabDot('tilanne', top>=3 ? 'bad' : top>=2 ? 'warn' : null);
 }
 
 function renderBrief(){
   const L = [];
   const now = Date.now();
-  L.push('KELIKATSAUS – Maanteiden hoitourakka Vantaa');
+  L.push('KELIKATSAUS – Maanteiden hoitourakka '+U.name);
   L.push(new Date(now).toLocaleString('fi-FI',{weekday:'long',day:'numeric',month:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:TZ}));
   L.push('');
   const rs = okStations().map(s=>svv(s,'TIE_1')).filter(v=>v!=null);
@@ -1796,7 +1826,7 @@ $('#snowlimit').value = settings.snow; $('#saltlimit').value = settings.salt;
 $('#snowlimit').addEventListener('change', e=>{ const v = parseFloat(e.target.value); if(v>0){ settings.snow = v; saveSettings(); if(state.fmi.length){ renderActions(); renderBrief(); } } });
 $('#saltlimit').addEventListener('change', e=>{ const v = parseFloat(e.target.value); if(v>=0){ settings.salt = v; saveSettings(); if(state.fmi.length){ renderActions(); renderBrief(); } } });
 const TAB_IDS = [...document.querySelectorAll('#tabs .tab')].map(b=>b.dataset.tab);
-let curTab = (location.hash||'').slice(1); if(!TAB_IDS.includes(curTab)){ try{ curTab = localStorage.getItem('vantaa-keli-tab') || ''; }catch(e){} } if(!TAB_IDS.includes(curTab)) curTab = 'tilanne';
+let curTab = (location.hash||'').slice(1); if(!TAB_IDS.includes(curTab)){ try{ curTab = localStorage.getItem(U.key+'-tab') || ''; }catch(e){} } if(!TAB_IDS.includes(curTab)) curTab = 'tilanne';
 function applyTabs(){
   const wall = document.body.classList.contains('wall');
   document.querySelectorAll('main [data-tab], .wrap > [data-tab]').forEach(el=>{ el.hidden = !wall && el.dataset.tab !== curTab; });
@@ -1812,7 +1842,7 @@ function applyTabs(){
 }
 function showTab(t, keepScroll){
   if(!TAB_IDS.includes(t)) return; const changed = t !== curTab; curTab = t;
-  try{ localStorage.setItem('vantaa-keli-tab', t); }catch(e){}
+  try{ localStorage.setItem(U.key+'-tab', t); }catch(e){}
   if(location.hash !== '#'+t) history.replaceState(null, '', '#'+t);
   applyTabs(); if(changed && !keepScroll) window.scrollTo({top:0});
 }
@@ -1854,7 +1884,7 @@ let mapRaf = 0; const scheduleMap = () => { if(!mapRaf) mapRaf = requestAnimatio
 function renderMap(){
   const svg = $('#map-svg');
   if(!viewInit && $('#map-box').clientWidth){ viewInit = true;
-    if($('#map-box').clientWidth < 700){ view.w = Math.min(MAP_W*0.62, MAP_H*0.95/boxRatio()); view.x = px(25.0) - view.w/2; view.y = py(60.305) - view.w*boxRatio()/2; } }
+    if($('#map-box').clientWidth < 700){ view.w = Math.min(MAP_W*0.62, MAP_H*0.95/boxRatio()); view.x = px(U.center[0]) - view.w/2; view.y = py(U.center[1]) - view.w*boxRatio()/2; } }
   clampView(); applyView();
   const {u, phone} = mapScreen();
   const R = (phone ? 14 : 19) * u, FS = R * 0.76, PF = (phone ? 12 : 15) * u;
@@ -1991,7 +2021,7 @@ $('#road-mode').value = settings.roadMode || 'cond';
 $('#road-mode').addEventListener('change', e=>{ settings.roadMode = e.target.value; saveSettings(); renderMap(); });
 $('#radar-img').addEventListener('error', ()=>{ $('#radar-img').hidden = true; $('#radar-time').textContent = 'Sadetutkaa ei saatu ladattua'; });
 
-const AREA_RE = /uusimaa|vantaa|helsinki|espoo|kerava|sipoo|tuusula|pääkaupunkiseu|nyland/i;
+const AREA_RE = U.areaRe;
 async function loadWarnings(){
   $('#warn-body').innerHTML = '<ul class="list">'
     + '<li><b><a href="https://www.ilmatieteenlaitos.fi/varoitukset" target="_blank" rel="noopener">Ilmatieteen laitoksen varoitukset</a></b><p class="muted">Liikennesää-, tuuli- ja muut varoitukset kartalla.</p></li>'
@@ -2293,7 +2323,7 @@ async function loadModel(m){
   return {id:m.id, name:m.name, rows: rows.filter(r=>new Date(r.t).getTime() >= now && isFinite(r.Temperature))};
 }
 async function loadMet(){
-  const M = await fetch('data/met.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
+  const M = await fetch(U.data+'met.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); });
   if(!M.rows || Date.now() - new Date(M.fetched).getTime() > 4*36e5) return null;
   const now = Date.now()-36e5, end = Date.now()+60*36e5;
   const rows = M.rows.filter(r=>{ const t = new Date(r.t).getTime(); return t >= now && t <= end; })
@@ -2461,7 +2491,7 @@ async function runProbe(){
   if(!nearWorks) hh += '<div class="status">Toteumia ei saatu haettua'+(works&&works.err?' ('+esc(works.err)+')':'')+'.</div>';
   else if(!nearWorks.length) hh += '<div class="status">Ei talvihoidon toteumia aseman lähellä.</div>';
   else hh += '<ul class="list">'+nearWorks.slice(0,12).map(r=>'<li><b>'+fmtT(r.start)+'–'+fmtT(r.end)+'</b> '+esc(r.tasks.map(taskFi).join(', '))+' <small>· '+Math.round(r.d)+' m asemasta · '+fmtDay(r.end)+'</small></li>').join('')+'</ul>';
-  hh += '<h4>Ilmatieteen laitoksen havainto, Helsinki-Vantaan lentoasema</h4>';
+  hh += '<h4>Ilmatieteen laitoksen havainto, '+U.obs.name+'</h4>';
   hh += ob ? '<p>'+fmtDT(ob.t)+': ilma '+n1(ob.t2m)+' °C, kosteus '+n0(ob.rh)+' %, sade 1 h '+n1(ob.r_1h)+' mm, lumensyvyys '+(isFinite(ob.snow_aws)&&ob.snow_aws>=0?n0(ob.snow_aws)+' cm':'–')+', tuuli '+n1(ob.ws_10min)+' m/s, näkyvyys '+(isFinite(ob.vis)?n1(ob.vis/1000)+' km':'–')+'.</p>' : '<div class="status">Havaintoa ei saatu.</div>';
   hh += '<h4>Kamerakuvat (≤ 3 km)</h4>';
   if(frames.length) hh += '<div class="probe-cams">'+frames.map(f=>'<figure'+(f.closest?' class="closest"':'')+'><img loading="lazy" src="'+esc(f.url)+'" alt="'+esc(f.cam+' '+f.preset)+'"><figcaption>'+esc(f.cam)+' · '+esc(f.preset)+'<br>'+fmtDT(f.t)+'</figcaption></figure>').join('')+'</div>';
@@ -2471,7 +2501,7 @@ async function runProbe(){
   $('#probe-save').disabled = false;
 }
 async function fmiObs(from, to){
-  const url = 'https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::observations::weather::simple&fmisid=100968&parameters=t2m,rh,r_1h,snow_aws,ws_10min,vis&timestep=30&starttime='+isoZ(from)+'&endtime='+isoZ(to);
+  const url = 'https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id=fmi::observations::weather::simple&fmisid='+U.obs.fmisid+'&parameters=t2m,rh,r_1h,snow_aws,ws_10min,vis&timestep=30&starttime='+isoZ(from)+'&endtime='+isoZ(to);
   const r = await fetch(url); if(!r.ok) throw new Error('FMI-havainnot HTTP '+r.status);
   const doc = new DOMParser().parseFromString(await r.text(),'text/xml'); const byT = new Map();
   for(const e of doc.getElementsByTagNameNS('*','BsWfsElement')){
@@ -2518,9 +2548,7 @@ $('#probe-save').addEventListener('click', async ()=>{
   setTimeout(()=>{ btn.textContent = 'Tallenna selvitys (HTML)'; btn.disabled = false; }, 4000);
 });
 
-const LOCS = PLACES.concat([['Martinlaakso',24.85,60.279],['Koivukylä',25.06,60.32],['Aviapolis',24.96,60.305],['Malmi',25.01,60.25],
-  ['Pakila',24.94,60.245],['Keimola',24.86,60.335],['Länsisalmi',25.16,60.28],['Jakomäki',25.08,60.26],['Hämeenkylä',24.87,60.25],
-  ['Konala',24.84,60.235],['Hyrylä',25.03,60.40],['Kuninkaanmäki',25.09,60.30]]);
+const LOCS = PLACES.concat(U.locs);
 function segPlace(lines){
   const pts = lines.flat(); const c = pts[Math.floor(pts.length/2)] || pts[0]; if(!c) return '';
   let best = '', bd = Infinity;
@@ -2711,7 +2739,7 @@ async function cachedSrc(key, fn, force){
 }
 const hourStart = () => Math.floor(Date.now()/36e5)*36e5;
 const trimPast = rows => (rows||[]).filter(r=>new Date(r.t).getTime() >= hourStart());
-const SNAP_KEY = 'vantaa-keli-snap-v1';
+const SNAP_KEY = U.key+'-snap-v1';
 function saveSnap(d){
   try{
     const ids = new Set(state.stations.map(s=>s.id)), camIds = new Set(state.cams.map(c=>c.id)), segIds = new Set((state.segs||[]).map(g=>g.id));
@@ -2813,7 +2841,7 @@ $('#refresh').addEventListener('click', refresh);
 let timer = null;
 const schedule = () => { clearInterval(timer); if($('#auto').checked) timer = setInterval(()=>{ if(!document.hidden) refresh(); }, 5*60*1000); };
 $('#auto').addEventListener('change', schedule);
-try{ const r = localStorage.getItem('vantaa-keli-road'); if(r){ $('#roadfilter').innerHTML += '<option value="'+esc(r)+'"></option>'; $('#roadfilter').value = r; } const only = localStorage.getItem('vantaa-keli-only'); if(only || (only===null && innerWidth < 700)) $('#onlyfirst').checked = true; }catch(e){}
+try{ const r = localStorage.getItem(U.key+'-road'); if(r){ $('#roadfilter').innerHTML += '<option value="'+esc(r)+'"></option>'; $('#roadfilter').value = r; } const only = localStorage.getItem(U.key+'-only'); if(only || (only===null && innerWidth < 700)) $('#onlyfirst').checked = true; }catch(e){}
 $('#map-box').style.setProperty('--map-ratio', (MAP_H/MAP_W*100).toFixed(2)+'%');
 if(innerWidth < 700) $('#map-lgd').open = false;
 startFromSnapshot();
