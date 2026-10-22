@@ -1731,7 +1731,7 @@ function renderStatusLine(acts){
   const rest = acts.slice(1).filter(x=>x.sev !== 'ok'), nxt = rest[0];
   const line = x => '<b>'+esc(x.title)+'</b>'+(x.where ? ' – '+esc(x.where) : '')+' · '+esc(plain(x.when));
   el.className = 'status-line s-'+a.sev; el.hidden = false;
-  el.innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span> '+(a.sev === 'ok' ? '<b>'+esc(a.title)+'</b> · '+esc(plain(a.when)) : line(a))+'</button>'
+  el.innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span> '+(a.sev === 'ok' ? esc(plain(a.when)) : line(a))+'</button>'
     + (nxt ? '<div class="sl-next">Lisäksi: '+esc(nxt.title)+(nxt.where ? ' – '+esc(nxt.where) : '')+(rest.length > 1 ? ' ja '+(rest.length-1)+' muuta' : '')+'</div>' : '');
 }
 $('#status-line').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if(!b) return;
