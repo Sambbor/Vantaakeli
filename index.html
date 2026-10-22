@@ -129,7 +129,11 @@ footer a{color:var(--accent)}
 .act.a-info{border-top-color:var(--accent)} .act.a-ok{border-top-color:var(--ok)} .act.a-na{border-top-color:var(--muted)}
 .act-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .act h3{font-size:20px}
-.act-when{font-weight:600;margin:4px 0 6px;font-size:14px}
+.act-when{font-weight:600;margin:4px 0 6px;font-size:14px} .act-where{color:var(--ink,inherit)}
+.status-line{margin:0 0 12px;padding:10px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--na)}
+.status-line button{all:unset;cursor:pointer;display:block;font-size:15px;line-height:1.4}
+.status-line .badge{margin-right:4px} .status-line .sl-next{font-size:13px;color:var(--muted);margin-top:4px}
+.status-line.s-bad{border-left-color:var(--bad);background:var(--bad-bg,var(--panel))} .status-line.s-warn{border-left-color:var(--warn)} .status-line.s-info{border-left-color:var(--accent)} .status-line.s-ok{border-left-color:var(--ok)}
 .act ul{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px}
 .act-cams{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 .act-cams a{width:150px;max-width:31%;color:inherit;text-decoration:none}
@@ -453,6 +457,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     <button type="button" class="tab" role="tab" id="tab-selvitys" data-tab="selvitys" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg><span class="l">Jälkiselvitys</span><span class="s">Selvitys</span></button>
   </nav>
 
+  <div class="status-line" id="status-line" data-tab="tilanne" hidden></div>
   <div class="summary" id="summary" data-tab="tilanne"></div>
 
   <section id="actions" data-tab="tilanne">
@@ -1625,6 +1630,7 @@ document.addEventListener('keydown', e => { if(e.key==='Escape' && !$('#lightbox
 $('#roadfilter').addEventListener('change', () => { renderCams(); try{localStorage.setItem(U.key+'-road',$('#roadfilter').value)}catch(e){} });
 $('#onlyfirst').addEventListener('change', () => { renderCams(); try{localStorage.setItem(U.key+'-only',$('#onlyfirst').checked?'1':'')}catch(e){} });
 
+const stShort = st => st ? (st.road ? 'Tie '+st.road+' ' : '')+String(st.name||'').split(',').pop().trim() : '';
 function renderSummary(){
   const tiles = [];
   if(state.fc && state.fc.length){
@@ -1654,8 +1660,15 @@ function renderSummary(){
   const d24 = state.fmi.slice(0,24);
   if(d24.length){
     const minT = Math.min(...d24.map(d=>d.Temperature)); const sumP = d24.reduce((a,d)=>a+(d.Precipitation1h||0),0);
-    const risk = d24.filter(d=>d.risk); const snow = d24.some(d=>isSnowy(Math.round(d.WeatherSymbol3)));
-    tiles.push({cls: risk.length?'bad':(minT<=2?'warn':'ok'), k:'Liukkausriski 24 h', v: risk.length ? risk.length+' h' : 'Ei', d: risk.length ? 'alkaen '+fmtDT(risk[0].t) : 'FMI-ennuste + tielämpötilaennuste'});
+    const snow = d24.some(d=>isSnowy(Math.round(d.WeatherSymbol3)));
+    const sl = (state.slipList && state.slipList.length) ? state.slipList : state.stations.filter(x=>x.lon).map(x=>{ try{ return stationSlipSeries(x); }catch(e){ return null; } }).filter(Boolean);
+    const hit = [], hrs = new Set(); let mx = 0;
+    for(const r of sl) for(const c of (r.rows||[])){ const t = new Date(c.t).getTime(); if(t > Date.now()+24*36e5) continue; mx = Math.max(mx, c.idx||0);
+      if((c.idx||0) >= 50){ hrs.add(t); hit.push({r, c, t}); } }
+    hit.sort((a,b)=>a.t-b.t || (b.c.idx||0)-(a.c.idx||0));
+    const h0 = hit[0], at0 = h0 ? (h0.c.lead != null && h0.c.lead < 1 ? 'nyt' : 'klo '+fmtT(h0.t)) : '';
+    if(sl.length) tiles.push(h0 ? {cls:'bad', k:'Liukkausriski 24 h', v: at0, d: stShort(h0.r.st)+(h0.c.why ? ' ('+esc(h0.c.why)+')' : '')+' · '+hrs.size+' h, '+new Set(hit.map(o=>o.r.st.id)).size+' asemaa'}
+      : {cls: mx >= 20 ? 'warn' : 'ok', k:'Liukkausriski 24 h', v: mx >= 20 ? 'Mahdollinen' : 'Ei', d: 'liukkausindeksi enintään '+mx});
     const snowCm = d24.reduce((a,d)=>a+snowOf(d),0);
     tiles.push({cls: snowCm>=SNOW_LIMIT?'bad':snowCm>=0.5?'warn':'', k:'Sade 24 h', v: n1(sumP)+' mm', d: (snowCm>=0.1?'lunta ~'+n1(snowCm)+' cm · ':(snow?'räntää/lunta mahdollista · ':''))+'alin ilma '+n1(minT)+' °C'});
   }
@@ -1704,11 +1717,26 @@ function renderActions(){
   try{ renderSaltStrip(); }catch(e){ console.error(e); }
   if(!actOpen) actOpen = new Set(acts.filter((a,i)=>i===0 && a.sev==='bad').map(a=>a.title));
   $('#actions-body').innerHTML = acts.map(a=>'<article class="act a-'+a.sev+(actOpen.has(a.title)?' open':'')+'" data-t="'+esc(a.title)+'"><div class="act-hd" tabindex="0" role="button" aria-expanded="'+actOpen.has(a.title)+'"><div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
-    + '<div class="act-when">'+a.when+'</div></div><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></article>').join('');
+    + '<div class="act-when">'+(a.where ? '<span class="act-where">'+esc(a.where)+'</span> · ' : '')+a.when+'</div></div><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></article>').join('');
+  try{ renderStatusLine(acts); }catch(e){ console.error(e); }
   const top = acts[0] ? SEV[acts[0].sev][1] : 0;
   document.title = (top>=3 ? '(!) ' : '') + U.gen+' urakan keli';
   tabDot('tilanne', top>=3 ? 'bad' : top>=2 ? 'warn' : null);
 }
+
+function renderStatusLine(acts){
+  const el = $('#status-line'); if(!el) return;
+  const a = acts[0]; if(!a){ el.hidden = true; return; }
+  const plain = x => String(x||'').replace(/<[^>]+>/g, '');
+  const rest = acts.slice(1).filter(x=>x.sev !== 'ok'), nxt = rest[0];
+  const line = x => '<b>'+esc(x.title)+'</b>'+(x.where ? ' – '+esc(x.where) : '')+' · '+esc(plain(x.when));
+  el.className = 'status-line s-'+a.sev; el.hidden = false;
+  el.innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span> '+(a.sev === 'ok' ? '<b>'+esc(a.title)+'</b> · '+esc(plain(a.when)) : line(a))+'</button>'
+    + (nxt ? '<div class="sl-next">Lisäksi: '+esc(nxt.title)+(nxt.where ? ' – '+esc(nxt.where) : '')+(rest.length > 1 ? ' ja '+(rest.length-1)+' muuta' : '')+'</div>' : '');
+}
+$('#status-line').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if(!b) return;
+  const card = [...document.querySelectorAll('#actions-body .act')].find(x=>x.dataset.t === b.dataset.t); if(!card) return;
+  card.classList.add('open'); if(actOpen) actOpen.add(b.dataset.t); card.scrollIntoView({behavior:'smooth', block:'start'}); });
 
 function renderBrief(){
   const L = [];
