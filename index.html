@@ -548,7 +548,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
           <span><i style="background:var(--risk);height:10px;border:1px solid var(--bad)"></i>Liukkausriski</span>
           <span><svg width="13" height="13" viewBox="-7 -7 14 14" style="vertical-align:-2px;margin-right:3px"><circle r="6" fill="none" stroke="currentColor"/><path d="M0 0 L0 -6 A6 6 0 0 1 6 0 Z" fill="currentColor"/></svg>pilvisyys · ↑ tuuli m/s, suluissa puuska (≥ 15 keltainen, ≥ 21 punainen)</span>
         </div>
-        <p class="rule">Liukkausriski: tie (tai ilma, kun tieennustetta ei ole) ≤ +1 °C ja lisäksi sadetta tai kuuraa kertynyt niin, että tie on liukas (tienpinta kastepistettä kylmempi useamman tunnin ajan; mitä suurempi ero, sitä nopeammin). Ilman tieennustetta: ilma enintään 1 °C kastepisteen yläpuolella. Tielämpötilan ennuste ulottuu 12 tuntiin; ennusteaskelten (2, 4, 6 ja 12 h) väliset tunnit on interpoloitu.</p>
+        <p class="rule">Liukkausriski = liukkausindeksi vähintään 50 jollakin asemalla (sama kuin Liukkaus-välilehti ja Toimenpidetarve, 24 h). Liukkaudentorjunta-kortin oma ehto: tie (tai ilma, kun tieennustetta ei ole) ≤ +1 °C ja lisäksi sadetta tai kuuraa kertynyt niin, että tie on liukas (tienpinta kastepistettä kylmempi useamman tunnin ajan; mitä suurempi ero, sitä nopeammin). Ilman tieennustetta: ilma enintään 1 °C kastepisteen yläpuolella. Tielämpötilan ennuste ulottuu 12 tuntiin; ennusteaskelten (2, 4, 6 ja 12 h) väliset tunnit on interpoloitu.</p>
         <div id="chart"><div class="status">Ladataan…</div></div>
       </div>
       <div class="scroll" id="hourly"></div>
@@ -842,7 +842,7 @@ function renderChart(){
   const bw = iw * 3600e3/(t1-t0);
   let s = '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Tielämpötila, ilman lämpötila, kastepiste ja sade">';
   s += wxStrip(data.filter(d=>hourOf(d.t)%3===0).map(d=>({t:d.t, cloud:d.TotalCloudCover, wd:d.WindDirection, ws:d.WindSpeedMS, gust:d.HourlyMaximumGust})), t=>x(t), 6, 30);
-  data.forEach(d=>{ if(d.risk) s += '<rect x="'+(x(d.t)-bw/2).toFixed(1)+'" y="'+T+'" width="'+bw.toFixed(1)+'" height="'+ih+'" fill="var(--risk)"/>'; });
+  data.forEach(d=>{ if(slipAt(d.t)) s += '<rect x="'+(x(d.t)-bw/2).toFixed(1)+'" y="'+T+'" width="'+bw.toFixed(1)+'" height="'+ih+'" fill="var(--risk)"/>'; });
   for(let v=lo; v<=hi; v+=step){
     s += '<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="'+(v===0?'var(--cold)':'var(--line)')+'" stroke-width="'+(v===0?1.4:1)+'"'+(v===0?' stroke-dasharray="5 4"':'')+'/>';
     s += '<text x="'+(L-6)+'" y="'+(y(v)+4)+'" text-anchor="end">'+v+'°</text>';
@@ -904,7 +904,7 @@ function renderChart(){
     tip.innerHTML = esc(fmtDT(d.t))
       + (d.road!=null ? '<br><b>Tie '+n1(d.road)+' °C</b>'+(d.roadMax!=null && d.roadMax!==d.road?' … '+n1(d.roadMax)+' °C':'')+(d.roadSec?' (kylmin: '+esc(d.roadSec.split(':')[0])+')':'') : d.roadEst!=null ? '<br><b>Tie ≈ '+n1(d.roadEst)+' °C</b> (arvio, '+d.roadEstN+' mallia: '+n1(d.roadEstLo)+' … '+n1(d.roadEstHi)+' °C)' : '')
       + '<br>Ilma '+n1(d.Temperature)+' °C · kastep. '+n1(d.DewPoint)+' °C<br>Sade '+n1(d.Precipitation1h)+' mm · tuuli '+n1(d.WindSpeedMS)+(d.HourlyMaximumGust!=null?' ('+n0(d.HourlyMaximumGust)+')':'')+' m/s · pilvisyys '+n0(d.TotalCloudCover)+' %'
-      + '<br>'+esc(SYM3[Math.round(d.WeatherSymbol3)]||'')+(d.risk?' · <b>liukkausriski</b>':'');
+      + '<br>'+esc(SYM3[Math.round(d.WeatherSymbol3)]||'')+(slipAt(d.t)?' · <b>liukkausriski</b>':'');
     const wr = wrap.getBoundingClientRect();
     tip.style.left = Math.min(wr.width-120, Math.max(120, (ev.clientX-wr.left)))+'px'; tip.style.top = (r.top-wr.top + (T+10)*r.height/H)+'px';
   };
@@ -918,20 +918,20 @@ function renderHourlyM(){
   let h = '<div class="hm-h"><span>Klo</span><span>Sää</span><span>Tie</span><span>Ilma</span><span>Sade</span></div>', day = null;
   for(const d of rows){ const dd = fmtDay(d.t); if(dd !== day){ if(day!==null) h += '<div class="hm-day">'+esc(dd)+'</div>'; day = dd; }
     const sn = snowOf(d), P = d.Precipitation1h;
-    h += '<div class="hm-r'+(d.risk?' risk':'')+'"><span class="num">'+String(hourOf(d.t)).padStart(2,'0')+'</span><span class="hm-s">'+esc(SYM3[Math.round(d.WeatherSymbol3)]||'–')+(d.risk?' <b class="hm-x">liukas</b>':'')+'</span>'
+    h += '<div class="hm-r'+(slipAt(d.t)?' risk':'')+'"><span class="num">'+String(hourOf(d.t)).padStart(2,'0')+'</span><span class="hm-s">'+esc(SYM3[Math.round(d.WeatherSymbol3)]||'–')+(slipAt(d.t)?' <b class="hm-x">liukas</b>':'')+'</span>'
       + '<span class="num road'+((d.road ?? d.roadEst)!=null&&(d.road ?? d.roadEst)<=0?' frz':'')+(d.road==null&&d.roadEst!=null?' est':'')+'"'+(d.road==null&&d.roadEst!=null?' title="'+estTitle(d)+'"':'')+'>'+(d.road!=null?n1(d.road):estTxt(d))+'</span><span class="num">'+n1(d.Temperature)+'</span>'
       + '<span class="num">'+(sn>=0.05 ? n1(sn)+' cm' : P>=0.05 ? n1(P) : '·')+'</span></div>'; }
-  el.innerHTML = h + '<p class="hm-n">Tie = kylmimmän tiekohdan ennuste (12 h); ≈ = sen jälkeen arvio säämalleista. Sade mm/h tai lunta cm/h. Punainen rivi = liukkausriski.</p>';
+  el.innerHTML = h + '<p class="hm-n">Tie = kylmimmän tiekohdan ennuste (12 h); ≈ = sen jälkeen arvio säämalleista. Sade mm/h tai lunta cm/h. Punainen rivi = liukkausriski (liukkausindeksi ≥ 50, 24 h).</p>';
 }
 function renderHourly(){
   renderHourlyM();
   const rows = state.fmi.slice(0, 48); const el = $('#hourly');
   if(!rows.length){ el.innerHTML=''; return; }
-  const cell = (fn, cls) => rows.map(d=>'<td class="num'+(d.risk?' risk':'')+(cls?' '+cls:'')+'">'+fn(d)+'</td>').join('');
+  const cell = (fn, cls) => rows.map(d=>'<td class="num'+(slipAt(d.t)?' risk':'')+(cls?' '+cls:'')+'">'+fn(d)+'</td>').join('');
   el.innerHTML = '<table class="hourly"><tbody>'
     + '<tr class="day"><th>Klo</th>'+rows.map(d=>'<th title="'+esc(fmtDay(d.t))+'">'+String(hourOf(d.t)).padStart(2,'0')+'</th>').join('')+'</tr>'
-    + '<tr><th>Sää</th>'+rows.map(d=>'<td'+(d.risk?' class="risk"':'')+' style="font-size:12px;white-space:normal;min-width:64px">'+esc(SYM3[Math.round(d.WeatherSymbol3)]||'–')+'</td>').join('')+'</tr>'
-    + '<tr><th>Tie °C (kylmin)</th>'+rows.map(d=>'<td class="num road'+((d.road ?? d.roadEst)!=null&&(d.road ?? d.roadEst)<=0?' frz':'')+(d.road==null&&d.roadEst!=null?' est':'')+(d.risk?' risk':'')+'"'+(d.roadSec?' title="'+esc(d.roadSec)+'"':d.roadEst!=null?' title="'+estTitle(d)+'"':'')+'>'+(d.road!=null?n1(d.road):estTxt(d))+'</td>').join('')+'</tr>'
+    + '<tr><th>Sää</th>'+rows.map(d=>'<td'+(slipAt(d.t)?' class="risk"':'')+' style="font-size:12px;white-space:normal;min-width:64px">'+esc(SYM3[Math.round(d.WeatherSymbol3)]||'–')+'</td>').join('')+'</tr>'
+    + '<tr><th>Tie °C (kylmin)</th>'+rows.map(d=>'<td class="num road'+((d.road ?? d.roadEst)!=null&&(d.road ?? d.roadEst)<=0?' frz':'')+(d.road==null&&d.roadEst!=null?' est':'')+(slipAt(d.t)?' risk':'')+'"'+(d.roadSec?' title="'+esc(d.roadSec)+'"':d.roadEst!=null?' title="'+estTitle(d)+'"':'')+'>'+(d.road!=null?n1(d.road):estTxt(d))+'</td>').join('')+'</tr>'
     + '<tr><th>Ilma °C</th>'+cell(d=>n1(d.Temperature))+'</tr>'
     + '<tr><th>Kastep. °C</th>'+cell(d=>n1(d.DewPoint))+'</tr>'
     + '<tr><th>Sade mm</th>'+cell(d=>d.Precipitation1h>=0.05?n1(d.Precipitation1h):'·')+'</tr>'
@@ -1546,7 +1546,7 @@ function renderNight(){
   const works = [w(N.works.salt,'suolaus'), w(N.works.plow,'auraus'), w(N.works.sand,'hiekoitus')].filter(Boolean);
   const slip = N.stations.filter(s=>s.slipFirst).sort((a,b)=>a.slipFirst.localeCompare(b.slipFirst));
   let h = '<p><b>Yö '+day+' klo 18–08</b>'+(N.complete ? '' : ' <span class="pill p-warn">käynnissä</span>')+' · '+S.stations+' asemaa · päivitetty '+fmtT(N.updated)+'</p><ul class="night-l">'
-    + '<li><b>Alin tienpinta:</b> '+(S.coldest ? n1(S.coldest.tr)+' °C, '+esc(S.coldest.name)+' klo '+fmtT(S.coldest.t) : '–')+'</li>'
+    + '<li><b>Alin mitattu tienpinta:</b> '+(S.coldest ? n1(S.coldest.tr)+' °C, '+esc(S.coldest.name)+' klo '+fmtT(S.coldest.t) : '–')+'</li>'
     + '<li><b>Liukkautta:</b> '+(S.slipStations ? S.slipStations+'/'+S.stations+' asemalla · oma ennuste varoitti ajoissa '+S.warned+', ei varoittanut '+S.missed : 'ei yhdelläkään asemalla')
     + (S.falseHours ? ' · turhia hälytyksiä '+S.falseHours+' asematuntia' : '')+'</li>'
     + '<li><b>Työt:</b> '+(works.length ? works.join(', ') : 'ei suolausta, aurausta eikä hiekoitusta Harjassa')+'</li>'
@@ -1630,6 +1630,20 @@ document.addEventListener('keydown', e => { if(e.key==='Escape' && !$('#lightbox
 $('#roadfilter').addEventListener('change', () => { renderCams(); try{localStorage.setItem(U.key+'-road',$('#roadfilter').value)}catch(e){} });
 $('#onlyfirst').addEventListener('change', () => { renderCams(); try{localStorage.setItem(U.key+'-only',$('#onlyfirst').checked?'1':'')}catch(e){} });
 
+let _slipH = null;
+function slipByHour(){
+  if(_slipH && _slipH.src === state.slipList && Date.now() - _slipH.at < 30e3) return _slipH.m;
+  const sl = (state.slipList && state.slipList.length) ? state.slipList : (state.stations||[]).filter(x=>x.lon).map(x=>{ try{ return stationSlipSeries(x); }catch(e){ return null; } }).filter(Boolean);
+  const m = new Map();
+  for(const r of sl) for(const c of (r.rows||[])){ const t = new Date(c.t).getTime(), h = Math.floor(t/36e5)*36e5, o = m.get(h);
+    if(!o || (c.idx||0) > o.idx) m.set(h, {t, idx:c.idx||0, why:c.why||'', st:r.st, lead:c.lead}); }
+  _slipH = {src: state.slipList, at: Date.now(), m, n: sl.length}; return m;
+}
+const slipAt = t => { const o = slipByHour().get(Math.floor(new Date(t).getTime()/36e5)*36e5); return !!o && o.idx >= 50; };
+function coldRoad12(){
+  const own = (state.fmi||[]).filter(r=>r.road!=null && new Date(r.t).getTime() <= Date.now()+12*36e5);
+  return own.length ? own.reduce((a,r)=>r.road<a.road?r:a, own[0]) : null;
+}
 const stShort = st => st ? (st.road ? 'Tie '+st.road+' ' : '')+String(st.name||'').split(',').pop().trim() : '';
 function renderSummary(){
   const tiles = [];
@@ -1642,8 +1656,7 @@ function renderSummary(){
     const cnt = state.fc.filter(s=>s.forecasts.some(f=>rank[f.overallRoadCondition]>=2)).length;
     tiles.push({cls: cls==='na'?'':cls, k:'Ajokeli 12 h (huonoin)', v:lbl, d: cnt ? cnt+' reittiosuutta, joilla huonoa keliä · ensin '+esc(worst.s.description.split(':')[0])+' '+(worst.f.type==='OBSERVATION'?'nyt':'+'+esc(worst.f.forecastName)) : 'Kaikilla '+state.fc.length+' osuudella normaali'});
     let minRoad = Infinity, where = 'Tiesääennusteen reittiosuudet';
-    const own = (state.fmi||[]).filter(r=>r.road!=null && new Date(r.t).getTime() <= Date.now()+12*36e5);
-    const om = own.length ? own.reduce((a,r)=>r.road<a.road?r:a, own[0]) : null;
+    const om = coldRoad12();
     const cb = om ? null : Object.values(coldestBySec()).sort((a,b)=>a.f.roadTemperature-b.f.roadTemperature)[0];
     if(om){ minRoad = om.road; where = (om.roadSec ? String(om.roadSec).split(':')[0]+' ' : '')+'klo '+fmtT(om.t)+' · asemiin kiinnitetty ennuste'; }
     else if(cb){ minRoad = cb.f.roadTemperature; where = segLabel(cb.s)+(cb.f.type==='OBSERVATION'?' nyt':' klo '+fmtT(cb.f.time)); }
@@ -1655,7 +1668,7 @@ function renderSummary(){
   if(roads.length){
     const warns = okStations().filter(s=>warnOn(svv(s,'VAROITUS_1'), svv(s,'TIE_1'))).length;
     const mn = Math.min(...roads);
-    tiles.push({cls: warns?'bad':(mn<=1?'warn':'ok'), k:'Tiesääasemat nyt', v: n1(mn)+' °C', d:'alin tienpinta · '+(warns? warns+' asemalla varoitus' : 'ei varoituksia')+' · '+roads.length+'/'+state.stations.length+' asemaa käytettävissä'});
+    tiles.push({cls: warns?'bad':(mn<=1?'warn':'ok'), k:'Tienpinta nyt (alin)', v: n1(mn)+' °C', d:'alin tienpinta · '+(warns? warns+' asemalla varoitus' : 'ei varoituksia')+' · '+roads.length+'/'+state.stations.length+' asemaa käytettävissä'});
   }
   const d24 = state.fmi.slice(0,24);
   if(d24.length){
@@ -1754,10 +1767,8 @@ function renderBrief(){
   if(state.radarType && state.radarType.wet && ageMin(state.radarType.t) <= 30){ const gs = groundPrecip(), warm = !gs.snow.length && gs.minAir != null && gs.minAir > 2;
     L.push('TUTKA '+fmtT(state.radarType.t)+': sadetta '+Math.round(state.radarType.cover*100)+' % '+(state.radarType.onRoads?'urakan teistä':'alueesta')+' – '+(warm ? 'maassa vesisadetta tai poutaa (ilma vähintään '+n1(gs.minAir)+' °C, tutkan lumiluokitus koskee ylempiä ilmakerroksia)' : radarTypeText(state.radarType))+'.'); }
   const ff = firstFreeze(); if(ff.length) L.push('ENSIMMÄISENÄ PAKKASELLE: '+ff.slice(0,3).map(e=>segLabel(e.s)+' '+(e.f.type==='OBSERVATION'?'nyt':'klo '+fmtT(e.f.time))).join('; ')+'.');
-  if(state.road && state.road.length){
-    const f = state.road.filter(g=>!g.obs); const mn = f.reduce((a,g)=>!a||g.min<a.min?g:a, null);
-    if(mn) L.push('TIE 12 h: kylmimmillään '+n1(mn.min)+' °C klo '+fmtT(mn.t)+' ('+shortSec(mn.minSec)+').');
-  }
+  { const om = coldRoad12();
+    if(om) L.push('TIE 12 h: kylmimmillään '+n1(om.road)+' °C klo '+fmtT(om.t)+(om.roadSec ? ' ('+shortSec(om.roadSec)+')' : '')+'.'); }
   const d24 = state.fmi.slice(0,24);
   if(d24.length){
     const T = d24.map(d=>d.Temperature), P = d24.reduce((a,d)=>a+(d.Precipitation1h||0),0), W = Math.max(...d24.map(d=>d.WindSpeedMS||0));
