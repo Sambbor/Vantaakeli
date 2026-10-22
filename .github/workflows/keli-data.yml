@@ -62,6 +62,26 @@ jobs:
         env:
           URAKKA: salo
           CHROME_CHANNEL: chrome
+      # lv2 (22.10.2026): sivun lähdepalkin tila (pohdinta.json → src) myös säilöön, koska aamuanalyysi ei pääse julkiselle sivulle.
+      # data/lahteet.json = viimeisin tila, data/lahteet-YYYY-MM.csv = rivi jokaisesta ajosta (myös yöllä ohimenevät viat näkyvät).
+      - name: Lähteiden tila säilöön (aamuanalyysin vikavahti)
+        continue-on-error: true
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          const KEYS = ['stations','roadfc','finefc','cams','fmi','models','works','radar','traffic'];
+          for (const d of ['data', 'salo/data']) {
+            try {
+              const p = JSON.parse(fs.readFileSync(d + '/pohdinta.json', 'utf8'));
+              if (!p.src || !p.t || Date.now() - Date.parse(p.t) > 20 * 60e3) { console.log(d + ': ei tuoretta pohdintaa, lähteitä ei tallennettu'); continue; }
+              fs.writeFileSync(d + '/lahteet.json', JSON.stringify({t: p.t, src: p.src}, null, 1));
+              const f = d + '/lahteet-' + p.t.slice(0, 7) + '.csv';
+              if (!fs.existsSync(f)) fs.writeFileSync(f, 't,' + KEYS.join(',') + '\n');
+              const cell = v => v ? (v.status + ' ' + (v.detail || '')).replace(/[",\r\n]/g, ' ').trim() : '';
+              fs.appendFileSync(f, p.t + ',' + KEYS.map(k => cell(p.src[k])).join(',') + '\n');
+            } catch (e) { console.log(d + ': ' + e.message); }
+          }
+          EOF
       - name: Tallenna aineisto säilöön (ilman pohdintaa)
         run: |
           git config user.name "keli-bot"
