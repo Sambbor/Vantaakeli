@@ -199,7 +199,7 @@ td.coldest b{font-family:var(--f-mono)}
 #map-svg circle.wk{stroke:none}
 #map-svg .wk-salt{stroke:var(--salt)} #map-svg circle.wk-salt{fill:var(--salt)}
 #map-svg .wk-plow{stroke:var(--plow)} #map-svg circle.wk-plow{fill:var(--plow)}
-#map-svg .wk-sand{stroke:var(--sand)} #map-svg circle.wk-sand{fill:var(--sand)}
+#map-svg .wk-sand{stroke:var(--sand);stroke-dasharray:5 4} #map-svg circle.wk-sand{fill:var(--sand)}
 #map-svg .wk-level{stroke:var(--level)} #map-svg circle.wk-level{fill:var(--level)}
 .wkbar.wk-level{fill:var(--level)}
 td small.wk-task{display:block;font-family:var(--f-body);color:var(--muted);font-weight:400;white-space:normal;max-width:170px}
@@ -294,7 +294,7 @@ body.wall .tabs{display:none}
   .map-ctrl::-webkit-scrollbar{display:none}
   .map-ctrl > *{flex:none}
   .lgd summary{display:list-item}
-  .tile .d{display:none} .tile{padding:7px 10px} .tile .k{font-size:10.5px;letter-spacing:.05em} .tile .v{font-size:19px} .summary{margin-bottom:14px}
+  .tile .d{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .tile{padding:7px 10px} .tile .k{font-size:10.5px;letter-spacing:.05em} .tile .v{font-size:19px} .summary{margin-bottom:14px}
   .act-hd{cursor:pointer;position:relative;padding-right:22px}
   .act-hd::after{content:"";position:absolute;right:2px;top:10px;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
   .act.open .act-hd::after{transform:rotate(-135deg);top:14px}
@@ -309,24 +309,9 @@ body.wall .tabs{display:none}
 }
 .sm{display:none}
 
-/* Kameravahti */
-.cw{padding:12px 14px;font-size:14px}
-.cw-ev{display:grid;grid-template-columns:minmax(0,auto) 1fr;gap:12px;border-top:1px solid var(--line);padding:12px 0}
-.cw-ev:first-of-type{border-top:0}
-.cw-imgs{display:flex;gap:6px}
-.cw-imgs figure{margin:0;width:180px;max-width:42vw}
-.cw-imgs img{width:100%;border-radius:4px;display:block;background:var(--soft)}
-.cw-imgs figcaption{font-size:11.5px;color:var(--muted);margin-top:2px}
-.cw-ev h4{margin:0 0 4px;font:700 16px var(--f-display)}
-.cw-ev p{margin:2px 0}
-.cw-night{font:700 14px var(--f-display);margin:12px 0 2px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .road.est{font-style:italic;font-weight:400;opacity:.85;white-space:nowrap}
 .night-l{margin:4px 0 8px;padding-left:18px} .night-l li{margin:3px 0}
 .msum{padding:12px 14px;border-bottom:1px solid var(--line)} .msum h3{margin:0 0 6px;font:700 16px var(--f-display)} .msum ul{margin:0;padding-left:18px} .msum li{margin:3px 0}
-.cw-sur{color:var(--bad);font-weight:600} .cw-conf{color:var(--muted)}
-.cw-ev.reg .cw-imgs{flex-wrap:wrap} .cw-ev.reg .cw-imgs figure{width:150px}
-.cw-ev.reg details{margin-top:4px} .cw-ev.reg summary{cursor:pointer;color:var(--muted)} .cw-ev.reg ul{margin:4px 0 0;padding-left:18px;font-size:14px}
-@media (max-width:700px){ .cw-ev{grid-template-columns:1fr} .cw-imgs figure{width:50%;max-width:none} .cw-ev.reg .cw-imgs figure{width:calc(33.3% - 4px)} }
 
 /* Liukkausennuste */
 :root{--s0:#e3f3e8;--s1:#fbe7a1;--s2:#f3a55a;--s3:#c0392b}
@@ -467,7 +452,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
       <div class="actions" id="actions-body"><div class="status">Lasketaan…</div></div>
       <div class="panel brief hide-wall">
         <div class="brief-h"><h3>Kelikatsaus</h3><button type="button" id="copybrief">Kopioi teksti</button></div>
-        <pre id="brief">Ladataan…</pre>
+        <details id="brief-d" open><summary class="muted" style="cursor:pointer;font-size:13px">Teksti</summary><pre id="brief">Ladataan…</pre></details>
       </div>
     </div>
   </section>
@@ -517,7 +502,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
         <span><i style="border-color:var(--na);border-style:dashed"></i>asemalla vika / vanha tieto</span>
         <span>▭ kelikamera (napauta)</span>
         <span id="radar-legend"></span>
-        <span><i class="ln" style="background:var(--salt)"></i>suolaus <i class="ln" style="background:var(--plow)"></i>auraus <i class="ln" style="background:var(--sand)"></i>hiekoitus <i class="ln" style="background:var(--level)"></i>pinnan tasaus (haalea = vanhempi)</span>
+        <span><i class="ln" style="background:var(--salt)"></i>suolaus <i class="ln" style="background:var(--plow)"></i>auraus <i class="ln" style="background:repeating-linear-gradient(90deg,var(--sand) 0 5px,transparent 5px 8px)"></i>hiekoitus <i class="ln" style="background:var(--level)"></i>pinnan tasaus (haalea = vanhempi)</span>
       </div></details>
     </div>
   </section>
@@ -637,15 +622,6 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
   <section id="slipmodel" class="hide-wall" data-tab="selvitys">
     <div class="sec-h"><h2>Mallin opettaminen</h2><span class="note">Oma aineisto kerätään tunneittain GitHubiin · osumatarkkuus lasketaan kerätystä aineistosta</span></div>
     <div class="panel slip-model" id="slip-data"><div class="status">Aineistoa ei ole vielä haettu.</div></div>
-    <details class="panel slip-road"><summary>Kehityspolku: miten malli paranee</summary>
-      <ol>
-        <li><b>Vaihe 1 – nyt:</b> fysiikkapohjainen indeksi. Säännöt kuuralle, märän tien jäätymiselle, lumelle ja jäätävälle sateelle. Paikallisuus tulee aseman omista mittauksista: tienpinnan ero ennusteeseen, kosteus, suola ja jäätymispiste.</li>
-        <li><b>Vaihe 2 – datankeruu (käynnissä):</b> GitHub kerää 30 minuutin välein jokaiselta asemalta mittaukset, tiesääennusteen, FMI:n ennusteen, ajan viimeisestä suolauksesta ja aurauksesta sekä sivun oman liukkausennusteen sellaisenaan. Kerran tunnissa tallennetaan kaikkien urakan tiekohtien ennusteet tieosittaista oppimista varten. Digitraffic säilyttää historiaa vain vuorokauden, joten ilman omaa keruuta opetusaineistoa ei synny.</li>
-        <li><b>Vaihe 3 – asemakohtainen korjaus (2–4 viikkoa dataa):</b> malli oppii, kuinka paljon kunkin aseman tienpinta poikkeaa ennusteesta yöllä ja päivällä, ja korjaa ennustetta. Korjaus otetaan käyttöön automaattisesti, kun asemalta on vähintään 12 vertailua.</li>
-        <li><b>Vaihe 4 – osumatarkkuus ja kynnysten säätö (1 talvi):</b> jokaista 6 tunnin ennustetta verrataan siihen, mitä asema myöhemmin mittasi. Näin nähdään osumat, ohi menneet ja turhat hälytykset, ja rajoja voidaan säätää asemittain.</li>
-        <li><b>Vaihe 5 – opetettu malli:</b> kun liukkaustapahtumia on kertynyt kymmeniä, sääntöjen painot opetetaan aineistosta. Mukaan tulevat myös omat toimenpiteet: kuinka kauan suolaus suojaa sateen ja lämpötilan mukaan. Lopuksi ennuste laajennetaan asemista tieosille.</li>
-      </ol>
-    </details>
   </section>
 
   <footer>
@@ -775,6 +751,7 @@ async function loadMeta(){
     id:d.id, name:(d.properties.names&&d.properties.names.fi)||d.properties.name, road:d.properties.roadAddress.roadNumber, municipality:d.properties.municipality,
     lon:d.geometry&&d.geometry.coordinates[0], lat:d.geometry&&d.geometry.coordinates[1]
   })).sort((a,b)=>a.road-b.road || a.name.localeCompare(b.name,'fi'));
+  { const cnt = {}; stations.forEach(x=>{ cnt[x.name] = (cnt[x.name]||0)+1; }); stations.forEach(x=>{ if(cnt[x.name] > 1) x.name += ' ('+x.id+')'; }); }
   let fine = [];
   try{
     const roads = new Set(U.fineRoads || FC_SECTIONS.map(id=>Number(id.slice(0,5))));
@@ -1256,7 +1233,8 @@ function stationFrostAcc(st){ return POH && POH.frost ? (POH.frost[st.id] || 0) 
 function computeActions(){
   state.snow12 = POH ? POH.snow12 : null; state.snow24 = POH ? POH.snow24 : null;
   if(POH && POH.actions && POH.actions.length){ const age = pohAge();
-    return age != null && age > 120 ? [{sev:'na', title:'Pohdinta vanhentunut', when:'laskettu '+fmtDT(POH.t)+' ('+ageTxt(age)+' sitten)', lines:['Alla olevat kortit ovat vanhasta laskennasta. Tarkista asemat ja kamerat itse.']}].concat(POH.actions) : POH.actions; }
+    return age != null && age > (isNight(Date.now()) ? 60 : 120) ?   // sv2: yöllä varoitus jo tunnin vanhasta laskennasta
+       [{sev:'na', title:'Pohdinta vanhentunut', when:'laskettu '+fmtDT(POH.t)+' ('+ageTxt(age)+' sitten)', lines:['Alla olevat kortit ovat vanhasta laskennasta. Tarkista asemat ja kamerat itse.']}].concat(POH.actions) : POH.actions; }
   return [{sev:'na', title:'Pohdinta puuttuu', when:'tarkista asemat ja kamerat itse', lines:['Laskennan tulosta ei saatu ladattua. Päivitä sivu hetken päästä.']}];
 }
 function pohSlip(st){ return POH && POH.slip ? POH.slip.find(r=>r.st === String(st.id)) : null; }
@@ -1459,11 +1437,11 @@ function renderSlipModel(){
   const v = L.verif, tot = v.hit+v.miss+v.fa+v.cn;
   const hrs = L.from ? Math.round((new Date(L.to) - new Date(L.from))/36e5) : 0;
   const pod = v.hit+v.miss ? Math.round(v.hit/(v.hit+v.miss)*100)+' %' : '–', far = v.hit+v.fa ? Math.round(v.fa/(v.hit+v.fa)*100)+' %' : '–';
-  let h = '<p>Aineistoa <b>'+hrs+' tuntia</b> ('+(L.from?fmtDT(L.from):'–')+' – '+(L.to?fmtDT(L.to):'–')+'), '+L.n+' asemariviä · sääntöversio sivulla '+RULES_VERSION+', keruussa '+esc(L.rv||'–')+(L.rv && L.rv !== RULES_VERSION ? ' <span class="err">– versiot eroavat, päivitä myös collect.mjs</span>' : '')+' · laskettu '+(L.updated?fmtDT(L.updated):'–')+(L.updated && ageMin(L.updated) > 75 ? ' <span class="err">– keruu on myöhässä ('+ageTxt(ageMin(L.updated))+'), ennuste toimii silti säännöillä</span>' : '')+'.</p>'
+  let h = '<p>Aineistoa <b>'+hrs+' tuntia</b> ('+(L.from?fmtDT(L.from):'–')+' – '+(L.to?fmtDT(L.to):'–')+'), '+L.n+' asemariviä · sääntöversio sivulla '+RULES_VERSION+', keruussa '+esc(L.rv||'–')+(L.rv && RULES_VERSION && L.rv !== RULES_VERSION ? ' <span class="muted">(keruu päivittyy seuraavassa ajossa)</span>' : '')+' · laskettu '+(L.updated?fmtDT(L.updated):'–')+(L.updated && ageMin(L.updated) > 75 ? ' <span class="err">– keruu on myöhässä ('+ageTxt(ageMin(L.updated))+'), ennuste toimii silti säännöillä</span>' : '')+'.</p>'
     + '<p>6 tunnin liukkausennusteen jälkitarkistus: <b>'+tot+'</b> vertailua · osuttu '+v.hit+' · ohi '+v.miss+' · turha hälytys '+v.fa+' · oikein ei riskiä '+v.cn
     + ' · <b>havaitsemisosuus '+pod+'</b> · väärien hälytysten osuus '+far+'.'+(v.hit+v.miss < 20 ? ' <span class="muted">Liukkaustapahtumia on vielä liian vähän luotettavaan arvioon.</span>' : '')
     + (v.stored ? ' <span class="muted">('+v.stored+' tallennetusta ennusteesta, '+v.retro+' jälkikäteen laskettuna)</span>' : '')+'</p>'
-    + (v.byRv && Object.keys(v.byRv).length > 1 ? '<p class="muted">Sääntöversioittain (osumat / ohi / turhat / oikein ei riskiä): '+Object.entries(v.byRv).sort().map(([k,b])=>'<b>'+esc(k)+'</b> '+b.hit+' / '+b.miss+' / '+b.fa+' / '+b.cn).join(' · ')+'</p>' : '');
+    + (v.byRv && Object.keys(v.byRv).length > 1 ? '<p class="muted">Sääntöversioittain (osumat / ohi / turhat / oikein ei riskiä): '+Object.entries(v.byRv).sort((a,b)=>(parseInt(String(a[0]).slice(1))||0)-(parseInt(String(b[0]).slice(1))||0)).map(([k,b])=>'<b>'+esc(k)+'</b> '+b.hit+' / '+b.miss+' / '+b.fa+' / '+b.cn).join(' · ')+'</p>' : '');
   if(L.cold){ const sg = x => (x>0?'+':'')+n1(x)+' °C', C = L.cold;
     h += '<p><b>Kylmät yöt</b> (ennustettu tienpinta enintään +3 °C, '+C.nights.length+' yötä, '+C.n+' vertailua): mitattu miinus 6 h ennuste keskimäärin <b>'+sg(C.mean)+'</b> (mediaani '+sg(C.med)+'). Ennuste oli yli 0,5 °C liian kylmä '+C.warm+' %:ssa ja yli 0,5 °C liian lämmin '+C.coldP+' %:ssa vertailuista.'
       + ' <span class="muted">Käytössä oleva korjaus lasketaan kaikista öistä. Kylmien öiden virhe on toistaiseksi vain seurannassa eikä vaikuta indeksiin.'+(C.nights.length < 8 ? ' Kylmiä öitä on vielä vähän luotettavaan arvioon.' : '')+'</span></p>'; }
@@ -1522,10 +1500,10 @@ function renderKomento(){
         + (E.urakkaNeed ? ' · urakan suolaus: <span class="pill '+(E.urakkaNeed==='aiheellinen' ? 'p-ok' : 'p-warn')+'">'+esc(E.urakkaNeed)+'</span>' : '')
         + (E.cntViNeed ? '<br><small class="muted">Varjoindeksi (RoadSurf) olosuhteen mukaan: aiheellinen '+E.cntViNeed.aiheellinen+', ei tarvetta '+E.cntViNeed.turha+', ohi '+E.cntViNeed.ohi+', oikein ei '+E.cntViNeed.oikein+'</small>' : '')+'</p>' : '')
       + (E.cntVi ? '<p class="muted" style="margin:0 0 6px">Varjoindeksi (RoadSurf): osui '+(E.cntVi.osui||0)+', myöhässä '+(E.cntVi.myohassa||0)+', ohi '+(E.cntVi.ohi||0)+', turha '+(E.cntVi.turha||0)+', suolattiin '+(E.cntVi.suolattiin||0)+', oikein ei '+(E.cntVi.oikein||0)+' – sivun indeksi: osui '+(c.osui||0)+', myöhässä '+(c.myohassa||0)+', ohi '+(c.ohi||0)+', turha '+(c.turha||0)+'</p>' : '')
-      + '<div class="scroll"><table><thead><tr><th>Asema</th><th>Ehdotus</th><th>Liukasta mitattiin</th>'+(E.cntNeed ? '<th>Olosuhde toteutui</th>' : '')+'<th>Yön alin tie</th><th>Suolattu lähellä</th><th>Tulos</th>'+(E.cntVi ? '<th>Varjoindeksi</th>' : '')+'</tr></thead><tbody>'
+      + '<details'+(innerWidth < 700 ? '' : ' open')+'><summary style="cursor:pointer;font-weight:600;margin:4px 0">Asemittain ('+(E.stations||[]).length+')</summary><div class="scroll"><table><thead><tr><th>Asema</th><th>Ehdotus</th><th>Liukasta mitattiin</th>'+(E.cntNeed ? '<th>Olosuhde toteutui</th>' : '')+'<th>Yön alin tie</th><th>Suolattu lähellä</th><th>Tulos</th>'+(E.cntVi ? '<th>Varjoindeksi</th>' : '')+'</tr></thead><tbody>'
       + (E.stations||[]).map(s=>{ const r = s.resNeed ? KNEED[s.resNeed] : KRES[s.res] || ['p-na', s.res]; return '<tr><td class="name">'+esc(s.name)+'</td><td>'+(s.level==='toimenpide' ? esc(s.action)+(s.by ? ' – ennen klo '+fmtT(s.by) : '') : esc((KLEVEL[s.level]||KLEVEL.ei)[1]))+(s.agree ? ' <small class="muted">'+esc(s.agree)+' mallia</small>' : '')+'</td>'
         + '<td>'+(s.slipFirst ? 'klo '+fmtT(s.slipFirst)+(s.keli!=null && KELI_FI[s.keli] ? ' ('+esc(KELI_FI[s.keli])+')' : '') : 'ei')+'</td>'+(E.cntNeed ? '<td>'+needTxt(s)+'</td>' : '')+'<td class="num">'+(s.trMin!=null ? n1(s.trMin)+' °C' : '–')+'</td><td>'+(s.salted ? 'kyllä' : 'ei')+'</td><td><span class="pill '+r[0]+'">'+r[1]+'</span></td>'
-        + (E.cntVi ? '<td>'+(s.resVi ? '<span class="pill '+(KRES[s.resVi]||['p-na'])[0]+'">'+(KRES[s.resVi]||['',s.resVi])[1]+'</span>'+(s.vi!=null ? ' <small class="muted">'+s.vi+'</small>' : '') : '–')+'</td>' : '')+'</tr>'; }).join('') + '</tbody></table></div>';
+        + (E.cntVi ? '<td>'+(s.resVi ? '<span class="pill '+(KRES[s.resVi]||['p-na'])[0]+'">'+(KRES[s.resVi]||['',s.resVi])[1]+'</span>'+(s.vi!=null ? ' <small class="muted">'+s.vi+'</small>' : '') : '–')+'</td>' : '')+'</tr>'; }).join('') + '</tbody></table></div></details>';
   }
   const H = K.history || [];
   if(H.length){ const sum = H.reduce((a, n)=>{ for(const k in n.cnt||{}) a[k] = (a[k]||0) + n.cnt[k]; for(const k in n.cntNeed||{}) a['n_'+k] = (a['n_'+k]||0) + n.cntNeed[k]; a.agree += n.agree ? 1 : 0; return a; }, {agree:0});
@@ -1697,7 +1675,7 @@ const PLACES = U.places;
 const SETTINGS_KEY = U.key+'-settings';
 const HIST_KEY = U.key+'-hist-v1';
 const SNOW_LIMIT = 2;
-const settings = (()=>{ try{ return Object.assign({wall:false, worksHours:12, worksMap:true, radarMode:'dbz', roadMode:'cond'}, JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}); }catch(e){ return {snow:3, salt:5, wall:false}; } })();
+const settings = (()=>{ try{ return Object.assign({wall:false, worksHours:12, worksMap:true, radarMode:'dbz', roadMode:'cond'}, JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}); }catch(e){ return {wall:false, worksHours:12, worksMap:true, radarMode:'dbz', roadMode:'cond'}; } })();
 const saveSettings = () => { try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){} };
 const SEV = { bad:['KIIREELLINEN',3], na:['TIEDOT PUUTTUVAT',2.5], warn:['VALMISTAUDU',2], info:['SEURAA',1], ok:['EI TOIMENPIDETARVETTA',0] };
 const sv = (s,k) => s && s.values && s.values[k];
@@ -1745,7 +1723,8 @@ function renderStatusLine(acts){
   const line = x => '<b>'+esc(x.title)+'</b>'+(x.where ? ' – '+esc(x.where) : '')+' · '+esc(plain(x.when));
   el.className = 'status-line s-'+a.sev; el.hidden = false;
   el.innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span> '+(a.sev === 'ok' ? esc(plain(a.when)) : line(a))+'</button>'
-    + (nxt ? '<div class="sl-next">Lisäksi: '+esc(nxt.title)+(nxt.where ? ' – '+esc(nxt.where) : '')+(rest.length > 1 ? ' ja '+(rest.length-1)+' muuta' : '')+'</div>' : '');
+    + (nxt ? '<div class="sl-next">Lisäksi: '+esc(nxt.title)+(nxt.where ? ' – '+esc(nxt.where) : '')+(rest.length > 1 ? ' ja '+(rest.length-1)+' muuta' : '')+'</div>' : '')
+    + '<div class="sl-next">Laskettu klo '+fmtT(typeof POH !== 'undefined' && POH && POH.t ? POH.t : Date.now())+'</div>';
 }
 $('#status-line').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if(!b) return;
   const card = [...document.querySelectorAll('#actions-body .act')].find(x=>x.dataset.t === b.dataset.t); if(!card) return;
@@ -2619,7 +2598,8 @@ const SRC_TARGET = {stations:'#stations', roadfc:'#roadfc', finefc:'#roadfc', ca
 function setSrc(key, name, status, detail, title){ state.src[key] = {name, status, detail, title}; }
 function renderSrc(){
   const el = $('#srcbar'); if(!el) return;
-  el.innerHTML = SRC_ORDER.filter(k=>state.src[k]).map(k=>{ const s = state.src[k];
+  const SR = {bad:0, warn:1};
+  el.innerHTML = SRC_ORDER.filter(k=>state.src[k]).sort((a,b)=>(SR[state.src[a].status] ?? 2) - (SR[state.src[b].status] ?? 2)).map(k=>{ const s = state.src[k];
     return '<button type="button" class="src '+s.status+'" data-target="'+SRC_TARGET[k]+'" title="'+esc(s.title||'')+'"><i></i><b>'+esc(s.name)+'</b> '+esc(s.detail||'')+'</button>'; }).join('');
 }
 $('#srcbar').addEventListener('click', e=>{ const b = e.target.closest('.src'); if(b){ const t = document.querySelector(b.dataset.target); if(t){ const sec = t.closest('[data-tab]'); if(sec) showTab(sec.dataset.tab, true); t.scrollIntoView({behavior:'smooth'}); } } });
@@ -2808,6 +2788,7 @@ $('#auto').addEventListener('change', schedule);
 try{ const r = localStorage.getItem(U.key+'-road'); if(r){ $('#roadfilter').innerHTML += '<option value="'+esc(r)+'"></option>'; $('#roadfilter').value = r; } const only = localStorage.getItem(U.key+'-only'); if(only || (only===null && innerWidth < 700)) $('#onlyfirst').checked = true; }catch(e){}
 $('#map-box').style.setProperty('--map-ratio', (MAP_H/MAP_W*100).toFixed(2)+'%');
 if(innerWidth < 700) $('#map-lgd').open = false;
+if(innerWidth < 700) $('#brief-d').open = false;
 startFromSnapshot();
 schedule(); refresh();
 document.addEventListener('visibilitychange', () => { if(!document.hidden && Date.now()-lastRefresh > 60e3) refresh(); });
