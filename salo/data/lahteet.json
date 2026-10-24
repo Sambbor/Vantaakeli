@@ -1,5 +1,5 @@
 {
- "t": "2026-10-24T11:06:44.679Z",
+ "t": "2026-10-24T11:39:14.803Z",
  "src": {
   "stations": {
    "name": "Asemat",
@@ -10,7 +10,7 @@
   "roadfc": {
    "name": "Tieennuste",
    "status": "ok",
-   "detail": "päivitetty 3 min sitten",
+   "detail": "päivitetty 6 min sitten",
    "title": "Digitraffic, reittiosuudet"
   },
   "finefc": {
@@ -28,7 +28,7 @@
   "fmi": {
    "name": "FMI-ennuste",
    "status": "ok",
-   "detail": "haettu 14.06",
+   "detail": "haettu 14.39",
    "title": "Ilmatieteen laitoksen pisteennuste · haetaan 30 min välein"
   },
   "models": {
@@ -46,14 +46,14 @@
   "radar": {
    "name": "Sadetutka",
    "status": "ok",
-   "detail": "13.55 · 12 min",
+   "detail": "14.25 · 14 min",
    "title": "Viimeisin tutkakuva; sadetyyppi analysoitu teiden kohdalta"
   },
   "keruu": {
    "name": "Keruu",
    "status": "ok",
    "detail": "0 min sitten",
-   "title": "Liukkausdatan keruu (GitHub Actions) 30 min välein, viimeisin la 24.10. klo 14.06."
+   "title": "Liukkausdatan keruu (GitHub Actions) 30 min välein, viimeisin la 24.10. klo 14.39."
   },
   "traffic": {
    "name": "Tiedotteet",
