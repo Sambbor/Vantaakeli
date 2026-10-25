@@ -133,6 +133,17 @@ footer a{color:var(--accent)}
 .status-line{margin:0 0 12px;padding:10px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--na)}
 .status-line button{all:unset;cursor:pointer;display:block;font-size:15px;line-height:1.4}
 .status-line .badge{margin-right:4px} .status-line .sl-next{font-size:13px;color:var(--muted);margin-top:4px}
+/* yj1: yön aikajana */
+.night-line{margin:-4px 0 12px;padding:8px 10px 6px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
+.night-line .nl-h{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 8px;font-size:12px;color:var(--muted);margin-bottom:4px} .night-line .nl-h b{color:var(--ink);font-weight:600}
+.night-line .nl-row{display:grid;grid-template-columns:repeat(14,1fr);gap:2px}
+.night-line .nl-c{position:relative;height:26px;border-radius:3px;display:flex;align-items:center;justify-content:center;font:600 11px var(--f-mono);color:var(--ink)}
+.night-line .nl-c.s3{color:#fff} .night-line .nl-c.na{background:var(--na-bg)}
+.night-line .nl-c.past{opacity:.55} .night-line .nl-c.now{outline:2px solid var(--ink);outline-offset:-1px;opacity:1}
+.night-line .nl-c .sl{position:absolute;top:1px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 1px #fff}
+.night-line .nl-w{display:grid;grid-template-columns:repeat(14,1fr);gap:2px;font:600 10px var(--f-mono);color:var(--accent);text-align:center;min-height:12px}
+.night-line .nl-t{display:grid;grid-template-columns:repeat(14,1fr);gap:2px;font:10px var(--f-mono);color:var(--muted);text-align:center}
+.night-line .nl-lg{font-size:11px;color:var(--muted);margin-top:3px}
 .status-line.s-bad{border-left-color:var(--bad);background:var(--bad-bg,var(--panel))} .status-line.s-warn{border-left-color:var(--warn)} .status-line.s-info{border-left-color:var(--accent)} .status-line.s-ok{border-left-color:var(--ok)}
 .act ul{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px}
 .act-cams{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
@@ -443,6 +454,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
   </nav>
 
   <div class="status-line" id="status-line" data-tab="tilanne" hidden></div>
+  <div class="night-line" id="night-line" data-tab="tilanne" hidden></div>
   <div class="summary" id="summary" data-tab="tilanne"></div>
 
   <section id="actions" data-tab="tilanne">
@@ -1469,6 +1481,7 @@ async function loadNight(){
   nightS.d = await fetch(U.data+'night.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   nightS.k = await fetch(U.data+'komento.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   renderNight(); renderKomento();
+  try{ renderNightLine(); }catch(e){ console.error(e); }
 }
 const KLEVEL = {toimenpide:['p-bad','Toimenpide'], seuranta:['p-warn','Seuranta'], ei:['p-ok','Ei toimenpiteitä']};
 const KNEED = {aiheellinen:['p-ok','aiheellinen'], turha:['p-warn','ei tarvetta'], ohi:['p-bad','ohi'], oikein:['p-ok','oikein: ei tarvetta']};
@@ -1710,6 +1723,7 @@ function renderActions(){
   $('#actions-body').innerHTML = acts.map(a=>'<article class="act a-'+a.sev+(actOpen.has(a.title)?' open':'')+'" data-t="'+esc(a.title)+'"><div class="act-hd" tabindex="0" role="button" aria-expanded="'+actOpen.has(a.title)+'"><div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
     + '<div class="act-when">'+(a.where ? '<span class="act-where">'+esc(a.where)+'</span> · ' : '')+a.when+'</div></div><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></article>').join('');
   try{ renderStatusLine(acts); }catch(e){ console.error(e); }
+  try{ renderNightLine(); }catch(e){ console.error(e); }
   const top = acts[0] ? SEV[acts[0].sev][1] : 0;
   document.title = (top>=3 ? '(!) ' : '') + U.gen+' urakan keli';
   tabDot('tilanne', top>=3 ? 'bad' : top>=2 ? 'warn' : null);
@@ -1729,6 +1743,42 @@ function renderStatusLine(acts){
 $('#status-line').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if(!b) return;
   const card = [...document.querySelectorAll('#actions-body .act')].find(x=>x.dataset.t === b.dataset.t); if(!card) return;
   card.classList.add('open'); if(actOpen) actOpen.add(b.dataset.t); card.scrollIntoView({behavior:'smooth', block:'start'}); });
+
+function nightWindow(now){
+  let t = Math.floor(now/36e5)*36e5; const h = hourHel(now);
+  if(h >= 8 && h < 18){ while(hourHel(t) !== 18) t += 36e5; } else { while(hourHel(t) !== 18) t -= 36e5; }
+  return t;
+}
+function renderNightLine(){
+  const el = $('#night-line'); if(!el) return;
+  const now = Date.now(), from = nightWindow(now), N = typeof nightS !== 'undefined' ? nightS.d : null;
+  const past = new Map(((N && N.hours) || []).map(o=>[new Date(o.t).getTime(), o]));
+  let fut = null; try{ fut = slipByHour(); }catch(e){ fut = new Map(); }
+  if(!past.size && !fut.size){ el.hidden = true; return; }
+  const cells = [], wk = [], tl = []; let slipH = 0, saltN = 0, maxF = null;
+  for(let i = 0; i < 14; i++){
+    const t = from + i*36e5, isPast = t + 36e5 <= now, isNow = t <= now && now < t + 36e5;
+    const p = past.get(t), f = fut.get(t);
+    const idx = isPast ? (p ? p.idx : null) : (f ? f.idx : (isNow && p ? p.idx : null));
+    const why = isPast ? (p && p.why) : (f && f.why);
+    const slip = p && p.slip ? p.slip : 0; if(slip) slipH++;
+    const w = p ? [p.salt ? 'S' : '', p.plow ? 'A' : '', p.sand ? 'H' : ''].join('') : ''; if(p && p.salt) saltN++;
+    if(!isPast && idx != null && (maxF == null || idx > maxF.idx)) maxF = {idx, t, why};
+    const tip = fmtT(t)+'–'+fmtT(t+36e5)+': '+(idx == null ? 'ei indeksiä' : 'liukkausindeksi '+idx+(isPast ? ' (2 h ennuste)' : '')+(why ? ', '+why : ''))
+      + (p && p.tr != null ? ' · alin tie '+n1(p.tr)+' °C' : '') + (slip ? ' · liukasta mitattiin '+slip+' asemalla' : '')
+      + (p && p.salt ? ' · suolaus' : '') + (p && p.plow ? ' · auraus' : '') + (p && p.sand ? ' · hiekoitus' : '');
+    cells.push('<div class="nl-c sc '+slipCls(idx)+(isPast ? ' past' : '')+(isNow ? ' now' : '')+'" title="'+esc(tip)+'">'+(idx != null && idx >= 50 ? idx : '')+(slip ? '<i class="sl"></i>' : '')+'</div>');
+    wk.push('<span>'+w+'</span>'); tl.push('<span>'+(i % 2 ? '' : String(hourHel(t)).padStart(2,'0'))+'</span>');
+  }
+  const inNight = now >= from;
+  const head = (inNight ? 'Yö nyt' : 'Tuleva yö')+' klo 18–08';
+  const sum = [slipH ? '<b>liukasta '+slipH+' h</b>' : (inNight ? 'ei mitattua liukkautta' : ''), saltN ? 'suolaus '+saltN+' h' : (inNight ? 'ei suolausta' : ''),
+    maxF && maxF.idx >= 50 ? '<b>riski '+maxF.idx+' klo '+fmtT(maxF.t)+'</b>' : (maxF ? 'ennuste enint. '+maxF.idx : '')].filter(Boolean).join(' · ');
+  el.hidden = false;
+  el.innerHTML = '<div class="nl-h"><span><b>'+head+'</b></span><span>'+sum+'</span></div>'
+    + '<div class="nl-row">'+cells.join('')+'</div><div class="nl-w">'+wk.join('')+'</div><div class="nl-t">'+tl.join('')+'</div>'
+    + '<div class="nl-lg">Väri = liukkausindeksi (mennyt: 2 h ennuste) · punainen piste = mitattu liukas · S suolaus, A auraus, H hiekoitus</div>';
+}
 
 function renderBrief(){
   const L = [];
