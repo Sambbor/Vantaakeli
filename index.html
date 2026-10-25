@@ -1480,6 +1480,7 @@ async function loadNight(){
   nightS.t = Date.now();
   nightS.d = await fetch(U.data+'night.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   nightS.k = await fetch(U.data+'komento.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  nightS.nb = await fetch('https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/naapurit.json?'+Math.floor(Date.now()/3e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   renderNight(); renderKomento();
   try{ renderNightLine(); }catch(e){ console.error(e); }
 }
@@ -1546,7 +1547,23 @@ function renderNight(){
     + slip.map(s=>'<tr><td class="name">'+esc(s.name)+'</td><td>'+fmtT(s.slipFirst)+'</td><td>'+esc(KELI_FI[s.keli] || '–')+'</td><td class="num">'+n1(s.trMin)+' °C</td><td>'
       + (s.lead != null ? '<span class="pill p-ok">varoitti '+s.lead+' h ennen</span>' : '<span class="pill p-bad">ei varoittanut</span>'+(s.dtWarned ? ' <small class="muted">Digitraffic varoitti</small>' : ''))+'</td></tr>').join('')
     + '</tbody></table></div>';
+  try{ h += neighborsHtml(N); }catch(e){ console.error(e); }
   el.innerHTML = h + '<p class="muted" style="margin-top:6px">Liukas = keli kuura, lumi, jää tai sohjo, hälyvaroitus, tai kun tie on enintään +1 °C: kitka alle 0,45, jäätä (≥ 0,1 mm) tai lunta tiellä. "Varoitti" = liukkausindeksi oli vähintään 50 jo 2, 6 tai 12 tuntia ennen. Turha hälytys = indeksi ≥ 50, mutta asema ei mitannut liukasta tunnin sisällä. Työt Harjan toteumista.</p>';
+}
+
+function neighborsHtml(N){
+  const B = nightS.nb, key = Object.keys(URAKAT).find(k=>URAKAT[k] === U) || 'vantaa';
+  const L = B && B.groups && B.groups[key]; if(!L || !L.length || B.night !== N.night) return '';
+  const run = (x, nm) => x && x.n ? (x.n > 1 ? x.n+' krt ' : '')+fmtT(x.first)+(x.n > 1 || x.last !== x.first ? '–'+fmtT(x.last) : '') : '–';
+  const nb = L.filter(x=>!x.home), sal = nb.filter(x=>x.salt && x.salt.n), sl = nb.filter(x=>x.slip);
+  const head = 'Naapureista '+(sal.length ? 'suolasi '+sal.length+'/'+nb.length+' ('+sal.map(x=>x.name).join(', ')+')' : 'kukaan ei suolannut')
+    + ' · liukasta mitattiin '+(sl.length ? sl.map(x=>x.name+' '+x.slip+' as.').join(', ') : 'ei missään');
+  return '<h3 style="margin:14px 0 4px;font-size:16px">Naapuriurakat samana yönä</h3><p style="margin:0 0 6px">'+esc(head)+(B.complete ? '' : ' <span class="pill p-warn">käynnissä</span>')+'</p>'
+    + '<div class="scroll"><table><thead><tr><th>Urakka</th><th>Asemia</th><th>Liukasta</th><th>Kuuraehto</th><th>Alin tie</th><th>Suolaus</th><th>Auraus / hiekoitus</th></tr></thead><tbody>'
+    + L.map(x=>'<tr'+(x.home ? ' style="font-weight:600"' : '')+'><td class="name">'+esc(x.name)+(x.home ? ' (oma)' : '')+'</td><td class="num">'+x.stations+'</td>'
+      + '<td>'+(x.slip ? '<span class="pill p-bad">'+x.slip+' as. klo '+fmtT(x.slipFirst)+'</span>' : '–')+'</td><td class="num">'+(x.frost ? x.frost+' as.' : '–')+'</td>'
+      + '<td class="num" title="'+esc(x.trMinName||'')+'">'+(x.trMin != null ? n1(x.trMin)+' °C' : '–')+'</td><td>'+run(x.salt)+'</td><td>'+[x.plow && x.plow.n ? 'A '+run(x.plow) : '', x.sand && x.sand.n ? 'H '+run(x.sand) : ''].filter(Boolean).join(', ')+'</td></tr>').join('')
+    + '</tbody></table></div><p class="muted" style="margin:4px 0 0;font-size:12px">Koko maan Tiesää-arkistosta, päivitetty '+fmtT(B.updated)+'. Työ lasketaan urakalle, jos kone kulki 2 km päässä sen tiesääasemasta (rajan lähellä naapurin kone voi osua); kerrat = yli 30 min tauko aloittaa uuden. Kuuraehto = tie ≤ +1 °C ja kastepistettä kylmempi. Oma rivi samalla menetelmällä, voi poiketa yllä olevasta.</p>';
 }
 
 const keruu = {t:0, idx:null, salt:null};
