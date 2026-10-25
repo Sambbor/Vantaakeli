@@ -144,6 +144,8 @@ footer a{color:var(--accent)}
 .night-line .nl-w{display:grid;grid-template-columns:repeat(14,1fr);gap:2px;font:600 10px var(--f-mono);color:var(--accent);text-align:center;min-height:12px}
 .night-line .nl-t{display:grid;grid-template-columns:repeat(14,1fr);gap:2px;font:10px var(--f-mono);color:var(--muted);text-align:center}
 .night-line .nl-lg{font-size:11px;color:var(--muted);margin-top:3px}
+.night-line .nl-c{cursor:pointer} .night-line .nl-c.sel{outline:2px solid var(--accent);outline-offset:-1px;opacity:1} .night-line .nl-c:focus-visible{outline:2px solid var(--accent)}
+.night-line .nl-x{font-size:12px;margin-top:4px;padding:4px 6px;border-radius:4px;background:var(--bg,rgba(0,0,0,.04))}
 .status-line.s-bad{border-left-color:var(--bad);background:var(--bad-bg,var(--panel))} .status-line.s-warn{border-left-color:var(--warn)} .status-line.s-info{border-left-color:var(--accent)} .status-line.s-ok{border-left-color:var(--ok)}
 .act ul{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px}
 .act-cams{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
@@ -1085,7 +1087,7 @@ function renderMg(){
   const fr = mgPick(S, ['KITKA1_LUKU','KITKA2_LUKU','KITKA']);
   const wdir = S.TUULENSUUNTA, wsp = S.KESKITUULI, gst = S.MAKSIMITUULI;
   const fc = c.fc.filter(r=>new Date(r.t).getTime() >= Date.now()-30*60e3);
-  const {seg, segD, rfc, rNow0, rBase} = mgSeg(st);
+  const {seg, segD, rfc, rBase} = mgSeg(st);
   const cur = k => { const v = sv(st,k); return v ? v.value : null; };
   const lastOf = a => a && a.length ? a[a.length-1][1] : null;
   const rNow = cur('TIE_1'), fzNow = lastOf(frz);
@@ -1191,7 +1193,6 @@ function renderMg(){
   el.innerHTML = s;
   const svg = el.querySelector('svg'), curL = svg.querySelector('.mg-cur'), wrap = $('#mg-wrap');
   let tip = wrap.querySelector('.tip'); if(!tip){ tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; wrap.appendChild(tip); }
-  const interp = (arr, t) => { if(!arr || arr.length < 2) return null; if(t < arr[0].t || t > arr[arr.length-1].t) return null; for(let i=1;i<arr.length;i++){ const a = arr[i-1], b = arr[i]; if(t <= b.t){ return a.v + (b.v-a.v)*(t-a.t)/(b.t-a.t || 1); } } return null; };
   const move = ev => {
     const r = svg.getBoundingClientRect(), px_ = (ev.clientX - r.left)*W/r.width; if(px_ < L || px_ > W-R){ tip.hidden = true; return; }
     const t = t0 + (px_ - L)/iw*(t1 - t0); curL.setAttribute('x1', px_); curL.setAttribute('x2', px_); curL.setAttribute('opacity', '.8');
@@ -1225,12 +1226,9 @@ async function loadPohdinta(){
 }
 const FROST_SLIP = 4;
 const pohAge = () => POH ? Math.round((Date.now() - new Date(POH.t).getTime())/6e4) : null;
-const roadAt = (fcs, t) => { if(fcs.length < 2 || t > fcs[fcs.length-1].t + 30*60e3) return null;
-  for(let i=1;i<fcs.length;i++){ const a = fcs[i-1], b = fcs[i]; if(t <= b.t){ const f = Math.max(0, Math.min(1, (t-a.t)/(b.t-a.t || 1))); return a.v + (b.v-a.v)*f; } } return fcs[fcs.length-1].v; };
 const hourHel = t => Number(new Date(t).toLocaleString('fi-FI', {hour:'2-digit', hour12:false, timeZone:'Europe/Helsinki'})) % 24;
 const isNight = t => { const h = hourHel(t); return h >= 18 || h < 8; };
 const WARN_RANK = {0:0, 4:1, 1:2, 3:3, 2:4};
-const WET_KELI = [2,3,4,8,9];
 let RULES_VERSION = '';
 function isRisk(r){ return !!r.risk; }
 function attachRoad(){
@@ -1277,11 +1275,8 @@ const slip = {data:null, dataT:0, dataErr:null, learn:null, sel:null};
 const SALT_FORM = U.saltForm;
 const saltInfo = id => { const T = typeof keruu !== 'undefined' && keruu.salt; const x = T && T.stations && T.stations[id]; return x || null; };
 const saltActive = id => { const x = saltInfo(id); return x && x.active && Date.now() <= new Date(x.end).getTime() ? x : null; };
-const saltArgP = id => { const x = saltActive(id); return x ? {frost: x.left.frost, rain: x.left.rain, end: new Date(x.end).getTime()} : null; };
 const saltSrcT = x => (x.src === 'harja' ? 'Harja' : 'merkintä'+(x.by ? ' '+x.by : ''))+' '+fmtT(x.t), saltSrc = x => esc(saltSrcT(x));
-const saltTag = s => { const x = saltActive(s.id); return x ? ' ('+esc(x.lvl)+', '+saltSrc(x)+')' : ''; };
 const saltEnd = s => { if(!saltActive(s.id)) return null; const r = stationSlipSeries(s); const c = r && r.rows.find(c=>c.salt === 0); return c ? c.t : null; };
-const saltAt = (s, t) => { if(!saltActive(s.id)) return false; const e = saltEnd(s); return e == null || e > new Date(t).getTime() + 30*60e3; };
 function renderSaltStrip(){
   const el = $('#salt-strip'); if(!el) return;
   const T = keruu.salt;
@@ -1329,8 +1324,6 @@ function renderSlip(){
   const top = Math.max(-1, ...list.map(maxOf)); tabDot('liukkaus', top >= 80 ? 'bad' : top >= 50 ? 'warn' : null);
   if(mg.id){ const s0 = state.stations.find(s=>String(s.id)===String(mg.id)); if(s0) try{ renderMgTable(s0); }catch(e){ console.warn('mt1', e); } }
 }
-function nearestStation(g){ const pts = g.lines.flat(); const c = pts[Math.floor(pts.length/2)]; if(!c) return null;
-  let b = null, bd = Infinity; for(const st of state.stations){ if(!st.lon || !stationIssues(st).ok) continue; const d = Math.hypot((st.lon-c[0])*M_LON, (st.lat-c[1])*M_LAT); if(d < bd){ bd = d; b = st; } } return bd <= 8000 ? b : null; }
 $('#slip-grid').addEventListener('click', e=>{ const o = e.target.closest('.mg-open'); if(o){ openMg(o.dataset.st); return; } const b = e.target.closest('.sc'); if(!b) return; const k = {st:b.dataset.st, i:Number(b.dataset.i)};
   slip.sel = slip.sel && slip.sel.st === k.st && slip.sel.i === k.i ? null : k; renderSlip();
   const nb = document.querySelector('#slip-grid .sc[data-st="'+k.st+'"][data-i="'+k.i+'"]'); if(nb){ nb.classList.add('sel'); nb.focus({preventScroll:true}); } });
@@ -1472,7 +1465,6 @@ function renderSlipModel(){
 }
 
 
-const pctTxt = v => v == null ? '–' : Math.round(v*100)+' %';
 
 const nightS = {t:0, d:null};
 async function loadNight(){
@@ -1725,9 +1717,7 @@ function snowOf(r){
   const ratio = T <= -5 ? 1.5 : 1.0;
   return P * frac * ratio;
 }
-const isRainSym = s => (s>=21 && s<=33);
 
-const weakAgree = a => !!(a && a.n >= 2 && a.k*2 <= a.n);
 
 let actOpen = null;
 function toggleAct(e){ const hd = e.target.closest('.act-hd'); if(!hd || innerWidth >= 700) return; if(e.type==='keydown' && e.key!=='Enter' && e.key!==' ') return; e.preventDefault();
@@ -1752,10 +1742,11 @@ function renderStatusLine(acts){
   const plain = x => String(x||'').replace(/<[^>]+>/g, '');
   const rest = acts.slice(1).filter(x=>x.sev !== 'ok'), nxt = rest[0];
   const line = x => '<b>'+esc(x.title)+'</b>'+(x.where ? ' – '+esc(x.where) : '')+' · '+esc(plain(x.when));
+  const calcT = typeof POH === 'undefined' ? Date.now() : (POH && POH.t) || null;
   el.className = 'status-line s-'+a.sev; el.hidden = false;
   el.innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span> '+(a.sev === 'ok' ? esc(plain(a.when)) : line(a))+'</button>'
     + (nxt ? '<div class="sl-next">Lisäksi: '+esc(nxt.title)+(nxt.where ? ' – '+esc(nxt.where) : '')+(rest.length > 1 ? ' ja '+(rest.length-1)+' muuta' : '')+'</div>' : '')
-    + '<div class="sl-next">Laskettu klo '+fmtT(typeof POH !== 'undefined' && POH && POH.t ? POH.t : Date.now())+'</div>';
+    + (calcT ? '<div class="sl-next">Laskettu klo '+fmtT(calcT)+'</div>' : '');
 }
 $('#status-line').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if(!b) return;
   const card = [...document.querySelectorAll('#actions-body .act')].find(x=>x.dataset.t === b.dataset.t); if(!card) return;
@@ -1766,14 +1757,16 @@ function nightWindow(now){
   if(h >= 8 && h < 18){ while(hourHel(t) !== 18) t += 36e5; } else { while(hourHel(t) !== 18) t -= 36e5; }
   return t;
 }
+function nightHours(from){ let t = from + 36e5; while(hourHel(t) !== 8) t += 36e5; return Math.round((t - from)/36e5); }
+const nlSel = {t:null, tips:{}};
 function renderNightLine(){
   const el = $('#night-line'); if(!el) return;
   const now = Date.now(), from = nightWindow(now), N = typeof nightS !== 'undefined' ? nightS.d : null;
   const past = new Map(((N && N.hours) || []).map(o=>[new Date(o.t).getTime(), o]));
   let fut = null; try{ fut = slipByHour(); }catch(e){ fut = new Map(); }
   if(!past.size && !fut.size){ el.hidden = true; return; }
-  const cells = [], wk = [], tl = []; let slipH = 0, saltN = 0, maxF = null;
-  for(let i = 0; i < 14; i++){
+  const cells = [], wk = [], tl = [], NH = nightHours(from); let slipH = 0, saltN = 0, maxF = null; nlSel.tips = {};
+  for(let i = 0; i < NH; i++){
     const t = from + i*36e5, isPast = t + 36e5 <= now, isNow = t <= now && now < t + 36e5;
     const p = past.get(t), f = fut.get(t);
     const idx = isPast ? (p ? p.idx : null) : (f ? f.idx : (isNow && p ? p.idx : null));
@@ -1784,18 +1777,25 @@ function renderNightLine(){
     const tip = fmtT(t)+'–'+fmtT(t+36e5)+': '+(idx == null ? 'ei indeksiä' : 'liukkausindeksi '+idx+(isPast ? ' (2 h ennuste)' : '')+(why ? ', '+why : ''))
       + (p && p.tr != null ? ' · alin tie '+n1(p.tr)+' °C' : '') + (slip ? ' · liukasta mitattiin '+slip+' asemalla' : '')
       + (p && p.salt ? ' · suolaus' : '') + (p && p.plow ? ' · auraus' : '') + (p && p.sand ? ' · hiekoitus' : '');
-    cells.push('<div class="nl-c sc '+slipCls(idx)+(isPast ? ' past' : '')+(isNow ? ' now' : '')+'" title="'+esc(tip)+'">'+(idx != null && idx >= 50 ? idx : '')+(slip ? '<i class="sl"></i>' : '')+'</div>');
+    nlSel.tips[t] = tip;
+    cells.push('<div class="nl-c sc '+slipCls(idx)+(isPast ? ' past' : '')+(isNow ? ' now' : '')+(nlSel.t === t ? ' sel' : '')+'" role="button" tabindex="0" data-t="'+t+'" title="'+esc(tip)+'">'+(idx != null && idx >= 50 ? idx : '')+(slip ? '<i class="sl"></i>' : '')+'</div>');
     wk.push('<span>'+w+'</span>'); tl.push('<span>'+(i % 2 ? '' : String(hourHel(t)).padStart(2,'0'))+'</span>');
   }
   const inNight = now >= from;
   const head = (inNight ? 'Yö nyt' : 'Tuleva yö')+' klo 18–08';
+  if(nlSel.t != null && !nlSel.tips[nlSel.t]) nlSel.t = null;
+  const gc = ' style="grid-template-columns:repeat('+NH+',1fr)"';
   const sum = [slipH ? '<b>liukasta '+slipH+' h</b>' : (inNight ? 'ei mitattua liukkautta' : ''), saltN ? 'suolaus '+saltN+' h' : (inNight ? 'ei suolausta' : ''),
     maxF && maxF.idx >= 50 ? '<b>riski '+maxF.idx+' klo '+fmtT(maxF.t)+'</b>' : (maxF ? 'ennuste enint. '+maxF.idx : '')].filter(Boolean).join(' · ');
   el.hidden = false;
   el.innerHTML = '<div class="nl-h"><span><b>'+head+'</b></span><span>'+sum+'</span></div>'
-    + '<div class="nl-row">'+cells.join('')+'</div><div class="nl-w">'+wk.join('')+'</div><div class="nl-t">'+tl.join('')+'</div>'
+    + '<div class="nl-row"'+gc+'>'+cells.join('')+'</div><div class="nl-w"'+gc+'>'+wk.join('')+'</div><div class="nl-t"'+gc+'>'+tl.join('')+'</div>'
+    + (nlSel.t != null ? '<div class="nl-x">'+esc(nlSel.tips[nlSel.t])+'</div>' : '')
     + '<div class="nl-lg">Väri = liukkausindeksi (mennyt: 2 h ennuste) · punainen piste = mitattu liukas · S suolaus, A auraus, H hiekoitus</div>';
 }
+
+{ const nl = $('#night-line'); if(nl){ const pick = e => { const c = e.target.closest('.nl-c[data-t]'); if(!c) return; const t = Number(c.dataset.t); nlSel.t = nlSel.t === t ? null : t; renderNightLine(); };
+  nl.addEventListener('click', pick); nl.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pick(e); } }); } }
 
 function renderBrief(){
   const L = [];
@@ -2411,10 +2411,6 @@ function renderModels(){
       + '<td>'+(p.n?'pakkasta '+p.frz+'/'+p.n+' mallissa, sadetta ≥ 0,5 mm '+p.wet+'/'+p.n+(isFinite(p.spread)?' · min-lämpötilojen ero '+n1(p.spread)+' °C':''):'')+'</td></tr>';
   }
   el.innerHTML = h + '</tbody></table><div class="status">Varmuus perustuu mallien erimielisyyteen: alimpien lämpötilojen ero ≤ 1 °C ja yksimielisyys sateesta = hyvä; ero yli 2,5 °C tai erimielisyys sekä sateesta että pakkasesta = heikko. Tämä on mallivertailu, ei parviennuste. Mallien lumi on arvioitu lämpötilan ja sademäärän perusteella. MET Norja: Norjan ilmatieteen laitos (CC BY 4.0), haetaan keruun kautta kerran tunnissa; haarukka kertoo, mille välille lämpötila osuu 80 %:n todennäköisyydellä. Tienpinnan arvio 12 tunnin jälkeen on laskettu mallien ilman lämpötilasta (selkeänä yönä tie noin 1,5 °C ilmaa kylmempi, muulloin 0,3 °C) ja kiinnitetty Digitrafficin tieennusteen viimeiseen arvoon; se on suuntaa-antava, etenkin aurinkoisena päivänä.</div>';
-}
-function modelSnowAgreement(hours){
-  const t0 = new Date(state.fmi.length ? state.fmi[0].t : Date.now()).getTime();
-  return allModels().map(m=>({name:m.name, snow:m.rows.filter(r=>{ const h=(new Date(r.t).getTime()-t0)/36e5; return h>=0 && h<hours; }).reduce((a,r)=>a+(r.snow||0),0), n:m.rows.length})).filter(x=>x.n);
 }
 function modelEnvelope(){
   const ms = (state.models||[]); if(!ms.length) return [];
