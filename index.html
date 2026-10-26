@@ -106,7 +106,7 @@ svg.chart text{fill:var(--muted);font:11px var(--f-mono)}
 .cam button.img{padding:0;border:0;border-radius:0;background:var(--soft);display:block;width:100%;aspect-ratio:16/9;max-width:100%}
 .cam img{width:100%;height:100%;object-fit:cover;display:block}
 .cam .meta{padding:8px 10px;display:flex;flex-direction:column;gap:2px}
-.cam .meta b{font-size:14px}
+.cam .meta b{font-size:14px} .cam .meta b .ctr{font-weight:600;font-size:13px;color:var(--muted);white-space:nowrap} .cam .meta b .ctr.cold{color:var(--warn)}
 .cam .meta span{font-size:12.5px;color:var(--muted)}
 .age-old{color:var(--warn)!important;font-weight:600}
 .lightbox{position:fixed;inset:0;background:rgba(5,10,15,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;z-index:10;gap:10px}
@@ -1583,6 +1583,14 @@ function renderRoadFilter(){
   sel.innerHTML = '<option value="">Kaikki ('+state.cams.length+' kameraa)</option>' + roads.map(r=>'<option value="'+r+'">Tie '+r+' ('+state.cams.filter(c=>c.road===r).length+')</option>').join('');
   sel.value = roads.includes(Number(cur)) ? cur : '';
 }
+function camStation(c){ const S = (state.stations||[]).filter(s=>s.lon && s.lat); if(!S.length) return null;
+  const dist = s => (c.lat == null || c.lon == null) ? Infinity : Math.hypot((s.lon-c.lon)*M_LON, (s.lat-c.lat)*M_LAT);
+  const own = S.find(s=>String(s.id) === String(c.nearestWs));
+  if(own && dist(own) <= 5000) return {st:own, d:dist(own)};
+  const n = S.reduce((a,s)=>{ const d = dist(s); return !a || d < a.d ? {st:s, d} : a; }, null);
+  return n && n.d <= 5000 ? n : null; }
+function camRoadTxt(c){ const n = camStation(c); if(!n) return ''; const tr = stRoadNow(n.st); if(tr == null) return '';
+  return ' <span class="ctr'+(tr <= 1 ? ' cold' : '')+'" title="Tienpinta nyt, '+esc(n.st.name)+' ('+(n.d < 1000 ? Math.round(n.d/10)*10+' m' : n1(n.d/1000)+' km')+')">· tie '+n1(tr)+' °C</span>'; }
 function renderCams(){
   const el = $('#cams-body'); const road = $('#roadfilter').value; const only = $('#onlyfirst').checked;
   const list = state.cams.filter(c => !road || String(c.road)===road);
@@ -1595,7 +1603,7 @@ function renderCams(){
       const src = p.url + '?thumbnail=true&t=' + encodeURIComponent(mt||Date.now());
       h += '<article class="cam"><button type="button" class="img" data-cam="'+esc(c.id)+'" data-preset="'+esc(p.id)+'" aria-label="Suurenna: '+esc(c.name+' '+p.name)+'">'
         + '<img loading="lazy" src="'+esc(src)+'" alt="'+esc(c.name+' – '+p.name)+'" data-full="'+esc(p.url)+'"></button>'
-        + '<div class="meta"><b>'+esc(c.name)+'</b><span>'+esc(p.name||'–')+'</span>'
+        + '<div class="meta"><b>'+esc(c.name)+camRoadTxt(c)+'</b><span>'+esc(p.name||'–')+'</span>'
         + '<span class="'+(age>30?'age-old':'')+'">'+(mt?'Kuva '+fmtT(mt)+' ('+age+' min sitten)':'Ei aikaleimaa')+'</span></div></article>';
     }
   }
