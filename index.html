@@ -1930,10 +1930,11 @@ function renderMap(){
       for(const g of segs.slice().sort((a,b)=>a.bridge-b.bridge)){
         const mn = segMin(g), wc = worstSec(g);
         const c2 = settings.roadMode==='temp' ? 'rd-t-'+tempCls(isFinite(mn)?mn:null) : 'rd-'+((OVERALL[wc]||['','na'])[1]);
-        s += '<path class="rd '+c2+(g.bridge?' br':'')+'" d="'+g.lines.map(lineD).join(' ')+'"><title>'+esc(segLabel(g))+'\nAlin tienpinta 12 h: '+n0(mn)+' °C · ajokeli: '+esc((OVERALL[wc]||['?'])[0].toLowerCase())+'</title></path>';
+        const gl = netClip(g.lines); if(!gl.length) continue;
+        s += '<path class="rd '+c2+(g.bridge?' br':'')+'" d="'+gl.map(lineD).join(' ')+'"><title>'+esc(segLabel(g))+'\nAlin tienpinta 12 h: '+n0(mn)+' °C · ajokeli: '+esc((OVERALL[wc]||['?'])[0].toLowerCase())+'</title></path>';
       }
     } else {
-      const draw = fine && fine.length ? fine : parts;
+      const draw = netClip(fine && fine.length ? fine : parts); if(!draw.length) continue;
       if(fine && fine.length) s += '<path class="rd rd-'+cls+'" d="'+draw.map(lineD).join(' ')+'"><title>'+title+'</title></path>';
       else for(const p of draw) s += '<path class="rd rd-'+cls+'" d="'+lineD(p)+'"><title>'+title+'</title></path>';
     }
@@ -2299,8 +2300,33 @@ async function loadNet(){
   if(netS.d || (netS.t && Date.now() - netS.t < 10*60e3)) return; netS.t = Date.now();
   const key = Object.keys(URAKAT).find(k=>URAKAT[k] === U) || 'vantaa';
   try{ const r = await fetch('https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/tieverkko-'+key+'.json', {cache:'no-cache'}); if(!r.ok) throw new Error('HTTP '+r.status);
-    netS.d = await r.json(); netS.err = null; netS.parts = null; renderMap(); }catch(e){ netS.err = e.message; }
+    netS.d = await r.json(); netS.err = null; netS.parts = null; netS.idx = null; renderMap(); }catch(e){ netS.err = e.message; }
 }
+function netIndex(){
+  if(netS.idx) return netS.idx;
+  const G = 0.01, idx = new Map(), dm = (a,b) => Math.hypot((a[0]-b[0])*M_LON, (a[1]-b[1])*M_LAT);
+  const add = c => { const k = Math.floor(c[0]/G)+':'+Math.floor(c[1]/G); let a = idx.get(k); if(!a) idx.set(k, a = []); a.push(c); };
+  for(const rd of (netS.d && netS.d.roads) || []) for(const l of rd.l) for(const c of densify(l, 50)) add(c);
+  return netS.idx = {idx, G};
+}
+function densify(l, step){ const out = [l[0]], dm = (a,b) => Math.hypot((a[0]-b[0])*M_LON, (a[1]-b[1])*M_LAT);
+  for(let i = 1; i < l.length; i++){ const a = l[i-1], b = l[i], n = Math.ceil(dm(a,b)/step);
+    for(let k = 1; k <= n; k++) out.push([a[0]+(b[0]-a[0])*k/n, a[1]+(b[1]-a[1])*k/n]); }
+  return out; }
+function nearNet(c, tol){ const {idx, G} = netIndex(), cx = Math.floor(c[0]/G), cy = Math.floor(c[1]/G);
+  for(let dx = -1; dx <= 1; dx++) for(let dy = -1; dy <= 1; dy++){ const a = idx.get((cx+dx)+':'+(cy+dy)); if(!a) continue;
+    for(const q of a) if(Math.hypot((q[0]-c[0])*M_LON, (q[1]-c[1])*M_LAT) <= tol) return true; }
+  return false; }
+const netClipCache = new WeakMap();
+function netClip(lines){
+  if(!netS.d || !lines) return lines || [];
+  const hit = netClipCache.get(lines); if(hit && hit.d === netS.d) return hit.v;
+  const out = [];
+  for(const l of lines){ let cur = [];
+    for(const c of densify(l, 50)){ if(nearNet(c, 120)) cur.push(c); else { if(cur.length >= 2) out.push(cur); cur = []; } }
+    if(cur.length >= 2) out.push(cur); }
+  netClipCache.set(lines, {d: netS.d, v: out});
+  return out; }
 function netParts(){
   if(netS.parts) return netS.parts;
   const KM = 1500, out = [], dm = (a,b) => Math.hypot((a[0]-b[0])*M_LON, (a[1]-b[1])*M_LAT);
