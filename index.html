@@ -170,6 +170,8 @@ footer a{color:var(--accent)}
 .map-box::before{content:"";display:block;padding-top:var(--map-ratio,75%)}
 #map-svg .rd{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:7}
 #map-svg .rd-other{stroke:var(--line);stroke-width:4}
+/* tv1: urakan muut tiet arviona (ohut, vaalea) */
+#map-svg .rd.net{stroke-width:2.6px;opacity:.6} #map-svg .rd.net.rd-na,#map-svg .rd.net.rd-t-na{stroke:var(--muted);opacity:.35}
 #map-svg .rd-ok{stroke:var(--ok)} #map-svg .rd-warn{stroke:var(--warn)} #map-svg .rd-bad{stroke:var(--bad)} #map-svg .rd-na{stroke:var(--na)}
 #map-svg .place{fill:var(--muted);font:600 15px var(--f-body);text-anchor:middle;paint-order:stroke;stroke:var(--mapbg);stroke-width:4px}
 #map-svg .mcam rect{fill:var(--panel);stroke:var(--ink);stroke-width:1.5;cursor:pointer}
@@ -1482,8 +1484,8 @@ const needTxt = s => s.need ? '<b>'+esc(s.need)+'</b>'+(s.needT ? ' klo '+fmtT(s
 const KRES = {osui:['p-ok','osui ajoissa'], myohassa:['p-warn','myöhässä / jo liukas'], ohi:['p-bad','ohi'], turha:['p-na','turha'], suolattiin:['p-na','ei liukasta – suolattiin'], oikein:['p-ok','oikein: ei tarvetta']};
 function renderKomento(){
   const sec = $('#komento'), el = $('#komento-body'), K = nightS.k; if(!sec || !el) return;
-  if(!K || !K.now){ sec.hidden = true; return; }
-  sec.hidden = false;
+  if(!K || !K.now){ setSec(sec, false); return; }
+  setSec(sec, true);
   const h = hourHel(Date.now()), inNight = h >= 18 || h < 8, slot = K.slots && (K.slots['22'] || K.slots['18']);
   const C = inNight && slot ? slot : K.now, lv = KLEVEL[C.level] || KLEVEL.ei;
   const roadName = r => /^\d+$/.test(String(r.road)) ? 'Tie '+r.road : esc(r.road);
@@ -1523,8 +1525,8 @@ function renderKomento(){
 }
 function renderNight(){
   const sec = $('#night'), el = $('#night-body'), N = nightS.d; if(!sec || !el) return;
-  if(!N || !N.stations || !N.stations.length){ sec.hidden = true; return; }
-  sec.hidden = false;
+  if(!N || !N.stations || !N.stations.length){ setSec(sec, false); return; }
+  setSec(sec, true);
   const S = N.summary, day = new Date(N.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'});
   const w = (x, nm) => x && x.n ? nm+' '+x.n+(x.n > 1 ? ' kertaa (' : ' kerran (')+(x.n > 1 ? fmtT(x.first)+'–'+fmtT(x.last) : fmtT(x.first))+')' : null;
   const works = [w(N.works.salt,'suolaus'), w(N.works.plow,'auraus'), w(N.works.sand,'hiekoitus')].filter(Boolean);
@@ -1746,12 +1748,12 @@ function renderActions(){
 
 function renderStatusLine(acts){
   const el = $('#status-line'); if(!el) return;
-  const a = acts[0]; if(!a){ el.hidden = true; return; }
+  const a = acts[0]; if(!a){ setSec(el, false); return; }
   const plain = x => String(x||'').replace(/<[^>]+>/g, '');
   const rest = acts.slice(1).filter(x=>x.sev !== 'ok'), nxt = rest[0];
   const line = x => '<b>'+esc(x.title)+'</b>'+(x.where ? ' – '+esc(x.where) : '')+' · '+esc(plain(x.when));
   const calcT = typeof POH === 'undefined' ? Date.now() : (POH && POH.t) || null;
-  el.className = 'status-line s-'+a.sev; el.hidden = false;
+  el.className = 'status-line s-'+a.sev; setSec(el, true);
   el.innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span> '+(a.sev === 'ok' ? esc(plain(a.when)) : line(a))+'</button>'
     + (nxt ? '<div class="sl-next">Lisäksi: '+esc(nxt.title)+(nxt.where ? ' – '+esc(nxt.where) : '')+(rest.length > 1 ? ' ja '+(rest.length-1)+' muuta' : '')+'</div>' : '')
     + (calcT ? '<div class="sl-next">Laskettu klo '+fmtT(calcT)+'</div>' : '');
@@ -1772,7 +1774,7 @@ function renderNightLine(){
   const now = Date.now(), from = nightWindow(now), N = typeof nightS !== 'undefined' ? nightS.d : null;
   const past = new Map(((N && N.hours) || []).map(o=>[new Date(o.t).getTime(), o]));
   let fut = null; try{ fut = slipByHour(); }catch(e){ fut = new Map(); }
-  if(!past.size && !fut.size){ el.hidden = true; return; }
+  if(!past.size && !fut.size){ setSec(el, false); return; }
   const cells = [], wk = [], tl = [], NH = nightHours(from); let slipH = 0, saltN = 0, maxF = null; nlSel.tips = {};
   for(let i = 0; i < NH; i++){
     const t = from + i*36e5, isPast = t + 36e5 <= now, isNow = t <= now && now < t + 36e5;
@@ -1795,7 +1797,7 @@ function renderNightLine(){
   const gc = ' style="grid-template-columns:repeat('+NH+',1fr)"';
   const sum = [slipH ? '<b>liukasta '+slipH+' h</b>' : (inNight ? 'ei mitattua liukkautta' : ''), saltN ? 'suolaus '+saltN+' h' : (inNight ? 'ei suolausta' : ''),
     maxF && maxF.idx >= 50 ? '<b>riski '+maxF.idx+' klo '+fmtT(maxF.t)+'</b>' : (maxF ? 'ennuste enint. '+maxF.idx : '')].filter(Boolean).join(' · ');
-  el.hidden = false;
+  setSec(el, true);
   el.innerHTML = '<div class="nl-h"><span><b>'+head+'</b></span><span>'+sum+'</span></div>'
     + '<div class="nl-row"'+gc+'>'+cells.join('')+'</div><div class="nl-w"'+gc+'>'+wk.join('')+'</div><div class="nl-t"'+gc+'>'+tl.join('')+'</div>'
     + (nlSel.t != null ? '<div class="nl-x">'+esc(nlSel.tips[nlSel.t])+'</div>' : '')
@@ -1847,11 +1849,14 @@ $('#copybrief').addEventListener('click', async () => {
   setTimeout(()=>{ $('#copybrief').textContent = 'Kopioi teksti'; }, 2500);
 });
 
+function setSec(el, on){ if(!el) return; el.dataset.off = on ? '' : '1';
+  let tabOk = true; try{ tabOk = document.body.classList.contains('wall') || el.dataset.tab === curTab; }catch(e){}
+  el.hidden = !on || !tabOk; }
 const TAB_IDS = [...document.querySelectorAll('#tabs .tab')].map(b=>b.dataset.tab);
 let curTab = (location.hash||'').slice(1); if(!TAB_IDS.includes(curTab)){ try{ curTab = localStorage.getItem(U.key+'-tab') || ''; }catch(e){} } if(!TAB_IDS.includes(curTab)) curTab = 'tilanne';
 function applyTabs(){
   const wall = document.body.classList.contains('wall');
-  document.querySelectorAll('main [data-tab], .wrap > [data-tab]').forEach(el=>{ el.hidden = !wall && el.dataset.tab !== curTab; });
+  document.querySelectorAll('main [data-tab], .wrap > [data-tab]').forEach(el=>{ el.hidden = (!wall && el.dataset.tab !== curTab) || el.dataset.off === '1'; });
   document.querySelectorAll('#tabs .tab').forEach(b=>{ const on = b.dataset.tab === curTab; b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
   if(curTab === 'kartta' || wall) requestAnimationFrame(()=>scheduleMap());
   setTimeout(()=>{
@@ -1910,6 +1915,7 @@ function renderMap(){
   const {u, phone} = mapScreen();
   const R = (phone ? 14 : 19) * u, FS = R * 0.76, PF = (phone ? 12 : 15) * u;
   let s = '';
+  s += netSvg();
   const fcById = {}; (state.fc||[]).forEach(x=>fcById[x.id]=x);
   const lineD = coords => coords.map((c,i)=>(i?'L':'M')+px(c[0]).toFixed(1)+' '+py(c[1]).toFixed(1)).join(' ');
   for(const f of (state.secGeo||[])){
@@ -1936,6 +1942,7 @@ function renderMap(){
   $('#lg-road').innerHTML = settings.roadMode==='temp'
     ? '<i class="ln" style="background:var(--ok)"></i><i class="ln" style="background:var(--warn)"></i><i class="ln" style="background:var(--cold)"></i><i class="ln" style="background:var(--deep)"></i>tie alin 12 h: yli +2 / 0…+2 / −2…0 / alle −2 °C'
     : '<i class="ln" style="background:var(--ok)"></i><i class="ln" style="background:var(--warn)"></i><i class="ln" style="background:var(--bad)"></i>ajokeli 12 h: normaali / huono / erittäin huono';
+  if(netS.d) $('#lg-road').innerHTML += ' · <i class="ln" style="background:var(--muted);opacity:.5;height:2px"></i>ohut = muut urakan tiet, arvio lähimmästä ennustekohdasta (harmaa: yli 4 km, ei arviota)';
   for(const [n,lon,lat] of PLACES) if(inMap([lon,lat])) s += '<text class="place" style="font-size:'+PF.toFixed(2)+'px;stroke-width:'+(4*u).toFixed(2)+'px" x="'+px(lon).toFixed(1)+'" y="'+py(lat).toFixed(1)+'">'+esc(n)+'</text>';
   const cl = [], CR = (phone ? 30 : 26) * u;
   for(const c of state.cams){ if(!c.lon) continue; const x = px(c.lon), y = py(c.lat);
@@ -2287,6 +2294,42 @@ $('#works-hours').addEventListener('change', async e=>{ settings.worksHours = Nu
   state.secWorks = sectionWorks(); renderWorks(); renderMap(); renderActions(); renderBrief(); });
 $('#works-map').checked = settings.worksMap !== false;
 $('#works-map').addEventListener('change', e=>{ settings.worksMap = e.target.checked; saveSettings(); renderMap(); });
+const netS = {d:null, t:0, err:null, key:null, parts:null};
+async function loadNet(){
+  if(netS.d || (netS.t && Date.now() - netS.t < 10*60e3)) return; netS.t = Date.now();
+  const key = Object.keys(URAKAT).find(k=>URAKAT[k] === U) || 'vantaa';
+  try{ const r = await fetch('https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/tieverkko-'+key+'.json', {cache:'no-cache'}); if(!r.ok) throw new Error('HTTP '+r.status);
+    netS.d = await r.json(); netS.err = null; netS.parts = null; renderMap(); }catch(e){ netS.err = e.message; }
+}
+function netParts(){
+  if(netS.parts) return netS.parts;
+  const KM = 1500, out = [], dm = (a,b) => Math.hypot((a[0]-b[0])*M_LON, (a[1]-b[1])*M_LAT);
+  for(const rd of (netS.d && netS.d.roads) || []) for(const l of rd.l){
+    let cur = [l[0]], len = 0;
+    for(let i = 1; i < l.length; i++){ cur.push(l[i]); len += dm(l[i-1], l[i]);
+      if(len >= KM && i < l.length - 1){ out.push({r:rd.r, pts:cur, mid:cur[Math.floor(cur.length/2)]}); cur = [l[i]]; len = 0; } }
+    if(cur.length >= 2) out.push({r:rd.r, pts:cur, mid:cur[Math.floor(cur.length/2)]});
+  }
+  return netS.parts = out;
+}
+function netSvg(){
+  if(!netS.d){ loadNet(); return ''; }
+  const segs = segsWithFc(), sp = [];
+  for(const g of segs) for(const l of g.lines || []) for(let i = 0; i < l.length; i += 2) sp.push([l[i][0], l[i][1], g]);
+  const lineD = coords => coords.map((c,i)=>(i?'L':'M')+px(c[0]).toFixed(1)+' '+py(c[1]).toFixed(1)).join(' ');
+  let s = '';
+  for(const p of netParts()){
+    if(!p.pts.some(inMap)) continue;
+    let best = null, bd = 4000;
+    for(const q of sp){ const dx = (q[0]-p.mid[0])*M_LON; if(dx > bd || -dx > bd) continue; const d = Math.hypot(dx, (q[1]-p.mid[1])*M_LAT); if(d < bd){ bd = d; best = q[2]; } }
+    let cls = settings.roadMode === 'temp' ? 'rd-t-na' : 'rd-na', tip = 'Tie '+p.r+' – ei ennustekohtaa 4 km säteellä';
+    if(best){ const mn = segMin(best), wc = worstSec(best);
+      cls = settings.roadMode === 'temp' ? 'rd-t-'+tempCls(isFinite(mn) ? mn : null) : 'rd-'+((OVERALL[wc]||['','na'])[1]);
+      tip = 'Tie '+p.r+' – arvio lähimmästä ennustekohdasta: '+segLabel(best)+' ('+n1(bd/1000)+' km)\nAlin tienpinta 12 h: '+n0(isFinite(mn) ? mn : null)+' °C · ajokeli: '+((OVERALL[wc]||['?'])[0]).toLowerCase(); }
+    s += '<path class="rd net '+cls+'" d="'+lineD(p.pts)+'"><title>'+esc(tip)+'</title></path>';
+  }
+  return s;
+}
 function worksSvg(){
   if(!state.works || settings.worksMap === false) return '';
   const hrs = state.works.hrs; let s = '';
