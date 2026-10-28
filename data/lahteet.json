@@ -1,5 +1,5 @@
 {
- "t": "2026-10-28T15:00:00.319Z",
+ "t": "2026-10-28T15:59:40.305Z",
  "src": {
   "stations": {
    "name": "Asemat",
@@ -22,13 +22,13 @@
   "cams": {
    "name": "Kamerat",
    "status": "ok",
-   "detail": "43/43 tuoreita",
+   "detail": "39/39 tuoreita",
    "title": "Kuvat alle 30 min vanhoja"
   },
   "fmi": {
    "name": "FMI-ennuste",
    "status": "ok",
-   "detail": "haettu 16.59",
+   "detail": "haettu 17.59",
    "title": "Ilmatieteen laitoksen pisteennuste · haetaan 30 min välein"
   },
   "models": {
@@ -40,25 +40,25 @@
   "works": {
    "name": "Toteumat",
    "status": "ok",
-   "detail": "591 kpl · viim. 16.55",
+   "detail": "603 kpl · viim. 17.26",
    "title": "Harja-toteumat, talvihoidon tehtävät"
   },
   "radar": {
    "name": "Sadetutka",
    "status": "ok",
-   "detail": "16.45 · 15 min",
+   "detail": "17.45 · 15 min",
    "title": "Viimeisin tutkakuva; sadetyyppi analysoitu teiden kohdalta"
   },
   "keruu": {
    "name": "Keruu",
    "status": "ok",
-   "detail": "0 min sitten",
-   "title": "Liukkausdatan keruu (GitHub Actions) 30 min välein, viimeisin ke 28.10. klo 16.59."
+   "detail": "1 min sitten",
+   "title": "Liukkausdatan keruu (GitHub Actions) 30 min välein, viimeisin ke 28.10. klo 17.58."
   },
   "traffic": {
    "name": "Tiedotteet",
    "status": "ok",
-   "detail": "3 voimassa"
+   "detail": "2 voimassa"
   }
  }
 }
