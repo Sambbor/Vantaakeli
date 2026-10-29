@@ -15,7 +15,7 @@
   color-scheme: light;
   --bg:#eef1f4; --panel:#ffffff; --ink:#15202b; --muted:#5b6876; --line:#d5dbe2; --soft:#e4e9ee;
   --accent:#0b5aa6; --accent-ink:#ffffff;
-  --ok:#2f8f4e; --ok-bg:#e3f3e8; --warn:#b7791f; --warn-bg:#fdf1d8; --bad:#c0392b; --bad-bg:#fbe3e0; --na:#8a96a3; --na-bg:#eceff2;
+  --ok:#2f8f4e; --ok-bg:#e3f3e8; --warn:#c45f12; --warn-bg:#fdecd8; --warn-ink:#ffffff; --bad:#c0392b; --bad-bg:#fbe3e0; --na:#8a96a3; --na-bg:#eceff2;
   --cold:#2a6fdb; --dew:#7a5cc4; --rain:#2c9fb3; --risk:rgba(192,57,43,.10);
   --road:#1d2b38; --road-band:rgba(29,43,56,.16); --mapbg:#e8ecef; --deep:#0b2e6e; --salt:#8e44ad; --plow:#1f6fd1; --sand:#9a6b2f; --frz:#d6249f; --snow:#8fc3ea; --level:#0f8a8a;
   --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
@@ -27,7 +27,7 @@
     color-scheme: dark;
     --bg:#0f151c; --panel:#17202a; --ink:#e6ebf0; --muted:#98a5b3; --line:#2a3642; --soft:#1f2a35;
     --accent:#4b9be8; --accent-ink:#0f151c;
-    --ok:#5cc47c; --ok-bg:#16301f; --warn:#e5a93d; --warn-bg:#35290f; --bad:#ef6b5c; --bad-bg:#3a1a17; --na:#7c8894; --na-bg:#222c36;
+    --ok:#5cc47c; --ok-bg:#16301f; --warn:#f0954a; --warn-bg:#3a2412; --warn-ink:#1b1407; --bad:#ef6b5c; --bad-bg:#3a1a17; --na:#7c8894; --na-bg:#222c36;
     --cold:#6aa3ff; --dew:#b39cf0; --rain:#49c2d6; --risk:rgba(239,107,92,.14);
     --road:#f2c14e; --road-band:rgba(242,193,78,.20); --mapbg:#121a22; --deep:#c9dcff; --salt:#c58af0; --plow:#5aa2ff; --sand:#d2a064; --frz:#ff6ad5; --snow:#b9dcf7; --level:#3fd0c9;
   }
@@ -165,13 +165,15 @@ body.wall .status-line:not([hidden]) ~ .summary{display:grid} body.wall .sl-fact
 .night-line .nl-c{cursor:pointer} .night-line .nl-c.sel{outline:2px solid var(--accent);outline-offset:-1px;opacity:1} .night-line .nl-c:focus-visible{outline:2px solid var(--accent)}
 .night-line .nl-x{font-size:12px;margin-top:4px;padding:4px 6px;border-radius:4px;background:var(--bg,rgba(0,0,0,.04))}
 .status-line.s-bad{border-left-color:var(--bad);background:var(--bad-bg,var(--panel))} .status-line.s-warn{border-left-color:var(--warn)} .status-line.s-info{border-left-color:var(--accent)} .status-line.s-ok{border-left-color:var(--ok)}
+.act-calm{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-left:5px solid var(--ok);border-radius:8px;background:var(--panel);font-size:14px;color:var(--muted)}
+.act-calm .calm-ic{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;font-weight:700}
 .act ul{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px}
 .act-cams{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 .act-cams a{width:150px;max-width:31%;color:inherit;text-decoration:none}
 .act-cams img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;display:block;background:var(--soft)}
 .act-cams span{display:block;font-size:11.5px;color:var(--muted);line-height:1.25;margin-top:2px}
 .badge{display:inline-block;font:700 11px/1 var(--f-body);letter-spacing:.08em;padding:4px 7px;border-radius:4px;color:#fff;background:var(--na);vertical-align:middle}
-.b-bad{background:var(--bad)} .b-warn{background:var(--warn);color:#1b1407} .b-info{background:var(--accent);color:var(--accent-ink)} .b-ok{background:var(--ok);color:#06140b} .b-na{background:var(--na)}
+.b-bad{background:var(--bad)} .b-warn{background:var(--warn);color:var(--warn-ink)} .b-info{background:var(--accent);color:var(--accent-ink)} .b-ok{background:var(--ok);color:#06140b} .b-na{background:var(--na)}
 .act-settings{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:13px;color:var(--muted);margin-bottom:10px}
 .act-settings input{width:64px;font:14px var(--f-mono);padding:4px 6px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink)}
 .brief{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
@@ -1766,7 +1768,8 @@ function renderActions(){
   const acts = state.actions = computeActions();
   try{ renderSaltStrip(); }catch(e){ console.error(e); }
   if(!actOpen) actOpen = new Set(acts.filter((a,i)=>i===0 && a.sev==='bad').map(a=>a.title));
-  $('#actions-body').innerHTML = acts.map(a=>'<article class="act a-'+a.sev+(actOpen.has(a.title)?' open':'')+'" data-t="'+esc(a.title)+'"><div class="act-hd" tabindex="0" role="button" aria-expanded="'+actOpen.has(a.title)+'"><div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
+  if(acts.length && acts.every(a=>a.sev === 'ok')) $('#actions-body').innerHTML = '<div class="act-calm"><span class="calm-ic" aria-hidden="true">✓</span><span>'+acts.map(a=>a.lines.join(' ')).join(' ')+'</span></div>';
+  else $('#actions-body').innerHTML = acts.map(a=>'<article class="act a-'+a.sev+(actOpen.has(a.title)?' open':'')+'" data-t="'+esc(a.title)+'"><div class="act-hd" tabindex="0" role="button" aria-expanded="'+actOpen.has(a.title)+'"><div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
     + '<div class="act-when">'+(a.where ? '<span class="act-where">'+esc(a.where)+'</span> · ' : '')+a.when+'</div></div><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></article>').join('');
   try{ renderStatusLine(acts); }catch(e){ console.error(e); }
   try{ renderNightLine(); }catch(e){ console.error(e); }
