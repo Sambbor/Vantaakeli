@@ -90,6 +90,10 @@ td.name small{display:block;font-weight:400;color:var(--muted)}
 .legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
 #chart{overflow-x:auto}
 .rule{margin:0 4px 8px;font-size:12.5px;color:var(--muted);max-width:90ch}
+/* ui2 (29.10.2026): selitteet ?-painikkeen taakse */
+.rule,.help{display:none} section.help-on .rule,section.help-on .help{display:block}
+.help-btn{margin-left:8px;width:24px;height:24px;padding:0;border-radius:50%;font:700 13px/1 var(--f-body);color:var(--muted);vertical-align:3px}
+.help-btn[aria-expanded=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .hourly td.road{font-weight:600;color:var(--road)}
 .hourly td.road.frz{color:var(--bad)}
 svg.chart{width:100%;min-width:640px;height:auto;display:block;touch-action:pan-x pan-y}
@@ -220,6 +224,7 @@ td.name small.fault{color:var(--warn);font-weight:600}
 /* Tarkka tieennuste kartalla */
 #map-svg .rd-t-w{stroke:var(--ok)} #map-svg .rd-t-c0{stroke:var(--warn)} #map-svg .rd-t-c1{stroke:var(--cold)} #map-svg .rd-t-c2{stroke:var(--deep)} #map-svg .rd-t-na{stroke:var(--na)}
 #map-svg .rd.br{stroke-width:13;stroke-linecap:butt}
+.map-legend .lg-g{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 8px} .map-legend .lg-g b{color:var(--ink);font-weight:600;margin-right:2px} .map-legend .lg-g i{margin-right:0}
 .map-legend i.sq{border-radius:3px;border:0;width:14px;height:14px}
 #radar-legend{display:inline-flex;flex-wrap:wrap;gap:4px 12px}
 td.coldest{white-space:normal;min-width:180px;font-size:13px}
@@ -350,6 +355,9 @@ body.wall .tabs{display:none}
 @media (prefers-color-scheme: dark){ :root{--s0:#1c262b;--s1:#3a3628;--s2:#c46a22;--s3:#d0473a;--s1-ink:#b9b09a} }
 .slip-panel{padding:10px 12px}
 .slip-lg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted);margin-bottom:10px;align-items:center}
+.kmore>summary{cursor:pointer;font-weight:600;margin:4px 0;color:var(--accent)}
+.mgt-tg{float:right;font-size:12.5px;padding:4px 10px;margin:-30px 0 6px 8px} .mgt .mgt-wrap{clear:both}
+@media (max-width:700px){ .mgt-tg{float:none;margin:0 0 8px} .mgt-c .c-sade{display:none} .mgt-c th,.mgt-c td{padding:6px 5px} }
 .slip-cal{font-size:12px;color:var(--muted);margin:-4px 0 10px}
 .slip-lg i.sc{display:inline-block;width:16px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:4px}
 .sc.s0{background:var(--s0)} .sc.s1{background:var(--s1)} .sc.s2{background:var(--s2)} .sc.s3{background:var(--s3)}
@@ -528,16 +536,10 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
       </div>
       <div class="map-box" id="map-box"><div class="map-zoom"><button type="button" id="mz-in" aria-label="Lähennä">+</button><button type="button" id="mz-out" aria-label="Loitonna">−</button><button type="button" id="mz-reset" aria-label="Koko alue" title="Koko alue">⤢</button></div><span class="map-hint" id="map-hint">Kaksoisnapautus tai +/− lähentää</span><img id="radar-img" alt="" hidden><svg id="map-svg" role="img" aria-label="Urakka-alueen kartta: tiesääasemat, kelikamerat ja reittiosuudet"></svg></div>
       <details class="lgd" id="map-lgd" open><summary>Selite</summary><div class="map-legend">
-        <span><i style="border-color:var(--ok)"></i>tie yli +2 °C</span>
-        <span><i style="border-color:var(--warn)"></i>0 … +2 °C</span>
-        <span><i style="border-color:var(--cold)"></i>−2 … 0 °C</span>
-        <span><i style="border-color:var(--cold);background:var(--cold)"></i>alle −2 °C</span>
-        <span><i style="border-color:var(--bad);border-style:dashed"></i>aseman varoitus</span>
-        <span id="lg-road"></span>
-        <span><i style="border-color:var(--na);border-style:dashed"></i>asemalla vika / vanha tieto</span>
-        <span>▭ kelikamera (napauta)</span>
-        <span id="radar-legend"></span>
-        <span><i class="ln" style="background:var(--salt)"></i>suolaus <i class="ln" style="background:var(--plow)"></i>auraus <i class="ln" style="background:repeating-linear-gradient(90deg,var(--sand) 0 5px,transparent 5px 8px)"></i>hiekoitus <i class="ln" style="background:var(--level)"></i>pinnan tasaus (haalea = vanhempi)</span>
+        <span class="lg-g"><b>Asemat, tie nyt</b> <i style="border-color:var(--ok)"></i>yli +2 <i style="border-color:var(--warn)"></i>0…+2 <i style="border-color:var(--cold)"></i>−2…0 <i style="border-color:var(--cold);background:var(--cold)"></i>alle −2 °C <i style="border-color:var(--bad);border-style:dashed"></i>varoitus <i style="border-color:var(--na);border-style:dashed"></i>vika</span>
+        <span class="lg-g"><b>Tiet</b> <span id="lg-road"></span></span>
+        <span class="lg-g"><b>Työt</b> <i class="ln" style="background:var(--salt)"></i>suolaus <i class="ln" style="background:var(--plow)"></i>auraus <i class="ln" style="background:repeating-linear-gradient(90deg,var(--sand) 0 5px,transparent 5px 8px)"></i>hiekoitus <i class="ln" style="background:var(--level)"></i>tasaus <span class="muted">(haalea = vanhempi)</span></span>
+        <span class="lg-g">▭ kelikamera – näkyy lähennettäessä <span id="radar-legend"></span></span>
       </div></details>
     </div>
   </section>
@@ -1278,17 +1280,18 @@ function modelAgreement(r){ return r.models || []; }
 function slipWhy(st, c){ const p = pohSlip(st); if(!p) return ''; const i = p.rows.findIndex(x=>x.t === c.t); return i >= 0 ? p.whyHtml[i] : ''; }
 function slipSegRisk(){ return ((POH && POH.segRisk) || []).map(o=>({g: segsWithFc().find(g=>g.id === o.g), t:o.t, p:o.p, why:o.why})).filter(o=>o.g); }
 function mgRoadFc(st){ const p = POH && POH.mg && POH.mg[st.id]; return p ? {line:p.line.filter(q=>q[1] != null), est:p.est} : {line:[], est:[]}; }
-const mgt = {sel:null};
+const mgt = {sel:null, full:false};
 function renderMgTable(st){
   const el = $('#mg-tbl'); if(!el || !st) return;
   const p = POH && POH.mgt && POH.mgt[st.id];
   if(!p){ el.innerHTML = '<div class="status">Ennustetaulukkoa ei ole saatavilla.</div>'; return; }
   if(mgt.sel && String(mgt.sel.st) !== String(st.id)) mgt.sel = null;
-  el.innerHTML = p.html + (POH ? '<p class="muted" style="font-size:12px;margin:6px 0 0">Laskettu klo '+fmtT(POH.t)+'.</p>' : '');
+  el.innerHTML = (mgt.full && p.htmlFull ? p.htmlFull : p.html) + (POH ? '<p class="muted" style="font-size:12px;margin:6px 0 0">Laskettu klo '+fmtT(POH.t)+'.</p>' : '');
+  if(!p.htmlFull){ const b = el.querySelector('.mgt-tg'); if(b) b.remove(); }
   if(mgt.sel){ const tr = el.querySelector('tr.mgt-r[data-i="'+mgt.sel.i+'"]');
     if(tr){ tr.classList.add('sel'); const x = document.createElement('tr'); x.className = 'mgt-x'; x.innerHTML = '<td colspan="'+tr.cells.length+'">'+(p.x[mgt.sel.i] || '')+'</td>'; tr.after(x); } }
 }
-$('#mg-tbl').addEventListener('click', e=>{ const tr = e.target.closest('tr.mgt-r'); if(!tr) return; const i = Number(tr.dataset.i);
+$('#mg-tbl').addEventListener('click', e=>{ if(e.target.closest('.mgt-tg')){ mgt.full = !mgt.full; mgt.sel = null; const st0 = state.stations.find(s=>String(s.id)===String(mg.id)); if(st0) renderMgTable(st0); return; } const tr = e.target.closest('tr.mgt-r'); if(!tr) return; const i = Number(tr.dataset.i);
   mgt.sel = mgt.sel && mgt.sel.i === i && String(mgt.sel.st) === String(mg.id) ? null : {st: mg.id, i};
   const st = state.stations.find(s=>String(s.id)===String(mg.id)); if(st) renderMgTable(st); });
 
@@ -1501,6 +1504,7 @@ const KLEVEL = {toimenpide:['p-bad','Toimenpide'], seuranta:['p-warn','Seuranta'
 const KNEED = {aiheellinen:['p-ok','aiheellinen'], turha:['p-warn','ei tarvetta'], ohi:['p-bad','ohi'], oikein:['p-ok','oikein: ei tarvetta']};
 const needTxt = s => s.need ? '<b>'+esc(s.need)+'</b>'+(s.needT ? ' klo '+fmtT(s.needT) : '') : s.near ? esc(s.near)+' <small class="muted">(lähellä)</small>' : 'ei'+(s.frMax ? ' <small class="muted">· kuurakertymä '+n1(s.frMax)+' °C·h</small>' : '');
 const KRES = {osui:['p-ok','osui ajoissa'], myohassa:['p-warn','myöhässä / jo liukas'], ohi:['p-bad','ohi'], turha:['p-na','turha'], suolattiin:['p-na','ei liukasta – suolattiin'], oikein:['p-ok','oikein: ei tarvetta']};
+let komOpen = false;
 function renderKomento(){
   const sec = $('#komento'), el = $('#komento-body'), K = nightS.k; if(!sec || !el) return;
   if(!K || !K.now){ setSec(sec, false); return; }
@@ -1540,7 +1544,12 @@ function renderKomento(){
   }
   const NT = K.notify;
   if(NT) x += '<p class="muted" style="margin:10px 0 0">Puhelinhälytykset: '+(NT.off ? 'ei käytössä (NTFY_TOPIC-salaisuus puuttuu)' : 'käytössä'+(NT.last ? ' · viimeisin ilmoitus '+fmtDT(NT.last.t)+': '+esc(NT.last.title) : ' · ei vielä ilmoituksia'))+'</p>';
-  el.innerHTML = x + '<p class="muted" style="margin-top:8px">Ehdotus syntyy, kun liukkausindeksi nousee asemalla 50:een ennen klo 08: toimenpide valmiiksi ennen riskin alkua. Alle −6 °C ehdotetaan hiekoitusta rampeille ja liittymiin, koska suola ei tehoa. Seuranta = indeksi 30–49 tai RoadSurf ennustaa kuuraa, jäätä tai lunta. Turha = ehdotettiin, mutta liukasta ei mitattu eikä lähellä suolattu. <b>Olosuhde toteutui</b> arvioi tarpeen mittauksista suolauksesta riippumatta: asema mittasi liukasta, aseman kuurakertymä nousi vähintään 4 °C·h:iin tai tie oli märkä, lunta tai jäässä tienpinnan ollessa enintään 0 °C vähintään kahdessa peräkkäisessä mittauksessa (märkyyttä ei lasketa, jos lähellä suolattiin 6 h sisällä eikä satanut, koska se on suolaliuosta). Kostea tie pakkasella ja kuurakertymä 2–4 °C·h näytetään lähellä rajaa olevina, mutta niitä ei lasketa tarpeeksi.</p>';
+  const cut = x.indexOf('</p>') + 4, agreeN = H.filter(n=>n.agree).length;
+  const ksum = [E ? 'Aamuvertailu yö '+new Date(E.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'})+': '+(E.agree ? 'samaa mieltä urakan kanssa' : 'eri mieltä urakan kanssa')+', liukasta '+E.slipStations+' asemalla' : '',
+    H.length ? 'kaikki yöt: samaa mieltä '+agreeN+'/'+H.length : ''].filter(Boolean).join(' · ');
+  x = x.slice(0, cut) + (ksum ? '<p class="muted" style="margin:0 0 6px">'+esc(ksum)+'</p>' : '')
+    + '<details class="kmore"'+(komOpen ? ' open' : '')+'><summary>Näytä ehdotus asemittain, aamuvertailu ja kaikki yöt</summary>' + x.slice(cut) + '</details>';
+  el.innerHTML = x + '<p class="muted help" style="margin-top:8px">Ehdotus syntyy, kun liukkausindeksi nousee asemalla 50:een ennen klo 08: toimenpide valmiiksi ennen riskin alkua. Alle −6 °C ehdotetaan hiekoitusta rampeille ja liittymiin, koska suola ei tehoa. Seuranta = indeksi 30–49 tai RoadSurf ennustaa kuuraa, jäätä tai lunta. Turha = ehdotettiin, mutta liukasta ei mitattu eikä lähellä suolattu. <b>Olosuhde toteutui</b> arvioi tarpeen mittauksista suolauksesta riippumatta: asema mittasi liukasta, aseman kuurakertymä nousi vähintään 4 °C·h:iin tai tie oli märkä, lunta tai jäässä tienpinnan ollessa enintään 0 °C vähintään kahdessa peräkkäisessä mittauksessa (märkyyttä ei lasketa, jos lähellä suolattiin 6 h sisällä eikä satanut, koska se on suolaliuosta). Kostea tie pakkasella ja kuurakertymä 2–4 °C·h näytetään lähellä rajaa olevina, mutta niitä ei lasketa tarpeeksi.</p>';
 }
 function renderNight(){
   const sec = $('#night'), el = $('#night-body'), N = nightS.d; if(!sec || !el) return;
@@ -1561,7 +1570,7 @@ function renderNight(){
       + (s.lead != null ? '<span class="pill p-ok">varoitti '+s.lead+' h ennen</span>' : '<span class="pill p-bad">ei varoittanut</span>'+(s.dtWarned ? ' <small class="muted">Digitraffic varoitti</small>' : ''))+'</td></tr>').join('')
     + '</tbody></table></div>';
   try{ h += neighborsHtml(N); }catch(e){ console.error(e); }
-  el.innerHTML = h + '<p class="muted" style="margin-top:6px">Liukas = keli kuura, lumi, jää tai sohjo, hälyvaroitus, tai kun tie on enintään +1 °C: kitka alle 0,45, jäätä (≥ 0,1 mm) tai lunta tiellä. "Varoitti" = liukkausindeksi oli vähintään 50 jo 2, 6 tai 12 tuntia ennen. Turha hälytys = indeksi ≥ 50, mutta asema ei mitannut liukasta tunnin sisällä. Työt Harjan toteumista.</p>';
+  el.innerHTML = h + '<p class="muted help" style="margin-top:6px">Liukas = keli kuura, lumi, jää tai sohjo, hälyvaroitus, tai kun tie on enintään +1 °C: kitka alle 0,45, jäätä (≥ 0,1 mm) tai lunta tiellä. "Varoitti" = liukkausindeksi oli vähintään 50 jo 2, 6 tai 12 tuntia ennen. Turha hälytys = indeksi ≥ 50, mutta asema ei mitannut liukasta tunnin sisällä. Työt Harjan toteumista.</p>';
 }
 
 function neighborsHtml(N){
@@ -1870,6 +1879,8 @@ $('#copybrief').addEventListener('click', async () => {
   setTimeout(()=>{ $('#copybrief').textContent = 'Kopioi teksti'; }, 2500);
 });
 
+for(const id of ['slip','fmi','night','komento']){ const h2 = document.querySelector('#'+id+' .sec-h h2'); if(h2 && !h2.querySelector('.help-btn')) h2.insertAdjacentHTML('beforeend', '<button type="button" class="help-btn" aria-expanded="false" title="Miten tätä luetaan" aria-label="Näytä selitteet">?</button>'); }
+document.addEventListener('click', e=>{ const b = e.target.closest('.help-btn'); if(!b) return; const sec = b.closest('section'); if(!sec) return; const on = sec.classList.toggle('help-on'); b.setAttribute('aria-expanded', on); });
 function setSec(el, on){ if(!el) return; el.dataset.off = on ? '' : '1';
   let tabOk = true; try{ tabOk = document.body.classList.contains('wall') || el.dataset.tab === curTab; }catch(e){}
   el.hidden = !on || !tabOk; }
@@ -1962,12 +1973,16 @@ function renderMap(){
   }
   s += worksSvg();
   $('#lg-road').innerHTML = settings.roadMode==='temp'
-    ? '<i class="ln" style="background:var(--ok)"></i><i class="ln" style="background:var(--warn)"></i><i class="ln" style="background:var(--cold)"></i><i class="ln" style="background:var(--deep)"></i>tie alin 12 h: yli +2 / 0…+2 / −2…0 / alle −2 °C'
+    ? '<i class="ln" style="background:var(--ok)"></i><i class="ln" style="background:var(--warn)"></i><i class="ln" style="background:var(--cold)"></i><i class="ln" style="background:var(--deep)"></i>alin 12 h: yli +2 / 0…+2 / −2…0 / alle −2 °C'
     : '<i class="ln" style="background:var(--ok)"></i><i class="ln" style="background:var(--warn)"></i><i class="ln" style="background:var(--bad)"></i>ajokeli 12 h: normaali / huono / erittäin huono';
-  if(netS.d) $('#lg-road').innerHTML += ' · <i class="ln" style="background:var(--muted);opacity:.5;height:2px"></i>ohut = muut urakan tiet, arvio lähimmästä ennustekohdasta (harmaa: yli 4 km, ei arviota)';
-  for(const [n,lon,lat] of PLACES) if(inMap([lon,lat])) s += '<text class="place" style="font-size:'+PF.toFixed(2)+'px;stroke-width:'+(4*u).toFixed(2)+'px" x="'+px(lon).toFixed(1)+'" y="'+py(lat).toFixed(1)+'">'+esc(n)+'</text>';
-  const cl = [], CR = (phone ? 30 : 26) * u;
-  for(const c of state.cams){ if(!c.lon) continue; const x = px(c.lon), y = py(c.lat);
+  if(netS.d) $('#lg-road').innerHTML += ' · <i class="ln" style="background:var(--muted);opacity:.5;height:2px"></i><span title="Muut urakan tiet: arvio lähimmästä ennustekohdasta; harmaa = yli 4 km, ei arviota">ohut = muut tiet (arvio)</span>';
+  const stPts = state.stations.filter(st=>st.lon).map(st=>[px(st.lon), py(st.lat)]);
+  for(const [n,lon,lat] of PLACES) if(inMap([lon,lat])){ const x = px(lon); let y = py(lat); const hw = n.length*PF*0.3 + R;
+    const hit = stPts.filter(([sx,sy])=>Math.abs(sx-x) <= hw && Math.abs(sy-(y-PF*0.35)) <= PF*0.6 + R);
+    if(hit.length) y = Math.min(...hit.map(q=>q[1])) - R*1.35;
+    s += '<text class="place" style="font-size:'+PF.toFixed(2)+'px;stroke-width:'+(4*u).toFixed(2)+'px" x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'">'+esc(n)+'</text>'; }
+  const cl = [], CR = (phone ? 30 : 26) * u, camsOn = view.w <= (phone ? Math.min(MAP_W*0.62, MAP_H*0.95/boxRatio())*0.75 : MAP_W*0.5);
+  for(const c of (camsOn ? state.cams : [])){ if(!c.lon) continue; const x = px(c.lon), y = py(c.lat);
     const g = cl.find(k=>Math.hypot(k.x-x, k.y-y) <= CR); if(g){ g.c.push(c); g.x = (g.x*(g.c.length-1)+x)/g.c.length; g.y = (g.y*(g.c.length-1)+y)/g.c.length; } else cl.push({x, y, c:[c]}); }
   for(const k of cl){
     if(k.c.length === 1){ const c = k.c[0];
