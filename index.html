@@ -1774,7 +1774,7 @@ function renderStatusLine(acts){
   const calcT = typeof POH === 'undefined' ? Date.now() : (POH && POH.t) || null;
   el.className = 'status-line s-'+a.sev; setSec(el, true);
   const sub = a.sev === 'ok' ? plain(a.when) : [a.where, plain(a.when)].filter(Boolean).join(' · ');
-  el.querySelector('.sl-main').innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="sl-top"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><span class="sl-title">'+esc(a.title)+'</span></span>'
+  el.querySelector('.sl-main').innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="sl-top">'+(String(SEV[a.sev][0]).toLowerCase() === String(a.title).toLowerCase() ? '' : '<span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span>')+'<span class="sl-title">'+esc(a.title)+'</span></span>'
     + (sub ? '<span class="sl-sub">'+esc(sub)+'</span>' : '')+'</button>'
     + (nxt ? '<div class="sl-next">Lisäksi: '+esc(nxt.title)+(nxt.where ? ' – '+esc(nxt.where) : '')+(rest.length > 1 ? ' ja '+(rest.length-1)+' muuta' : '')+'</div>' : '')
     + (calcT ? '<div class="sl-next sl-calc">Laskettu klo '+fmtT(calcT)+'</div>' : '');
