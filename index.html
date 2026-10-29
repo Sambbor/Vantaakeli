@@ -130,15 +130,29 @@ footer a{color:var(--accent)}
 .act-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .act h3{font-size:20px}
 .act-when{font-weight:600;margin:4px 0 6px;font-size:14px} .act-where{color:var(--ink,inherit)}
-.status-line{margin:0 0 12px;padding:10px 12px;border-radius:8px;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--na)}
-.status-line button{all:unset;cursor:pointer;display:block;font-size:15px;line-height:1.4}
-.status-line .badge{margin-right:4px} .status-line .sl-next{font-size:13px;color:var(--muted);margin-top:4px}
+.status-line{margin:0 0 12px;padding:12px 14px 0;border-radius:8px;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--na)}
+.status-line button{all:unset;cursor:pointer;display:block;line-height:1.35}
+.status-line .sl-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
+.status-line .sl-title{font:700 21px/1.25 var(--f-display)}
+.status-line .sl-sub{display:block;font-size:15px;font-weight:600;margin-top:4px}
+.status-line .sl-next{font-size:13px;color:var(--muted);margin-top:4px}
+.status-line .sl-main{padding-bottom:10px}
+.sl-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0;margin:0 -14px;border-top:1px solid var(--line);background:var(--panel);border-radius:0 0 8px 0}
+.sl-facts:empty{display:none}
+.fact{padding:8px 14px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:1px;min-width:0}
+.fact:last-child{border-right:0}
+.fact .k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.fact .v{font:700 19px/1.2 var(--f-display)}
+.fact .d{font-size:12.5px;color:var(--muted)}
+.fact.bad .v{color:var(--bad)} .fact.warn .v{color:var(--warn)}
+.status-line:not([hidden]) ~ .summary{display:none}
+body.wall .status-line:not([hidden]) ~ .summary{display:grid} body.wall .sl-facts{display:none} body.wall .status-line{padding-bottom:0}
 /* yj1: yön aikajana */
 .night-line{margin:-4px 0 12px;padding:8px 10px 6px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
 .night-line .nl-h{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 8px;font-size:12px;color:var(--muted);margin-bottom:4px} .night-line .nl-h b{color:var(--ink);font-weight:600}
 .night-line .nl-row{display:grid;grid-template-columns:repeat(14,1fr);gap:2px}
 .night-line .nl-c{position:relative;height:26px;border-radius:3px;display:flex;align-items:center;justify-content:center;font:600 11px var(--f-mono);color:var(--ink)}
-.night-line .nl-c.s3{color:#fff} .night-line .nl-c.na{background:var(--na-bg)}
+.night-line .nl-c.s3{color:#fff} .night-line .nl-c.s2{color:#1b1407} .night-line .nl-c.na{background:var(--na-bg)}
 .night-line .nl-c.past{opacity:.55} .night-line .nl-c.now{outline:2px solid var(--ink);outline-offset:-1px;opacity:1}
 .night-line .nl-c .sl{position:absolute;top:1px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 1px #fff}
 .night-line .nl-w{display:grid;grid-template-columns:repeat(14,1fr);gap:2px;font:600 10px var(--f-mono);color:var(--accent);text-align:center;min-height:12px}
@@ -200,6 +214,7 @@ footer a{color:var(--accent)}
 .src i{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
 .src.warn i{background:var(--warn)} .src.bad i{background:var(--bad)} .src.bad{border-color:var(--bad)}
 .src b{font-weight:600}
+.src-tg{color:var(--muted)}
 td.name small.fault{color:var(--warn);font-weight:600}
 #map-svg .mfault circle{stroke:var(--na);stroke-dasharray:3 3;fill:var(--panel)} #map-svg .mfault text{fill:var(--na)}
 /* Tarkka tieennuste kartalla */
@@ -288,6 +303,7 @@ body.wall .tabs{display:none}
   .summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   .tile{padding:9px 10px} .tile .v{font-size:20px} .tile .d{font-size:12px}
   .act{padding:10px 12px} .act h3{font-size:18px}
+  .status-line{padding:10px 12px 0} .status-line .sl-title{font-size:18px} .status-line .sl-sub{font-size:14px} .sl-facts{grid-template-columns:repeat(2,minmax(0,1fr));margin:0 -12px} .fact{padding:7px 12px;border-bottom:1px solid var(--line)} .fact:nth-child(2n){border-right:0} .fact .v{font-size:17px} .fact .d{font-size:12px} .fact:last-child:nth-child(odd){grid-column:1/-1;border-right:0} .sl-facts{margin-bottom:-1px}
   .map-ctrl{gap:8px;padding:8px 10px;font-size:12.5px}
   .map-ctrl input[type=range]{width:110px}
   .map-legend{gap:6px 10px;font-size:11.5px}
@@ -329,10 +345,12 @@ body.wall .tabs{display:none}
 .msum{padding:12px 14px;border-bottom:1px solid var(--line)} .msum h3{margin:0 0 6px;font:700 16px var(--f-display)} .msum ul{margin:0;padding-left:18px} .msum li{margin:3px 0}
 
 /* Liukkausennuste */
-:root{--s0:#e3f3e8;--s1:#fbe7a1;--s2:#f3a55a;--s3:#c0392b}
-@media (prefers-color-scheme: dark){ :root{--s0:#1d3326;--s1:#6b5a1c;--s2:#9a5320;--s3:#c9463a} }
+/* ui1 (29.10.2026): alle 50 hillityt sävyt, vasta ≥ 50 vahva väri – riski erottuu yhdellä silmäyksellä */
+:root{--s0:#e9efea;--s1:#e9e2cc;--s2:#ef8d34;--s3:#c0392b;--s1-ink:#6b6352}
+@media (prefers-color-scheme: dark){ :root{--s0:#1c262b;--s1:#3a3628;--s2:#c46a22;--s3:#d0473a;--s1-ink:#b9b09a} }
 .slip-panel{padding:10px 12px}
 .slip-lg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--muted);margin-bottom:10px;align-items:center}
+.slip-cal{font-size:12px;color:var(--muted);margin:-4px 0 10px}
 .slip-lg i.sc{display:inline-block;width:16px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:4px}
 .sc.s0{background:var(--s0)} .sc.s1{background:var(--s1)} .sc.s2{background:var(--s2)} .sc.s3{background:var(--s3)}
 .sc.ext{background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.45) 0 3px,transparent 3px 6px)}
@@ -341,7 +359,7 @@ body.wall .tabs{display:none}
 .slip-grid .nm small{color:var(--muted)}
 .slip-grid .hh{font:10.5px var(--f-mono);color:var(--muted);text-align:center;overflow:visible;white-space:nowrap}
 .slip-grid .sc{min-height:24px;border-radius:2px;display:flex;align-items:center;justify-content:center;font:600 10px var(--f-mono);color:var(--ink);cursor:pointer;border:0;padding:0}
-.slip-grid .sc.s3{color:#fff} .slip-grid .sc.s2{color:#1b1407}
+.slip-grid .sc.s3{color:#fff} .slip-grid .sc.s2{color:#1b1407} .slip-grid .sc.s1{color:var(--s1-ink);font-weight:500}
 .slip-grid .sc.unsure{outline:2px dashed var(--ink);outline-offset:-3px}
 .slip-grid .sc.mrisk{outline:2px dotted var(--s3);outline-offset:-3px}
 .slip-grid .sc.na{background:var(--na-bg)}
@@ -457,7 +475,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     <button type="button" class="tab" role="tab" id="tab-selvitys" data-tab="selvitys" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg><span class="l">Jälkiselvitys</span><span class="s">Selvitys</span></button>
   </nav>
 
-  <div class="status-line" id="status-line" data-tab="tilanne" hidden></div>
+  <div class="status-line" id="status-line" data-tab="tilanne" hidden><div class="sl-main"></div><div class="sl-facts" id="sl-facts"></div></div>
   <div class="night-line" id="night-line" data-tab="tilanne" hidden></div>
   <div class="summary" id="summary" data-tab="tilanne"></div>
 
@@ -486,7 +504,8 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
   <section id="slip" data-tab="liukkaus">
     <div class="sec-h"><h2>Liukkausennuste asemittain 24 h</h2><span class="note">Oma liukkausindeksi 0–100 jokaiselle tiesääasemalle tunneittain · vaihe 1: fysiikkapohjainen, opettuu keräämällä dataa</span></div>
     <div class="panel slip-panel">
-      <div class="slip-lg"><span><i class="sc s0"></i>0–19 ei riskiä</span><span><i class="sc s1"></i>20–49 mahdollinen</span><span><i class="sc s2"></i>50–79 todennäköinen</span><span><i class="sc s3"></i>80–100 lähes varma</span><span><i class="sc s1 ext"></i>12–24 h: suuntaa-antava</span><span id="slip-learn-note" class="muted"></span></div>
+      <div class="slip-lg"><span><i class="sc s0"></i>0–19 ei riskiä</span><span><i class="sc s1"></i>20–49 seuraa</span><span><i class="sc s2"></i>50–79 mahdollinen liukkaus</span><span><i class="sc s3"></i>80–100 todennäköinen liukkaus</span><span><i class="sc s1 ext"></i>12–24 h: suuntaa-antava</span><span id="slip-learn-note" class="muted"></span></div>
+      <p class="slip-cal">Indeksi kertoo liukkauden olosuhteesta, ei todennäköisyydestä: koko maan jälkitarkistuksessa asema mittasi liukasta 2–6 h myöhemmin noin 5–15 %:ssa tunneista, joilla indeksi oli vähintään 50 (indeksillä 0 noin 0,2 %).</p>
       <div class="slip-grid" id="slip-grid"><div class="status">Lasketaan…</div></div>
       <p class="rule"><b>Mallien yksimielisyys:</b> indeksi lasketaan myös MEPS-, ECMWF- ja MET Norway -ennusteella. Katkoviivareunus = indeksi ≥ 50, mutta enintään puolet malleista on samaa mieltä (epävarma). Pisteviivareunus = indeksi alle 50, mutta useimmat muut mallit näkevät riskin. Napauta ruutua nähdäksesi mallien arvot.</p>
       <p class="rule" id="slip-rule">Indeksi yhdistää aseman nykytilan (tienpinta, kosteus, lumi ja jää tiellä, suolan jäätymispiste), lähimmän tiekohdan tienpintaennusteen (Digitraffic, 12 h) ja Ilmatieteen laitoksen ennusteen (kastepiste, sade, lumi, tuuli). Riskityypit: kuura (kertymä: tienpinta kastepistettä kylmempi useamman tunnin ajan), märän tien jäätyminen, lumi ja sohjo, jäätävä sade sekä aseman jo mittaama liukkaus, joka laimenee ennusteessa muutamassa tunnissa. Napauta ruutua nähdäksesi perusteet.</p>
@@ -1664,21 +1683,21 @@ function renderSummary(){
     if(worst){
     const [lbl, cls] = OVERALL[worst.f.overallRoadCondition] || ['?','na'];
     const cnt = state.fc.filter(s=>s.forecasts.some(f=>rank[f.overallRoadCondition]>=2)).length;
-    tiles.push({cls: cls==='na'?'':cls, k:'Ajokeli 12 h (huonoin)', v:lbl, d: cnt ? cnt+' reittiosuutta, joilla huonoa keliä · ensin '+esc(worst.s.description.split(':')[0])+' '+(worst.f.type==='OBSERVATION'?'nyt':'+'+esc(worst.f.forecastName)) : 'Kaikilla '+state.fc.length+' osuudella normaali'});
+    tiles.push({cls: cls==='na'?'':cls, k:'Ajokeli 12 h (huonoin)', f:'Ajokeli 12 h', s: cnt ? 'ensin '+esc(worst.s.description.split(':')[0])+' '+(worst.f.type==='OBSERVATION'?'nyt':'+'+esc(worst.f.forecastName)) : 'kaikkialla normaali', v:lbl, d: cnt ? cnt+' reittiosuutta, joilla huonoa keliä · ensin '+esc(worst.s.description.split(':')[0])+' '+(worst.f.type==='OBSERVATION'?'nyt':'+'+esc(worst.f.forecastName)) : 'Kaikilla '+state.fc.length+' osuudella normaali'});
     let minRoad = Infinity, where = 'Tiesääennusteen reittiosuudet';
     const om = coldRoad12();
     const cb = om ? null : Object.values(coldestBySec()).sort((a,b)=>a.f.roadTemperature-b.f.roadTemperature)[0];
     if(om){ minRoad = om.road; where = (om.roadSec ? String(om.roadSec).split(':')[0]+' ' : '')+'klo '+fmtT(om.t)+' · asemiin kiinnitetty ennuste'; }
     else if(cb){ minRoad = cb.f.roadTemperature; where = segLabel(cb.s)+(cb.f.type==='OBSERVATION'?' nyt':' klo '+fmtT(cb.f.time)); }
     else for(const s of state.fc) for(const f of s.forecasts) if(f.roadTemperature!=null) minRoad = Math.min(minRoad, f.roadTemperature);
-    tiles.push(isFinite(minRoad) ? {cls: minRoad<=0?'bad':minRoad<=2?'warn':'ok', k:'Tienpinta, alin ennuste 12 h', v: n1(minRoad)+' °C', d: esc(where)} : {cls:'', k:'Tienpinta, alin ennuste 12 h', v:'–', d:'ei tienpinnan ennustetta'});
+    tiles.push(isFinite(minRoad) ? {cls: minRoad<=0?'bad':minRoad<=2?'warn':'ok', k:'Tienpinta, alin ennuste 12 h', f:'Tie alin 12 h', s: esc(where.split(' · ')[0]), v: n1(minRoad)+' °C', d: esc(where)} : {cls:'', k:'Tienpinta, alin ennuste 12 h', f:'Tie alin 12 h', s:'ei ennustetta', v:'–', d:'ei tienpinnan ennustetta'});
     }
   }
   const roads = okStations().map(s=>s.values&&s.values.TIE_1&&s.values.TIE_1.value).filter(v=>v!=null);
   if(roads.length){
     const warns = okStations().filter(s=>warnOn(svv(s,'VAROITUS_1'), svv(s,'TIE_1'))).length;
     const mn = Math.min(...roads);
-    tiles.push({cls: warns?'bad':(mn<=1?'warn':'ok'), k:'Tienpinta nyt (alin)', v: n1(mn)+' °C', d:'alin tienpinta · '+(warns? warns+' asemalla varoitus' : 'ei varoituksia')+' · '+roads.length+'/'+state.stations.length+' asemaa käytettävissä'});
+    tiles.push({cls: warns?'bad':(mn<=1?'warn':'ok'), k:'Tienpinta nyt (alin)', f:'Tie nyt (alin)', s: warns ? warns+' asemalla varoitus' : roads.length+'/'+state.stations.length+' asemaa', v: n1(mn)+' °C', d:'alin tienpinta · '+(warns? warns+' asemalla varoitus' : 'ei varoituksia')+' · '+roads.length+'/'+state.stations.length+' asemaa käytettävissä'});
   }
   const d24 = state.fmi.slice(0,24);
   if(d24.length){
@@ -1690,12 +1709,13 @@ function renderSummary(){
       if((c.idx||0) >= 50){ hrs.add(t); hit.push({r, c, t}); } }
     hit.sort((a,b)=>a.t-b.t || (b.c.idx||0)-(a.c.idx||0));
     const h0 = hit[0], at0 = h0 ? (h0.c.lead != null && h0.c.lead < 1 ? 'nyt' : 'klo '+fmtT(h0.t)) : '';
-    if(sl.length) tiles.push(h0 ? {cls:'bad', k:'Liukkausriski 24 h', v: at0, d: stShort(h0.r.st)+(h0.c.why ? ' ('+esc(h0.c.why)+')' : '')+' · '+hrs.size+' h, '+new Set(hit.map(o=>o.r.st.id)).size+' asemaa'}
-      : {cls: mx >= 20 ? 'warn' : 'ok', k:'Liukkausriski 24 h', v: mx >= 20 ? 'Mahdollinen' : 'Ei', d: 'liukkausindeksi enintään '+mx});
+    if(sl.length) tiles.push(h0 ? {cls:'bad', k:'Liukkausriski 24 h', f:'Liukkausriski 24 h', s: stShort(h0.r.st)+' · '+hrs.size+' h', v: at0, d: stShort(h0.r.st)+(h0.c.why ? ' ('+esc(h0.c.why)+')' : '')+' · '+hrs.size+' h, '+new Set(hit.map(o=>o.r.st.id)).size+' asemaa'}
+      : {cls: mx >= 20 ? 'warn' : 'ok', k:'Liukkausriski 24 h', f:'Liukkausriski 24 h', s: 'indeksi enintään '+mx, v: mx >= 20 ? 'Seuraa' : 'Ei', d: 'liukkausindeksi enintään '+mx});
     const snowCm = d24.reduce((a,d)=>a+snowOf(d),0);
-    tiles.push({cls: snowCm>=SNOW_LIMIT?'bad':snowCm>=0.5?'warn':'', k:'Sade 24 h', v: n1(sumP)+' mm', d: (snowCm>=0.1?'lunta ~'+n1(snowCm)+' cm · ':(snow?'räntää/lunta mahdollista · ':''))+'alin ilma '+n1(minT)+' °C'});
+    tiles.push({cls: snowCm>=SNOW_LIMIT?'bad':snowCm>=0.5?'warn':'', k:'Sade 24 h', f:'Sade 24 h', s: snowCm>=0.1 ? 'lunta ~'+n1(snowCm)+' cm' : snow ? 'räntää/lunta mahd.' : 'ilma alin '+n1(minT)+' °C', v: n1(sumP)+' mm', d: (snowCm>=0.1?'lunta ~'+n1(snowCm)+' cm · ':(snow?'räntää/lunta mahdollista · ':''))+'alin ilma '+n1(minT)+' °C'});
   }
   $('#summary').innerHTML = tiles.map(t=>'<div class="tile '+(t.cls||'')+'"><span class="k">'+t.k+'</span><span class="v">'+t.v+'</span><span class="d">'+t.d+'</span></div>').join('');
+  const sf = $('#sl-facts'); if(sf) sf.innerHTML = tiles.map(t=>'<div class="fact '+(t.cls||'')+'" title="'+esc(String(t.d).replace(/<[^>]+>/g,''))+'"><span class="k">'+(t.f||t.k)+'</span><span class="v">'+t.v+'</span>'+(t.s ? '<span class="d">'+t.s+'</span>' : '')+'</div>').join('');
 }
 
 const MAP = U.map;
@@ -1751,12 +1771,13 @@ function renderStatusLine(acts){
   const a = acts[0]; if(!a){ setSec(el, false); return; }
   const plain = x => String(x||'').replace(/<[^>]+>/g, '');
   const rest = acts.slice(1).filter(x=>x.sev !== 'ok'), nxt = rest[0];
-  const line = x => '<b>'+esc(x.title)+'</b>'+(x.where ? ' – '+esc(x.where) : '')+' · '+esc(plain(x.when));
   const calcT = typeof POH === 'undefined' ? Date.now() : (POH && POH.t) || null;
   el.className = 'status-line s-'+a.sev; setSec(el, true);
-  el.innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span> '+(a.sev === 'ok' ? esc(plain(a.when)) : line(a))+'</button>'
+  const sub = a.sev === 'ok' ? plain(a.when) : [a.where, plain(a.when)].filter(Boolean).join(' · ');
+  el.querySelector('.sl-main').innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="sl-top"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><span class="sl-title">'+esc(a.title)+'</span></span>'
+    + (sub ? '<span class="sl-sub">'+esc(sub)+'</span>' : '')+'</button>'
     + (nxt ? '<div class="sl-next">Lisäksi: '+esc(nxt.title)+(nxt.where ? ' – '+esc(nxt.where) : '')+(rest.length > 1 ? ' ja '+(rest.length-1)+' muuta' : '')+'</div>' : '')
-    + (calcT ? '<div class="sl-next">Laskettu klo '+fmtT(calcT)+'</div>' : '');
+    + (calcT ? '<div class="sl-next sl-calc">Laskettu klo '+fmtT(calcT)+'</div>' : '');
 }
 $('#status-line').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if(!b) return;
   const card = [...document.querySelectorAll('#actions-body .act')].find(x=>x.dataset.t === b.dataset.t); if(!card) return;
@@ -2736,13 +2757,18 @@ state.src = {};
 const SRC_ORDER = ['stations','roadfc','finefc','cams','fmi','models','works','radar','traffic','keruu'];
 const SRC_TARGET = {stations:'#stations', roadfc:'#roadfc', finefc:'#roadfc', cams:'#cams', fmi:'#fmi', models:'#models', works:'#works', radar:'#map', traffic:'#tm-body', keruu:'#slipmodel'};
 function setSrc(key, name, status, detail, title){ state.src[key] = {name, status, detail, title}; }
+let srcOpen = false;
 function renderSrc(){
   const el = $('#srcbar'); if(!el) return;
   const SR = {bad:0, warn:1};
-  el.innerHTML = SRC_ORDER.filter(k=>state.src[k]).sort((a,b)=>(SR[state.src[a].status] ?? 2) - (SR[state.src[b].status] ?? 2)).map(k=>{ const s = state.src[k];
-    return '<button type="button" class="src '+s.status+'" data-target="'+SRC_TARGET[k]+'" title="'+esc(s.title||'')+'"><i></i><b>'+esc(s.name)+'</b> '+esc(s.detail||'')+'</button>'; }).join('');
+  const keys = SRC_ORDER.filter(k=>state.src[k]).sort((a,b)=>(SR[state.src[a].status] ?? 2) - (SR[state.src[b].status] ?? 2));
+  const pill = k => { const s = state.src[k];
+    return '<button type="button" class="src '+s.status+'" data-target="'+SRC_TARGET[k]+'" title="'+esc(s.title||'')+'"><i></i><b>'+esc(s.name)+'</b> '+esc(s.detail||'')+'</button>'; };
+  const bad = keys.filter(k=>state.src[k].status !== 'ok'), ok = keys.filter(k=>state.src[k].status === 'ok');
+  el.innerHTML = (srcOpen ? keys.map(pill) : bad.map(pill)).join('')
+    + (ok.length ? '<button type="button" class="src ok src-tg" aria-expanded="'+srcOpen+'"><i></i>'+(srcOpen ? 'Piilota kunnossa olevat' : (bad.length ? ok.length+' muuta kunnossa' : '<b>Lähteet kunnossa</b> '+ok.length+'/'+keys.length))+'</button>' : '');
 }
-$('#srcbar').addEventListener('click', e=>{ const b = e.target.closest('.src'); if(b){ const t = document.querySelector(b.dataset.target); if(t){ const sec = t.closest('[data-tab]'); if(sec) showTab(sec.dataset.tab, true); t.scrollIntoView({behavior:'smooth'}); } } });
+$('#srcbar').addEventListener('click', e=>{ if(e.target.closest('.src-tg')){ srcOpen = !srcOpen; renderSrc(); return; } const b = e.target.closest('.src'); if(b){ const t = document.querySelector(b.dataset.target); if(t){ const sec = t.closest('[data-tab]'); if(sec) showTab(sec.dataset.tab, true); t.scrollIntoView({behavior:'smooth'}); } } });
 const ageTxt = m => m < 90 ? m+' min' : (Math.round(m/6)/10).toLocaleString('fi-FI')+' h';
 function stationIssues(s){
   const crit = [], minor = [];
