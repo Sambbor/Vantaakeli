@@ -70,6 +70,9 @@ jobs:
           mkdir -p data salo/data
           curl -fsS -m 30 -o data/pohdinta.json https://sambbor.github.io/Vantaakeli/data/pohdinta.json || true
           curl -fsS -m 30 -o salo/data/pohdinta.json https://sambbor.github.io/Vantaakeli/salo/data/pohdinta.json || true
+          # os1: osuvuus (osuma.json) lasketaan vain täydessä ajossa eikä tallennu säilöön; kevyt ajo julkaisee edellisen
+          curl -fsS -m 30 -o data/osuma.json https://sambbor.github.io/Vantaakeli/data/osuma.json || true
+          curl -fsS -m 30 -o salo/data/osuma.json https://sambbor.github.io/Vantaakeli/salo/data/osuma.json || true
       - name: Keruu ja liukkausennuste
         if: inputs.tila != 'kevyt'
         run: node .laskenta/collector/collect.mjs
@@ -122,7 +125,7 @@ jobs:
         run: |
           git config user.name "keli-bot"
           git config user.email "keli-bot@users.noreply.github.com"
-          git rm -q --cached --ignore-unmatch data/pohdinta.json salo/data/pohdinta.json
+          git rm -q --cached --ignore-unmatch data/pohdinta.json salo/data/pohdinta.json data/osuma.json salo/data/osuma.json
           git add data
           git add salo/data 2>/dev/null || true
           git diff --cached --quiet && exit 0
@@ -133,7 +136,7 @@ jobs:
         run: |
           rm -rf _site && mkdir _site
           git ls-files -z | grep -zv '^\.github/' | xargs -0 cp --parents -t _site
-          for f in data/pohdinta.json salo/data/pohdinta.json; do [ -s "$f" ] && cp --parents "$f" _site/ || echo "puuttuu: $f"; done
+          for f in data/pohdinta.json salo/data/pohdinta.json data/osuma.json salo/data/osuma.json; do [ -s "$f" ] && cp --parents "$f" _site/ || echo "puuttuu: $f"; done
           test ! -e _site/.laskenta && test -s _site/index.html
           touch _site/.nojekyll
           du -sh _site
