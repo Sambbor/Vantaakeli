@@ -459,6 +459,17 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 .st-sum{font-size:14px} .st-opts{display:flex;gap:8px;flex-wrap:wrap}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden} .seg .st-opt{border:0;border-radius:0;padding:4px 10px;font-size:12.5px;background:var(--panel)}
 .seg .st-opt[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+/* os1: Osuiko sivu? */
+.os-sum{font-size:14px;margin:0 0 10px;line-height:1.5}
+.os-strip{display:flex;gap:4px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
+.os-n{flex:0 0 auto;min-width:52px;padding:4px 6px;border-radius:6px;border:1px solid var(--line);text-align:center;background:var(--panel)}
+.os-n b{display:block;font-size:12.5px} .os-n small{display:block;font:11px var(--f-mono);color:var(--muted)} .os-n.sel{outline:2px solid var(--accent);outline-offset:1px}
+.og-a{--og:#2f8f4e} .og-b{--og:#7fb069} .og-c{--og:#e0a030} .og-d{--og:#c0392b} .og-na{--og:var(--na)}
+.os-n{border-bottom:5px solid var(--og)} .os-c{border-left:5px solid var(--og)!important}
+.os-g{font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--og);color:#fff;white-space:nowrap;align-self:flex-start} .og-b .os-g,.og-c .os-g{color:#1b1407}
+.os-leg{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;margin:6px 0 10px} .os-leg .ln{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:4px} .os-leg .sw{display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:4px;border:1px solid var(--line)}
+.os-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px} .os-cards .stc{margin:0}
+.osp{width:100%;height:84px;display:block} .osp .sp-l{font:9px var(--f-mono);fill:var(--muted)}
 .stc-h{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .stc-h b{font-size:16px;display:block} .stc-h small{color:var(--muted);font-size:12.5px}
 .stc-t{font:700 26px/1 var(--f-mono);text-align:right;white-space:nowrap}
@@ -496,6 +507,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     <button type="button" class="tab" role="tab" id="tab-ennuste" data-tab="ennuste" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 0 1-.6-7.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9Z"/><path d="M9 21l1-2M14 21l1-2"/></svg><span class="l">Ennusteet</span><span class="s">Ennuste</span></button>
     <button type="button" class="tab" role="tab" id="tab-tyot" data-tab="tyot" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h13l3-5h2v5h-2"/><circle cx="7" cy="18" r="2"/><circle cx="16" cy="18" r="2"/><path d="M5 17V9h7l2 3"/></svg><span class="l">Työt ja tiedotteet</span><span class="s">Työt</span></button>
     <button type="button" class="tab" role="tab" id="tab-selvitys" data-tab="selvitys" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg><span class="l">Jälkiselvitys</span><span class="s">Selvitys</span></button>
+    <button type="button" class="tab" role="tab" id="tab-kokeilut" data-tab="kokeilut" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6l-5.5 9.5A1.8 1.8 0 0 0 6 21h12a1.8 1.8 0 0 0 1.5-2.5L14 9V3"/><path d="M7.5 15h9"/></svg><span class="l">Kokeilut</span><span class="s">Kokeilut</span></button>
   </nav>
 
   <div class="status-line" id="status-line" data-tab="tilanne" hidden><div class="sl-main"></div><div class="sl-facts" id="sl-facts"></div></div>
@@ -674,6 +686,11 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
   <section id="slipmodel" class="hide-wall" data-tab="selvitys">
     <div class="sec-h"><h2>Mallin opettaminen</h2><span class="note">Oma aineisto kerätään tunneittain GitHubiin · osumatarkkuus lasketaan kerätystä aineistosta</span></div>
     <div class="panel slip-model" id="slip-data"><div class="status">Aineistoa ei ole vielä haettu.</div></div>
+  </section>
+
+  <section id="osuma" class="hide-wall" data-tab="kokeilut">
+    <div class="sec-h"><h2>Osuiko sivu?</h2><span class="note">Kokeilu · yö klo 18–08: mitattu tienpinta vs. sivun 6 h aiemmin antama ennuste · arvosana keskivirheestä (tie −2…+2 °C painaa kaksinkertaisesti)</span></div>
+    <div class="panel" id="osuma-body"><div class="status">Avaa välilehti ladataksesi.</div></div>
   </section>
 
   <footer>
@@ -1957,6 +1974,7 @@ function applyTabs(){
   }, 0);
   if(curTab === 'asemat' && !wall && state.stations.length) ensureMg();
   if((curTab === 'liukkaus' || curTab === 'selvitys') && state.stations.length) setTimeout(()=>loadObsData(), 0);
+  if(curTab === 'kokeilut') setTimeout(()=>loadOsuma(), 0);
 }
 function showTab(t, keepScroll){
   if(!TAB_IDS.includes(t)) return; const changed = t !== curTab; curTab = t;
@@ -2224,6 +2242,60 @@ async function loadHistory(){
     }catch(e){ /* sadehistoria ei käytettävissä */ }
   }));
 }
+const osu = {d:null, t:0, sel:null, dt:(()=>{ try{ return localStorage.getItem(U.key+'-osudt') === '1'; }catch(e){ return false; } })()};
+async function loadOsuma(){
+  if(osu.d && Date.now() - osu.t < 10*60e3){ renderOsuma(); return; }
+  osu.d = await fetch(U.data+'osuma.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null); osu.t = Date.now();
+  renderOsuma();
+}
+const OSU_G = {'erinomainen':'og-a', 'hyvä':'og-b', 'välttävä':'og-c', 'heikko':'og-d'};
+const osuNight = n => { const d = new Date(n+'T12:00:00'), e = new Date(d.getTime()+864e5); return d.getDate()+'.–'+e.getDate()+'.'+(e.getMonth()+1)+'.'; };
+const osuSlip = r => ({aiheellinen:['osui','ok'], turha:['turha ehdotus','warn'], ohi:['ohi','bad'], oikein:['oikein ei','ok']})[r] || null;
+function osuChart(st, n){
+  const W = 300, H = 84, span = (new Date(n.to) - new Date(n.from))/6e4, P = st.pts;
+  const vals = P.flatMap(p=>[p[1], p[2], osu.dt ? p[3] : null]).filter(v=>v!=null);
+  let lo = Math.min(...vals, 0), hi = Math.max(...vals, 0); if(hi-lo < 4){ const m = (hi+lo)/2; hi = m+2; lo = m-2; }
+  const x = m => (m/span*W).toFixed(1), y = v => (4+(hi-v)/(hi-lo)*(H-18)).toFixed(1);
+  const line = (i, attr) => { let d = '', pen = false, prev = null; for(const p of P){ if(p[i]==null || (prev!=null && p[0]-prev > 70)){ pen = false; } if(p[i]!=null){ d += (pen?'L':'M')+x(p[0])+' '+y(p[i]); pen = true; } prev = p[0]; } return d ? '<path d="'+d+'" fill="none" '+attr+'/>' : ''; };
+  let g = '';
+  for(let i=0;i<P.length;i++){ const p = P[i]; if(p[2]==null || Math.abs(p[2]-p[1]) <= 1) continue; const a = i ? (P[i-1][0]+p[0])/2 : p[0], b = i < P.length-1 ? (P[i+1][0]+p[0])/2 : p[0];
+    g += '<rect x="'+x(a)+'" y="0" width="'+Math.max(1, x(b)-x(a)).toFixed(1)+'" height="'+(H-14)+'" fill="var(--risk)"><title>'+fmtT(new Date(n.from).getTime()+p[0]*6e4)+': ennuste '+n1(p[2])+', mitattu '+n1(p[1])+' °C</title></rect>'; }
+  g += '<line x1="0" x2="'+W+'" y1="'+y(0)+'" y2="'+y(0)+'" stroke="var(--cold)" stroke-dasharray="3 3"/><text x="2" y="'+(y(0)-2)+'" class="sp-l">0 °C</text>';
+  if(osu.dt) g += line(3, 'stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="1 3"');
+  g += line(2, 'stroke="var(--accent)" stroke-width="1.8" stroke-dasharray="5 3"') + line(1, 'stroke="var(--road)" stroke-width="2.2"');
+  for(const h of [0, 4, 8, 12, 14]){ const m = h*60; if(m > span) continue; g += '<text x="'+Math.min(W-14, x(m))+'" y="'+(H-2)+'" class="sp-l">'+String((18+h)%24).padStart(2,'0')+'</text>'; }
+  return '<svg class="osp" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Tienpinta mitattu ja ennuste, '+esc(st.name)+'">'+g+'</svg>';
+}
+function renderOsuma(){
+  const el = $('#osuma-body'); if(!el) return; const D = osu.d;
+  if(!D || !D.nights || !D.nights.length){ el.innerHTML = '<div class="status">Osuvuustietoa ei vielä ole – keruu laskee sen seuraavassa täydessä ajossa.</div>'; return; }
+  const N = D.nights.find(n=>n.night === osu.sel) || D.nights[0];
+  const stripN = D.nights.slice().reverse();
+  const strip = '<div class="os-strip" aria-label="Yöt">'+stripN.map(n=>{ const s = n.page || n.dt;
+    const cls = n.grade ? OSU_G[n.grade] : 'og-na';
+    return '<button type="button" class="os-n '+cls+(n === N ? ' sel' : '')+'" data-n="'+n.night+'" title="'+esc(osuNight(n.night)+(s ? ' · keskivirhe '+n1(s.mae)+' °C' : '')+(n.grade ? ' · '+n.grade : ' · sivun ennustetta ei tallennettu'))+'"><b>'+new Date(n.night+'T12:00:00').getDate()+'.'+(new Date(n.night+'T12:00:00').getMonth()+1)+'.</b><small>'+(n.frost ? '❄ ' : '')+(s ? n1(s.mae) : '–')+'</small></button>'; }).join('')+'</div>';
+  const P = N.page, need = N.cntNeed;
+  const cmd = need ? (need.turha ? 'turha ehdotus '+need.turha+' asemalla' : need.ohi ? 'olosuhde jäi ehdotuksetta '+need.ohi+' asemalla' : need.aiheellinen ? 'ehdotus aiheellinen '+need.aiheellinen+' asemalla' : 'ehdotus oikein (ei tarvetta)') : null;
+  const sum = '<div class="os-sum"><b>Yö '+osuNight(N.night)+'</b>'+(N.frost ? ' ❄ kylmin tie '+n1(N.trMin)+' °C' : ' · kylmin tie '+n1(N.trMin)+' °C')
+    + (P ? ' · sivu osui <b>'+N.good+'/'+N.graded+'</b> asemalla · keskivirhe <b>'+n1(P.mae)+' °C</b> ('+(Math.abs(P.bias) < 0.15 ? 'ei harhaa' : 'ennuste keskimäärin '+n1(Math.abs(P.bias))+' °C liian '+(P.bias > 0 ? 'lämmin' : 'kylmä'))+')'
+      + (P.zero != null ? ' · 0 °C:n puoli oikein '+P.zero+' %' : ' · tie ei käynyt lähellä nollaa') : ' · sivun omaa ennustetta ei vielä tallennettu tältä yöltä')
+    + (N.dt ? ' · Digitraffic '+n1(N.dt.mae)+' °C' : '') + (cmd ? ' · '+esc(cmd) : '') + '</div>';
+  const sts = N.stations.slice().sort((a,b)=>((b.page||b.dt||{}).mae||0)-((a.page||a.dt||{}).mae||0));
+  const kv = (l, v, c) => '<div'+(c?' class="'+c+'"':'')+'><span>'+l+'</span><b>'+v+'</b></div>';
+  const cards = sts.map(st=>{ const p = st.page, d = st.dt, sl = st.slip && osuSlip(st.slip.res);
+    return '<article class="stc os-c '+(st.grade ? OSU_G[st.grade] : 'og-na')+'"><div class="stc-h"><div><b>'+esc(String(st.name).replace(/^Tie \d+,?\s*/,''))+'</b><small>tie '+esc(String(st.road||'–'))+' · alin '+n1(st.trMin)+' °C</small></div>'
+      + '<span class="os-g">'+(st.grade || 'ei arviota')+'</span></div>'
+      + '<div class="stc-sp">'+osuChart(st, N)+'</div>'
+      + '<div class="stc-g">'+kv('Keskivirhe', p ? n1(p.mae)+' °C' : '–')+kv('Harha', p ? (p.bias > 0 ? '+' : '')+n1(p.bias) : '–', p && Math.abs(p.bias) >= 1 ? 'hot' : '')+kv('0 °C:n puoli', p && p.zero != null ? p.zero+' %' : '–', p && p.zero != null && p.zero < 80 ? 'hot' : '')
+      + kv('Digitraffic', d ? n1(d.mae)+' °C' : '–')+kv('Liukkaus', sl ? '<span class="pill p-'+sl[1]+'">'+sl[0]+'</span>' : '–')+kv('Mittauksia', p ? p.n : d ? d.n : '–')+'</div></article>'; }).join('');
+  el.innerHTML = sum + strip
+    + '<div class="os-leg"><span><i class="ln" style="background:var(--road)"></i>mitattu</span><span><i class="ln" style="background:repeating-linear-gradient(90deg,var(--accent) 0 5px,transparent 5px 8px)"></i>sivu 6 h aiemmin</span>'
+    + '<label class="chk"><input type="checkbox" id="osu-dt"'+(osu.dt ? ' checked' : '')+'> Digitrafficin ennuste</label><span><i class="sw" style="background:var(--risk)"></i>yli 1 °C pielessä</span>'
+    + '<span class="muted">heikoin ensin · erinomainen &lt; 0,5 · hyvä &lt; 1 · välttävä &lt; 1,5 °C</span></div>'
+    + '<div class="os-cards">'+cards+'</div>';
+}
+$('#osuma-body').addEventListener('click', e=>{ const b = e.target.closest('.os-n'); if(b){ osu.sel = b.dataset.n; renderOsuma(); } });
+$('#osuma-body').addEventListener('change', e=>{ if(e.target.id === 'osu-dt'){ osu.dt = e.target.checked; try{ localStorage.setItem(U.key+'-osudt', osu.dt ? '1' : '0'); }catch(_){} renderOsuma(); } });
 function spark(pts){
   if(!pts || pts.length < 2) return '<span class="muted" title="Historia kertyy, kun sivu on auki">kertyy…</span>';
   const W = 120, H = 30, t1 = Date.now(), t0 = t1-24*36e5;
