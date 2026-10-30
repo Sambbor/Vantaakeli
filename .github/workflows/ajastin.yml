@@ -30,6 +30,8 @@ jobs:
             m=$(date -u -d "@$seuraava" +%M); tila=kevyt; [ "$m" = 17 ] || [ "$m" = 47 ] && tila=taysi
             echo "$(date -u +%H:%M:%S) käynnistetään keruu ($tila)"
             gh workflow run keli-data.yml --ref main -f tila=$tila || echo "::warning::Keruun käynnistys epäonnistui"
+            # ka3 (30.10.2026): RoadSurf-varjoajo kerran tunnissa :27 UTC (10 min täyden keruun jälkeen); oma cron jää varalle
+            if [ "$m" = 27 ]; then gh workflow run roadsurf.yml --ref main || echo "::warning::RoadSurfin käynnistys epäonnistui"; fi
           done
       - name: Käynnistä ajastin uudelleen
         if: success() || failure()   # ei peruttaessa: käsin peruttu ketju pysähtyy
