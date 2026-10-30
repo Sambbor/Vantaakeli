@@ -3,3 +3,5 @@ node_modules/
 _site/
 data/pohdinta.json
 salo/data/pohdinta.json
+data/osuma.json
+salo/data/osuma.json
