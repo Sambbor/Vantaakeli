@@ -459,6 +459,11 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 .st-sum{font-size:14px} .st-opts{display:flex;gap:8px;flex-wrap:wrap}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden} .seg .st-opt{border:0;border-radius:0;padding:4px 10px;font-size:12.5px;background:var(--panel)}
 .seg .st-opt[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+/* mg2: mallien yksimielisyys meteogrammin alla */
+.mg-agree{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12.5px;margin:6px 0 2px}
+.mga{padding:2px 8px;border-radius:10px;border:1px solid var(--line);white-space:nowrap} .mga b{font-weight:600}
+.mga.ok{border-color:var(--ok);background:var(--ok-bg)} .mga.warn{border-color:var(--warn);background:var(--warn-bg)} .mga.bad{border-color:var(--bad);background:var(--bad-bg)} .mga.na{color:var(--muted)}
+.mga-h{color:var(--muted)}
 /* os1: Osuiko sivu? */
 .os-sum{font-size:14px;margin:0 0 10px;line-height:1.5}
 .os-strip{display:flex;gap:4px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
@@ -504,7 +509,6 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     <button type="button" class="tab" role="tab" id="tab-asemat" data-tab="asemat" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V8"/><path d="M8 21h8"/><circle cx="12" cy="6" r="2.5"/><path d="M5.5 3.5a9 9 0 0 0 0 5M18.5 3.5a9 9 0 0 1 0 5"/></svg><span class="l">Tiesääasemat</span><span class="s">Asemat</span></button>
     <button type="button" class="tab" role="tab" id="tab-kamerat" data-tab="kamerat" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="15" height="12" rx="2"/><path d="m17 10 5-3v10l-5-3"/></svg><span class="l">Kelikamerat</span><span class="s">Kamerat</span></button>
     <button type="button" class="tab" role="tab" id="tab-kartta" data-tab="kartta" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z"/><path d="M9 3v15M15 6v15"/></svg><span class="l">Tilannekartta</span><span class="s">Kartta</span></button>
-    <button type="button" class="tab" role="tab" id="tab-ennuste" data-tab="ennuste" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 18a4 4 0 0 1-.6-7.96A6 6 0 0 1 18 9a4.5 4.5 0 0 1-.5 9Z"/><path d="M9 21l1-2M14 21l1-2"/></svg><span class="l">Ennusteet</span><span class="s">Ennuste</span></button>
     <button type="button" class="tab" role="tab" id="tab-tyot" data-tab="tyot" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h13l3-5h2v5h-2"/><circle cx="7" cy="18" r="2"/><circle cx="16" cy="18" r="2"/><path d="M5 17V9h7l2 3"/></svg><span class="l">Työt ja tiedotteet</span><span class="s">Työt</span></button>
     <button type="button" class="tab" role="tab" id="tab-selvitys" data-tab="selvitys" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg><span class="l">Jälkiselvitys</span><span class="s">Selvitys</span></button>
     <button type="button" class="tab" role="tab" id="tab-kokeilut" data-tab="kokeilut" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6l-5.5 9.5A1.8 1.8 0 0 0 6 21h12a1.8 1.8 0 0 0 1.5-2.5L14 9V3"/><path d="M7.5 15h9"/></svg><span class="l">Kokeilut</span><span class="s">Kokeilut</span></button>
@@ -582,44 +586,13 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     <div><div class="sec-h"><h2>Liikennetiedotteet</h2><span class="note">Voimassa olevat, kartan alueella · Fintraffic</span></div><div class="panel" id="tm-body"><div class="status">Ladataan…</div></div></div>
   </section>
 
-  <section id="fmi" class="hide-wall" data-tab="ennuste">
-    <div class="sec-h"><h2>Sääennuste 72 h – Vantaa</h2><span class="note">Ilma, kastepiste ja sade: Ilmatieteen laitos (60,30 N 24,97 E) · tielämpötila: Digitrafficin tiesääennuste, 0–12 h</span></div>
-    <div class="panel">
-      <div class="hm" id="hourly-m"></div>
-      <div class="chart-wrap" id="chart-wrap">
-        <div class="legend">
-          <span><i style="background:var(--road);height:4px"></i>Tielämpötila, kylmin tiesääasema (katkoviiva: arvio 12 h jälkeen)</span>
-          <span><i style="background:var(--road-band);height:10px"></i>Tielämpötilan vaihteluväli tiesääasemien välillä</span>
-          <span><i style="background:var(--cold)"></i>Ilman lämpötila</span>
-          <span><i style="background:var(--cold);opacity:.25;height:10px"></i>Mallien hajonta (MEPS, ECMWF)</span>
-          <span><i style="background:var(--dew)"></i>Kastepiste</span>
-          <span><i style="background:var(--rain);height:8px"></i>Sade mm/h</span>
-          <span><i style="background:var(--risk);height:10px;border:1px solid var(--bad)"></i>Liukkausriski</span>
-          <span><svg width="13" height="13" viewBox="-7 -7 14 14" style="vertical-align:-2px;margin-right:3px"><circle r="6" fill="none" stroke="currentColor"/><path d="M0 0 L0 -6 A6 6 0 0 1 6 0 Z" fill="currentColor"/></svg>pilvisyys · ↑ tuuli m/s, suluissa puuska (≥ 15 keltainen, ≥ 21 punainen)</span>
-        </div>
-        <p class="rule">Liukkausriski = liukkausindeksi vähintään 50 jollakin asemalla (sama kuin Liukkaus-välilehti ja Toimenpidetarve, 24 h). Liukkaudentorjunta-kortin oma ehto: tie (tai ilma, kun tieennustetta ei ole) ≤ +1 °C ja lisäksi sadetta tai kuuraa kertynyt niin, että tie on liukas (tienpinta kastepistettä kylmempi useamman tunnin ajan; mitä suurempi ero, sitä nopeammin). Ilman tieennustetta: ilma enintään 1 °C kastepisteen yläpuolella. Tielämpötilan ennuste ulottuu 12 tuntiin; ennusteaskelten (2, 4, 6 ja 12 h) väliset tunnit on interpoloitu.</p>
-        <div id="chart"><div class="status">Ladataan…</div></div>
-      </div>
-      <div class="scroll" id="hourly"></div>
-    </div>
-  </section>
-
-  <section id="roadfc" class="hide-wall" data-tab="ennuste">
-    <div class="sec-h"><h2>Tiesääennuste reittiosuuksittain</h2><span class="note">Fintraffic / Digitraffic · havainto + 2, 4, 6 ja 12 h ennuste · vain reittiosuudet, joilla on urakan tiesääasema</span></div>
-    <div class="panel scroll" id="roadfc-body"><div class="status">Ladataan…</div></div>
-  </section>
-
-  <section id="models" class="hide-wall" data-tab="ennuste">
-    <div class="sec-h"><h2>Ennusteen varmuus</h2><span class="note">Mallivertailu Vantaan pisteessä: FMI:n meteorologin ennuste, MEPS, ECMWF ja Norjan MET</span></div>
-    <div class="panel scroll" id="models-body"><div class="status">Ladataan…</div></div>
-  </section>
-
   <section id="stmg" class="hide-wall" data-tab="asemat">
     <div class="sec-h"><h2>Asemakohtainen meteogrammi</h2><span class="note">Mittaukset 24 h ← nyt → sääennuste 48 h aseman kohdalle (FMI) · tienpinnan ennuste lähimmästä tiekohdasta 12 h (Digitraffic), sen jälkeen arvio malleista 48 h asti · RoadSurf: FMI:n tienpintamalli aseman mittauksista ja MEPS-ennusteesta (koekäytössä) · raita: mitattu keli ja liukkausindeksi</span></div>
     <div class="panel mg">
       <div class="mg-bar"><label for="mg-st" class="lg">Asema</label><select id="mg-st"></select><span class="muted" id="mg-info"></span></div>
       <div class="mg-now" id="mg-now"></div>
       <div class="mg-wrap" id="mg-wrap"><div id="mg-body"><div class="status">Valitse asema.</div></div></div>
+      <div class="mg-agree" id="mg-agree"></div>
       <div class="legend mg-lg">
         <span><i style="background:var(--road);height:4px"></i>Tienpinta</span>
         <span><i style="background:var(--road);height:0;border-top:3px dashed var(--road)"></i>Tienpinnan ennuste 12 h</span>
@@ -852,7 +825,7 @@ const estTxt = d => d.roadEst == null ? '·' : '≈ '+n0(d.roadEst);
 const estTitle = d => 'Arvio '+d.roadEstN+' mallista: '+n1(d.roadEstLo)+' … '+n1(d.roadEstHi)+' °C';
 
 function renderRoadFc(){
-  const el = $('#roadfc-body');
+  const el = $('#roadfc-body'); if(!el) return;
   const stSec = new Set(stationSegs().map(g=>g.secId)), allSecs = state.fc || [];
   const secs = stSec.size ? allSecs.filter(s=>stSec.has(s.id)) : allSecs;
   if(!secs || !secs.length){ el.innerHTML = '<div class="status">Ei ennustetietoja.</div>'; return; }
@@ -875,7 +848,7 @@ function renderRoadFc(){
 }
 
 function renderChart(){
-  const data = state.fmi; const box = $('#chart'); const road = (state.road||[]);
+  const data = state.fmi; const box = $('#chart'); const road = (state.road||[]); if(!box) return;
   if(!data.length){ box.innerHTML = '<div class="status">Ei ennustetta.</div>'; return; }
   const W=960, H=348, L=38, R=36, T=62, B=34, iw=W-L-R, ih=H-T-B;
   const tms = v => new Date(v).getTime();
@@ -971,7 +944,7 @@ function renderHourlyM(){
 }
 function renderHourly(){
   renderHourlyM();
-  const rows = state.fmi.slice(0, 48); const el = $('#hourly');
+  const rows = state.fmi.slice(0, 48); const el = $('#hourly'); if(!el) return;
   if(!rows.length){ el.innerHTML=''; return; }
   const cell = (fn, cls) => rows.map(d=>'<td class="num'+(slipAt(d.t)?' risk':'')+(cls?' '+cls:'')+'">'+fn(d)+'</td>').join('');
   el.innerHTML = '<table class="hourly"><tbody>'
@@ -2644,18 +2617,17 @@ function periodStats(){
 }
 const VER = {good:['HYVÄ','ok'], mid:['KOHTALAINEN','warn'], weak:['HEIKKO','bad'], na:['EI VERTAILUA','na']};
 function renderModels(){
-  const el = $('#models-body');
   const st = state.periodStats = periodStats();
+  const el = $('#mg-agree'); if(!el) return;
   const ms = allModels();
-  if(ms.length < 2){ el.innerHTML = '<div class="status">Vertailumalleja ei saatu haettua – näytetään vain FMI:n ennuste.</div>'; return; }
-  let h = modelSummary() + '<table><thead><tr><th>Jakso</th><th>Varmuus</th>'+ms.map(m=>'<th>'+esc(m.name)+'<br><small>ilma min · sade · lumi</small></th>').join('')+'<th>Yhteenveto</th></tr></thead><tbody>';
-  for(const p of st){
-    const [vl, vc] = VER[p.v];
-    h += '<tr><td class="name">'+p.label+'</td><td><span class="badge b-'+vc+'">'+vl+'</span></td>'
-      + p.per.map(x=>x.ok ? '<td class="num">'+n1(x.minT)+' °C · '+(isFinite(x.P)?n1(x.P)+' mm':'–')+' · '+(x.snow>=0.1?'<b>'+n1(x.snow)+' cm</b>':'0')+'</td>' : '<td class="muted">–</td>').join('')
-      + '<td>'+(p.n?'pakkasta '+p.frz+'/'+p.n+' mallissa, sadetta ≥ 0,5 mm '+p.wet+'/'+p.n+(isFinite(p.spread)?' · min-lämpötilojen ero '+n1(p.spread)+' °C':''):'')+'</td></tr>';
-  }
-  el.innerHTML = h + '</tbody></table><div class="status">Varmuus perustuu mallien erimielisyyteen: alimpien lämpötilojen ero ≤ 1 °C ja yksimielisyys sateesta = hyvä; ero yli 2,5 °C tai erimielisyys sekä sateesta että pakkasesta = heikko. Tämä on mallivertailu, ei parviennuste. Mallien lumi on arvioitu lämpötilan ja sademäärän perusteella. MET Norja: Norjan ilmatieteen laitos (CC BY 4.0), haetaan keruun kautta kerran tunnissa; haarukka kertoo, mille välille lämpötila osuu 80 %:n todennäköisyydellä. Tienpinnan arvio 12 tunnin jälkeen on laskettu mallien ilman lämpötilasta (selkeänä yönä tie noin 1,5 °C ilmaa kylmempi, muulloin 0,3 °C) ja kiinnitetty Digitrafficin tieennusteen viimeiseen arvoon; se on suuntaa-antava, etenkin aurinkoisena päivänä.</div>';
+  if(ms.length < 2){ el.innerHTML = '<span class="muted">Mallien yksimielisyys: vertailumalleja ei saatu haettua.</span>'; return; }
+  const WORD = {good:'samaa mieltä', mid:'osin eri mieltä', weak:'eri mieltä', na:'ei vertailua'}, RANK = {good:0, mid:1, weak:2, na:-1};
+  const chip = (ps, label) => { const ok = ps.filter(p=>p.v !== 'na'); if(!ok.length) return '';
+    const v = ok.reduce((a,p)=>RANK[p.v] > RANK[a] ? p.v : a, 'good'), sp = Math.max(...ok.map(p=>isFinite(p.spread) ? p.spread : 0));
+    const tip = ps.map(p=>p.label+': '+VER[p.v][0].toLowerCase()+' · alimpien lämpötilojen ero '+(isFinite(p.spread)?n1(p.spread)+' °C':'–')+' · pakkasta '+p.frz+'/'+p.n+' · sadetta ≥ 0,5 mm '+p.wet+'/'+p.n).join('\n');
+    return '<span class="mga '+VER[v][1]+'" title="'+esc(tip)+'"><b>'+label+'</b> '+WORD[v]+' · hajonta '+n1(sp)+' °C</span>'; };
+  el.innerHTML = '<span class="mga-h" title="Vantaan pisteessä: '+esc(ms.map(m=>m.name).join(', '))+'. Samaa mieltä = alimpien lämpötilojen ero ≤ 1 °C ja yksimielisyys sateesta; eri mieltä = ero yli 2,5 °C tai erimielisyys sekä sateesta että pakkasesta.">Mallit ('+ms.length+'):</span> '
+    + chip(st.slice(0, 3), '24 h') + chip(st.slice(3), '24–48 h');
 }
 function modelEnvelope(){
   const ms = (state.models||[]); if(!ms.length) return [];
@@ -2902,7 +2874,7 @@ function radarTypeText(rt){
 
 state.src = {};
 const SRC_ORDER = ['stations','roadfc','finefc','cams','fmi','models','works','radar','traffic','keruu'];
-const SRC_TARGET = {stations:'#stations', roadfc:'#roadfc', finefc:'#roadfc', cams:'#cams', fmi:'#fmi', models:'#models', works:'#works', radar:'#map', traffic:'#tm-body', keruu:'#slipmodel'};
+const SRC_TARGET = {stations:'#stations', roadfc:'#map', finefc:'#map', cams:'#cams', fmi:'#stmg', models:'#stmg', works:'#works', radar:'#map', traffic:'#tm-body', keruu:'#slipmodel'};
 function setSrc(key, name, status, detail, title){ state.src[key] = {name, status, detail, title}; }
 let srcOpen = false;
 function renderSrc(){
