@@ -1,0 +1,39 @@
+name: Keruun ajastin
+# ka1 (30.10.2026, Samuli): GitHubin ajastetut ajot viivästyvät ja jäävät osin tulematta (26.10. alkaen keruu ~1/h, yöllä jopa 4 h aukkoja).
+# Tämä ajo käynnistää keruun (keli-data.yml) tasan :17 ja :47 UTC noin 5 h 40 min ajan ja käynnistää lopuksi itsensä uudelleen.
+# Varalla cron: jos ketju katkeaa, ajastin käynnistyy uudelleen viimeistään 3 h kuluttua. Ketjun ollessa käynnissä
+# varakäynnistys jää jonoon ja peruuntuu (näkyy Actionsissa "cancelled" – normaalia). Julkisessa säilössä ajominuutit ovat ilmaisia.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '3 */3 * * *'
+permissions:
+  actions: write
+concurrency: ajastin
+jobs:
+  ajastin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - name: Käynnistä keruu puolen tunnin välein (:17 ja :47 UTC)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          loppu=$(( $(date +%s) + 340*60 ))
+          while :; do
+            nyt=$(date +%s)
+            seuraava=$(( nyt - (nyt - 1020) % 1800 + 1800 ))   # 1020 s = 17 min; jakso 30 min
+            [ "$seuraava" -gt "$loppu" ] && break
+            sleep $(( seuraava - nyt ))
+            echo "$(date -u +%H:%M:%S) käynnistetään keruu"
+            gh workflow run keli-data.yml --ref main || echo "::warning::Keruun käynnistys epäonnistui"
+          done
+      - name: Käynnistä ajastin uudelleen
+        if: success() || failure()   # ei peruttaessa: käsin peruttu ketju pysähtyy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for i in 1 2 3; do gh workflow run ajastin.yml --ref main && exit 0; sleep 20; done
+          exit 1

@@ -4,7 +4,7 @@ name: Keliaineiston keruu
 # salo/data/pohdinta.json) menevät vain julkaisuun, eivät säilön historiaan – ne lasketaan joka ajo kokonaan uudelleen (~0,9 Mt).
 on:
   schedule:
-    - cron: '17,47 * * * *'   # 30 min välein (UTC)
+    - cron: '17,47 * * * *'   # varalla; varsinainen tahti Keruun ajastimesta (ajastin.yml), ks. vahti-työ
   workflow_dispatch:
 permissions:
   contents: write
@@ -12,7 +12,30 @@ permissions:
   id-token: write
 concurrency: keli-data
 jobs:
+  # ka1 (30.10.2026): Keruun ajastin (ajastin.yml) käynnistää keruun tasan :17/:47. Ajastettu (schedule) ajo on varalla:
+  # se ohitetaan, jos käsin/ajastimella käynnistetty keruu on alkanut alle 35 min sitten.
+  vahti:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      actions: read
+    outputs:
+      aja: ${{ steps.v.outputs.aja }}
+    steps:
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          aja=true
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            n=$(gh run list --workflow keli-data.yml --event workflow_dispatch --limit 5 --json createdAt --jq '[.[] | select(now - (.createdAt | fromdateiso8601) < 2100)] | length' || echo 0)
+            if [ "${n:-0}" -gt 0 ]; then aja=false; echo "Ajastin hoitaa keruun – ajastettu varakeruu ohitetaan"; fi
+          fi
+          echo "aja=$aja" >> "$GITHUB_OUTPUT"
   collect:
+    needs: vahti
+    if: needs.vahti.outputs.aja == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
