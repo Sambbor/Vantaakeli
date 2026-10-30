@@ -6,6 +6,15 @@ on:
   schedule:
     - cron: '17,47 * * * *'   # varalla; varsinainen tahti Keruun ajastimesta (ajastin.yml), ks. vahti-työ
   workflow_dispatch:
+    inputs:
+      tila:
+        description: 'taysi = keruu, tallennus ja julkaisu; kevyt = vain liukkauslaskenta (pohdinta) ja julkaisu'
+        type: choice
+        options: [taysi, kevyt]
+        default: taysi
+# ka2 (30.10.2026, Samuli): sivun laskenta 10 min välein. Keruun ajastin käynnistää täyden ajon :17 ja :47 UTC ja kevyen
+# ajon :07, :27, :37 ja :57. Kevyt ajo ei kerää, tallenna säilöön eikä lähetä puhelinilmoituksia – se vain laskee pohdinnan
+# (liukkausindeksi, toimenpide-ehdotus) uudelleen tuoreilla mittauksilla ja julkaisee sivun. Säilö ei siis kasva.
 permissions:
   contents: write
   pages: write
@@ -62,6 +71,7 @@ jobs:
           curl -fsS -m 30 -o data/pohdinta.json https://sambbor.github.io/Vantaakeli/data/pohdinta.json || true
           curl -fsS -m 30 -o salo/data/pohdinta.json https://sambbor.github.io/Vantaakeli/salo/data/pohdinta.json || true
       - name: Keruu ja liukkausennuste
+        if: inputs.tila != 'kevyt'
         run: node .laskenta/collector/collect.mjs
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
@@ -74,6 +84,7 @@ jobs:
           CHROME_CHANNEL: chrome
       # ur1 (21.10.2026): Salon urakka pilottina – sama koodi, data kansioon salo/data, sivu ?u=salo. Virhe ei estä Vantaan tallennusta.
       - name: Salo (pilotti) – keruu
+        if: inputs.tila != 'kevyt'
         continue-on-error: true
         working-directory: salo
         run: mkdir -p data && node ../.laskenta/collector/collect.mjs
@@ -88,6 +99,7 @@ jobs:
       # lv2 (22.10.2026): sivun lähdepalkin tila (pohdinta.json → src) myös säilöön, koska aamuanalyysi ei pääse julkiselle sivulle.
       # data/lahteet.json = viimeisin tila, data/lahteet-YYYY-MM.csv = rivi jokaisesta ajosta (myös yöllä ohimenevät viat näkyvät).
       - name: Lähteiden tila säilöön (aamuanalyysin vikavahti)
+        if: inputs.tila != 'kevyt'
         continue-on-error: true
         run: |
           node --input-type=module <<'EOF'
@@ -106,6 +118,7 @@ jobs:
           }
           EOF
       - name: Tallenna aineisto säilöön (ilman pohdintaa)
+        if: inputs.tila != 'kevyt'
         run: |
           git config user.name "keli-bot"
           git config user.email "keli-bot@users.noreply.github.com"
