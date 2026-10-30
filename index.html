@@ -464,6 +464,11 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 .mga{padding:2px 8px;border-radius:10px;border:1px solid var(--line);white-space:nowrap} .mga b{font-weight:600}
 .mga.ok{border-color:var(--ok);background:var(--ok-bg)} .mga.warn{border-color:var(--warn);background:var(--warn-bg)} .mga.bad{border-color:var(--bad);background:var(--bad-bg)} .mga.na{color:var(--muted)}
 .mga-h{color:var(--muted)}
+/* kt1: työlista kokoontaitettavana kartan alla */
+.wk-det > summary{cursor:pointer;padding:9px 14px;font-size:13px;list-style:revert}
+.wk-det > summary .status{padding:0;display:inline}
+.wk-det[open] > summary{border-bottom:1px solid var(--line)}
+.wk-s{color:var(--muted)} .wk-s b{color:var(--ink)}
 /* os1: Osuiko sivu? */
 .os-sum{font-size:14px;margin:0 0 10px;line-height:1.5}
 .os-strip{display:flex;gap:4px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
@@ -509,7 +514,6 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     <button type="button" class="tab" role="tab" id="tab-asemat" data-tab="asemat" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V8"/><path d="M8 21h8"/><circle cx="12" cy="6" r="2.5"/><path d="M5.5 3.5a9 9 0 0 0 0 5M18.5 3.5a9 9 0 0 1 0 5"/></svg><span class="l">Tiesääasemat</span><span class="s">Asemat</span></button>
     <button type="button" class="tab" role="tab" id="tab-kamerat" data-tab="kamerat" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="15" height="12" rx="2"/><path d="m17 10 5-3v10l-5-3"/></svg><span class="l">Kelikamerat</span><span class="s">Kamerat</span></button>
     <button type="button" class="tab" role="tab" id="tab-kartta" data-tab="kartta" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z"/><path d="M9 3v15M15 6v15"/></svg><span class="l">Tilannekartta</span><span class="s">Kartta</span></button>
-    <button type="button" class="tab" role="tab" id="tab-tyot" data-tab="tyot" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h13l3-5h2v5h-2"/><circle cx="7" cy="18" r="2"/><circle cx="16" cy="18" r="2"/><path d="M5 17V9h7l2 3"/></svg><span class="l">Työt ja tiedotteet</span><span class="s">Työt</span></button>
     <button type="button" class="tab" role="tab" id="tab-selvitys" data-tab="selvitys" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg><span class="l">Jälkiselvitys</span><span class="s">Selvitys</span></button>
     <button type="button" class="tab" role="tab" id="tab-kokeilut" data-tab="kokeilut" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6l-5.5 9.5A1.8 1.8 0 0 0 6 21h12a1.8 1.8 0 0 0 1.5-2.5L14 9V3"/><path d="M7.5 15h9"/></svg><span class="l">Kokeilut</span><span class="s">Kokeilut</span></button>
   </nav>
@@ -563,7 +567,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
         <span id="radar-time">–</span>
         <label for="radar-mode" class="lg">Tutka</label><select id="radar-mode"><option value="dbz">Sadeintensiteetti</option><option value="type">Sadetyyppi (vesi / lumi)</option></select>
         <label for="road-mode" class="lg">Tiet</label><select id="road-mode"><option value="cond">Ajokeli 12 h</option><option value="temp">Tienpinta, alin 12 h</option></select>
-        <label class="chk"><input type="checkbox" id="works-map"> Toteutuneet työt</label>
+        <label class="chk"><input type="checkbox" id="works-map"> Toteutuneet työt</label><select id="works-hours" aria-label="Töiden aikaikkuna" title="Toteutuneiden töiden aikaikkuna (kartta ja työlista)"><option value="3">3 h</option><option value="6">6 h</option><option value="12">12 h</option><option value="24">24 h</option></select>
       </div>
       <div class="map-box" id="map-box"><div class="map-zoom"><button type="button" id="mz-in" aria-label="Lähennä">+</button><button type="button" id="mz-out" aria-label="Loitonna">−</button><button type="button" id="mz-reset" aria-label="Koko alue" title="Koko alue">⤢</button></div><span class="map-hint" id="map-hint">Kaksoisnapautus tai +/− lähentää</span><img id="radar-img" alt="" hidden><svg id="map-svg" role="img" aria-label="Urakka-alueen kartta: tiesääasemat, kelikamerat ja reittiosuudet"></svg></div>
       <details class="lgd" id="map-lgd" open><summary>Selite</summary><div class="map-legend">
@@ -575,13 +579,13 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     </div>
   </section>
 
-  <section id="works" data-tab="tyot">
-    <div class="sec-h"><h2>Toteutuneet työt</h2>
-      <div class="sec-tools"><label for="works-hours">Aikaikkuna</label><select id="works-hours"><option value="3">3 h</option><option value="6">6 h</option><option value="12">12 h</option><option value="24">24 h</option></select><span>Harja-toteumat · Fintraffic</span></div></div>
-    <div class="panel scroll" id="works-body"><div class="status">Ladataan…</div></div>
+  <!-- kt1 (30.10.2026, Samuli): Työt ja tiedotteet -välilehti yhdistetty Tilannekarttaan. Aikaikkuna kartan ohjainrivillä, työlista kokoontaitettava. -->
+  <section id="works" data-tab="kartta">
+    <div class="sec-h"><h2>Toteutuneet työt</h2><span class="note">Harja-toteumat · Fintraffic · aikaikkuna kartan ohjaimista</span></div>
+    <details class="panel wk-det" id="works-det"><summary id="works-sum"><span class="status">Ladataan…</span></summary><div class="scroll" id="works-body"></div></details>
   </section>
 
-  <section class="two hide-wall" data-tab="tyot">
+  <section class="two hide-wall" data-tab="kartta">
     <div><div class="sec-h"><h2>Varoitukset ja linkit</h2><span class="note">Ilmatieteen laitos · Fintraffic</span></div><div class="panel" id="warn-body"><div class="status">Ladataan…</div></div></div>
     <div><div class="sec-h"><h2>Liikennetiedotteet</h2><span class="note">Voimassa olevat, kartan alueella · Fintraffic</span></div><div class="panel" id="tm-body"><div class="status">Ladataan…</div></div></div>
   </section>
@@ -1935,7 +1939,9 @@ function setSec(el, on){ if(!el) return; el.dataset.off = on ? '' : '1';
   let tabOk = true; try{ tabOk = document.body.classList.contains('wall') || el.dataset.tab === curTab; }catch(e){}
   el.hidden = !on || !tabOk; }
 const TAB_IDS = [...document.querySelectorAll('#tabs .tab')].map(b=>b.dataset.tab);
-let curTab = (location.hash||'').slice(1); if(!TAB_IDS.includes(curTab)){ try{ curTab = localStorage.getItem(U.key+'-tab') || ''; }catch(e){} } if(!TAB_IDS.includes(curTab)) curTab = 'tilanne';
+const TAB_ALIAS = {tyot:'kartta', ennuste:'asemat'};
+let curTab = (location.hash||'').slice(1); curTab = TAB_ALIAS[curTab] || curTab; if(!TAB_IDS.includes(curTab)){ try{ const v = localStorage.getItem(U.key+'-tab') || ''; curTab = TAB_ALIAS[v] || v; }catch(e){} } if(!TAB_IDS.includes(curTab)) curTab = 'tilanne';
+if(TAB_ALIAS[(location.hash||'').slice(1)]) history.replaceState(null, '', '#'+curTab);
 function applyTabs(){
   const wall = document.body.classList.contains('wall');
   document.querySelectorAll('main [data-tab], .wrap > [data-tab]').forEach(el=>{ el.hidden = (!wall && el.dataset.tab !== curTab) || el.dataset.off === '1'; });
@@ -1957,7 +1963,7 @@ function showTab(t, keepScroll){
 }
 $('#tabs').addEventListener('click', e=>{ const b = e.target.closest('.tab'); if(b) showTab(b.dataset.tab); });
 $('#tabs').addEventListener('keydown', e=>{ if(e.key!=='ArrowRight' && e.key!=='ArrowLeft') return; const i = TAB_IDS.indexOf(curTab) + (e.key==='ArrowRight'?1:-1); const t = TAB_IDS[(i+TAB_IDS.length)%TAB_IDS.length]; showTab(t); $('#tab-'+t).focus(); });
-window.addEventListener('hashchange', ()=>{ const t = location.hash.slice(1); if(TAB_IDS.includes(t)) showTab(t); });
+window.addEventListener('hashchange', ()=>{ let t = location.hash.slice(1); t = TAB_ALIAS[t] || t; if(TAB_IDS.includes(t)) showTab(t); });
 function tabDot(t, level){ const b = $('#tab-'+t); if(!b) return; let d = b.querySelector('.dot'); if(!level){ if(d) d.remove(); return; } if(!d){ d = document.createElement('i'); d.className = 'dot'; b.appendChild(d); } d.className = 'dot'+(level==='warn'?' warn':''); d.title = level==='bad' ? 'Kiireellinen toimenpide' : 'Valmistaudu'; }
 const applyWall = () => { document.body.classList.toggle('wall', settings.wall); applyTabs(); $('#wallbtn').setAttribute('aria-pressed', settings.wall); $('#wallbtn').textContent = settings.wall ? 'Normaalinäkymä' : 'Seinänäyttö'; };
 $('#wallbtn').addEventListener('click', ()=>{ settings.wall = !settings.wall; saveSettings(); applyWall(); });
@@ -2411,8 +2417,8 @@ function sectionWorks(){
   return out;
 }
 function renderWorks(){
-  const el = $('#works-body');
-  if(!state.works){ el.innerHTML = '<div class="status">Toteumatietoja ei saatu haettua'+(state.worksErr?' ('+esc(state.worksErr)+')':'')+'.</div>'; return; }
+  const el = $('#works-body'), sumEl = $('#works-sum');
+  if(!state.works){ el.innerHTML = '<div class="status">Toteumatietoja ei saatu haettua'+(state.worksErr?' ('+esc(state.worksErr)+')':'')+'.</div>'; sumEl.innerHTML = '<span class="wk-s"><b>Työlista</b> · toteumia ei saatu haettua</span>'; return; }
   const sw = state.secWorks || {};
   const cell = (w, c, freshH) => { const t = w[c]; if(!t) return '<td class="muted">–</td>'; const h = (Date.now()-new Date(t))/36e5;
     return '<td class="num'+(h<=freshH?' fresh':'')+'">'+fmtT(t)+' <small>('+agoTxt(t)+')</small>'+(w[c+'_task'] ? '<small class="wk-task">'+esc(w[c+'_task'])+'</small>' : '')+'</td>'; };
@@ -2428,10 +2434,14 @@ function renderWorks(){
     + (moving.length ? ' ('+Object.entries(cnt).map(([c,n])=>CAT_FI[c].toLowerCase()+' '+n).join(', ')+'; viimeisin päättyi '+fmtT(last)+')' : '')
     + '.'+stillTxt+' Osuudelle kohdistetaan toteumat, jotka kulkevat alle '+(state.fineBySec && Object.keys(state.fineBySec).length ? '120 m päässä tien tarkasta linjasta' : '400 m päässä osuuden karkeasta linjasta')+' (esim. varikolla tai rampeilla kirjatut pisteet eivät kohdistu). Tieto tulee urakoitsijoiden Harja-järjestelmästä, joten sen kattavuus riippuu koneiden raportoinnista.</div>';
   el.innerHTML = h;
+  const lastOf = c => moving.filter(r=>r.cats.includes(c)).reduce((a,r)=>!a||r.end>a?r.end:a, null);
+  const lt = [['salt','suolaus'],['plow','auraus'],['sand','hiekoitus']].map(([c,n])=>{ const t = lastOf(c); return t ? n+' '+fmtT(t) : null; }).filter(Boolean);
+  sumEl.innerHTML = '<span class="wk-s"><b>Työlista</b> · '+moving.length+' toteumaa / '+state.works.hrs+' h'+(lt.length ? ' · viimeisin '+lt.join(', ') : ' · ei suolausta, aurausta eikä hiekoitusta')+'</span>';
 }
+$('#works-det').open = !matchMedia('(max-width:700px)').matches;
 $('#works-hours').value = String(settings.worksHours || 12);
 $('#works-hours').addEventListener('change', async e=>{ settings.worksHours = Number(e.target.value); saveSettings();
-  $('#works-body').innerHTML = '<div class="status">Haetaan…</div>';
+  $('#works-body').innerHTML = '<div class="status">Haetaan…</div>'; $('#works-sum').innerHTML = '<span class="status">Haetaan…</span>';
   try{ state.works = await loadWorks(); state.worksErr = null; }catch(err){ state.works = null; state.worksErr = err.message; }
   state.secWorks = sectionWorks(); renderWorks(); renderMap(); renderActions(); renderBrief(); });
 $('#works-map').checked = settings.worksMap !== false;
@@ -2887,7 +2897,7 @@ function renderSrc(){
   el.innerHTML = (srcOpen ? keys.map(pill) : bad.map(pill)).join('')
     + (ok.length ? '<button type="button" class="src ok src-tg" aria-expanded="'+srcOpen+'"><i></i>'+(srcOpen ? 'Piilota kunnossa olevat' : (bad.length ? ok.length+' muuta kunnossa' : '<b>Lähteet kunnossa</b> '+ok.length+'/'+keys.length))+'</button>' : '');
 }
-$('#srcbar').addEventListener('click', e=>{ if(e.target.closest('.src-tg')){ srcOpen = !srcOpen; renderSrc(); return; } const b = e.target.closest('.src'); if(b){ const t = document.querySelector(b.dataset.target); if(t){ const sec = t.closest('[data-tab]'); if(sec) showTab(sec.dataset.tab, true); t.scrollIntoView({behavior:'smooth'}); } } });
+$('#srcbar').addEventListener('click', e=>{ if(e.target.closest('.src-tg')){ srcOpen = !srcOpen; renderSrc(); return; } const b = e.target.closest('.src'); if(b){ const t = document.querySelector(b.dataset.target); if(t){ if(t.id === 'works') $('#works-det').open = true; const sec = t.closest('[data-tab]'); if(sec) showTab(sec.dataset.tab, true); t.scrollIntoView({behavior:'smooth'}); } } });
 const ageTxt = m => m < 90 ? m+' min' : (Math.round(m/6)/10).toLocaleString('fi-FI')+' h';
 function stationIssues(s){
   const crit = [], minor = [];
