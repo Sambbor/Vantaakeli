@@ -460,6 +460,12 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 .sg-more{margin-top:10px} .sg-more > .sg-det:first-child{border-top:0;margin-top:0;padding-top:0}
 #sc-learned:empty{display:none}
 /* rp1: yön kelaus */
+.rp-keys{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.rp-key{font:12.5px var(--f-body);padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;text-align:left;line-height:1.35}
+.rp-key b{font-family:var(--f-mono);margin-right:2px} .rp-key.fut{opacity:.55} .rp-key.on{outline:2px solid var(--accent);outline-offset:1px}
+.rp-key.k-bad{border-color:var(--bad)} .rp-key.k-warn{border-color:var(--warn)} .rp-key.k-cold{border-color:var(--cold)} .rp-key.k-salt{border-color:var(--salt)} .rp-key.k-ok{border-color:var(--ok)}
+.rp-eval{font-size:13px;margin-top:2px} .rp-knote{font-size:12px}
+.rp-knew tr.fut th,.rp-knew tr.fut td{opacity:.6}
 .rp{padding:12px 14px}
 .rp-bar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
 .rp-lb{display:flex;gap:6px;align-items:center;font-size:13px;font-weight:600;color:var(--muted)}
@@ -493,7 +499,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 .rp-lg{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--muted);align-items:center} .rp-lg i{display:inline-block;width:16px;height:0;border-top:2px solid var(--ink);margin-right:-6px} .rp-lg i.l-fc{border-top:2px dashed var(--cold)} .rp-lg i.l-sl{width:8px;height:8px;border:0;border-radius:50%;background:var(--bad)}
 .rp-w{font-size:13.5px;margin:8px 0}
 .rp-cam{margin:8px 0 0} .rp-cam img{width:100%;max-width:460px;border-radius:6px;display:block;background:var(--soft);aspect-ratio:16/9;object-fit:cover} .rp-cam figcaption{font-size:12.5px;color:var(--muted);margin-top:4px}
-@media (max-width:700px){ .rp-grid{grid-template-columns:minmax(0,1fr)} .rp-knew tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)} .rp-knew th{grid-column:1/-1;border-top:1px solid var(--line)} .rp-knew td{border-top:0} #rp-time{font-size:17px} }
+@media (max-width:700px){ .rp-keys{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;padding-bottom:4px} .rp-key{flex:none;white-space:nowrap} .rp-grid{grid-template-columns:minmax(0,1fr)} .rp-knew tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)} .rp-knew th{grid-column:1/-1;border-top:1px solid var(--line)} .rp-knew td{border-top:0} #rp-time{font-size:17px} }
 /* os1: Osuiko sivu? */
 .os-sum{font-size:14px;margin:0 0 10px;line-height:1.5}
 .os-strip{display:flex;gap:4px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
@@ -664,6 +670,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
         <button type="button" id="rp-play" aria-pressed="false">▶ Toista</button><button type="button" id="rp-prev" aria-label="Puoli tuntia taaksepäin">‹</button><button type="button" id="rp-next" aria-label="Puoli tuntia eteenpäin">›</button>
         <input type="range" id="rp-t" min="0" max="28" step="1" value="0" aria-label="Kellonaika"><b id="rp-time">–</b></div>
       <div class="rp-strip" id="rp-strip"></div>
+      <div class="rp-keys" id="rp-keys"></div><div class="rp-evals" id="rp-eval"></div>
       <div class="rp-now" id="rp-now"></div>
       <div class="rp-grid"><div><svg id="rp-map" role="img" aria-label="Urakan asemat valittuna hetkenä ja siihen mennessä tehdyt työt"></svg><div class="rp-mlg"><i class="c t-w"></i>yli +2 <i class="c t-c0"></i>0…+2 <i class="c t-c1"></i>−2…0 <i class="c t-c2"></i>alle −2 °C <i class="c sl"></i>liukas keli (kuura, lumi, jää, sohjo) <i class="ln" style="background:var(--salt)"></i>suolaus <i class="ln" style="background:var(--plow)"></i>auraus <span class="muted">(haalea = yli 1 h sitten)</span></div></div><div id="rp-side"></div></div>
       <div class="status" id="rp-status">Avaa välilehti ladataksesi.</div>
@@ -2544,7 +2551,7 @@ function renderModels(){
 }
 
 const KUVAT = 'https://raw.githubusercontent.com/Sambbor/Vantaakeli-kuvat/main/';
-const rp = {night:null, steps:[], i:0, obs:null, routes:null, routesErr:null, labels:null, sel:null, play:null, csv:{}, tok:0};
+const rp = {night:null, steps:[], i:0, obs:null, routes:null, routesErr:null, labels:null, sel:null, play:null, csv:{}, tok:0, kom:null, sent:[], keys:null};
 function csvRows(txt){
   const out = []; let row = [], f = '', q = false;
   for(let i = 0; i < txt.length; i++){ const c = txt[i];
@@ -2586,10 +2593,13 @@ async function rpLoad(){
   rp.obs = null; rp.routes = null; rp.labels = null; rp.routesErr = null;
   $('#rp-t').max = rp.steps.length - 1; $('#rp-status').textContent = 'Haetaan yön aineistoa…'; $('#rp-side').innerHTML = ''; $('#rp-map').innerHTML = ''; $('#rp-strip').innerHTML = '';
   const months = monthKeys(n.from - 7*36e5, n.to);
-  const [obsParts, labParts, routes] = await Promise.all([
+  rp.kom = null; rp.sent = []; rp.keys = null;
+  const getJ = u => fetch(u+'?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  const [obsParts, labParts, routes, kom, K] = await Promise.all([
     Promise.all(months.map(m=>rpCsv(U.data+'obs-'+m+'.csv'))),
     Promise.all(months.map(m=>rpCsv(KUVAT+'data/labels-'+m+'.csv'))),
-    loadTaskNames().then(()=>fetchRoutes(n.from - 6*36e5, Math.min(n.to, Date.now()), [MAP.w, MAP.s, MAP.e, MAP.n])).catch(e=>({err:e.message}))
+    loadTaskNames().then(()=>fetchRoutes(n.from - 6*36e5, Math.min(n.to, Date.now()), [MAP.w, MAP.s, MAP.e, MAP.n])).catch(e=>({err:e.message})),
+    getJ(U.data+'komennot/'+n.key+'.json'), getJ(U.data+'komento.json')
   ]);
   if(tok !== rp.tok) return;
   const num = v => v === '' || v == null ? null : Number(v);
@@ -2599,6 +2609,8 @@ async function rpLoad(){
       fc2:num(r.fc2), fc6:num(r.fc6), fctr6:num(r.fctr6), idx2:num(r.idx2), idx6:num(r.idx6), why2:r.why2||'', why6:r.why6||'', rv:r.rv||''}); }
   for(const k in obs) obs[k].sort((a,b)=>a.t-b.t);
   rp.obs = obs;
+  rp.kom = kom && kom.slots ? kom : K && K.night === n.key && K.slots ? {night: K.night, slots: K.slots, eval: K.eval && K.eval.night === n.key ? K.eval : null} : null;
+  rp.sent = (K && K.notify && K.notify.sent) || [];
   rp.labels = labParts.flat().map(r=>({...r, it:Date.parse(r.img_t || r.t)})).filter(r=>r.it >= n.from - 2*36e5 && r.it <= n.to + 2*36e5 && r.file);
   if(Array.isArray(routes)) rp.routes = routes.filter(r=>!r.stationary && r.cats.some(c=>c==='salt'||c==='plow'||c==='sand')); else rp.routesErr = (routes && routes.err) || 'ei saatu';
   const nObs = Object.keys(obs).filter(k=>obs[k].some(o=>o.t >= n.from)).length;
@@ -2625,11 +2637,11 @@ function rpRender(){
   if(!rp.sel || !rpAt(rp.sel, T)) rp.sel = S.slip.length ? String(S.slip[0].s.id) : S.coldest ? String(S.coldest.s.id) : rp.sel;
   $('#rp-time').textContent = fmtT(T);
   const doneW = (rp.routes||[]).filter(r=>Date.parse(r.start) <= T);
-  const lastSalt = doneW.filter(r=>r.cats.includes('salt')).reduce((a,r)=>!a || r.end > a ? r.end : a, null);
+  const lastSalt = doneW.filter(r=>r.cats.includes('salt') && rpInU(r)).reduce((a,r)=>!a || r.end > a ? r.end : a, null);
   $('#rp-now').innerHTML = '<b>'+fmtDT(T)+'</b> · '+(S.min == null ? 'ei mittauksia' : 'kylmin tie <b>'+n1(S.min)+' °C</b> ('+esc(S.coldest.s.name)+')')
     + ' · ≤ 0 °C: '+S.cold.length+' asemaa · <span class="'+(S.slip.length?'err':'')+'">liukas keli: '+S.slip.length+'</span>'
-    + (rp.routes ? ' · suolattu viimeksi (kartan alueella) '+(lastSalt ? 'klo '+fmtT(lastSalt) : '–') : '');
-  rpStrip(); rpMap(T, S, doneW); rpSide(T);
+    + (rp.routes ? ' · suolattu viimeksi (urakan tiet) '+(lastSalt ? 'klo '+fmtT(lastSalt) : '–') : '');
+  rpStrip(); rpKeys(); rpMap(T, S, doneW); rpSide(T);
 }
 function rpStrip(){
   const N = rp.steps.length, W = 600, H = 34, w = W/N;
@@ -2667,6 +2679,7 @@ function rpSide(T){
   h += '<div class="rp-knew"><b>Mitä tiesimme etukäteen</b><table><tbody>'
     + '<tr><th>2 h ennen <small>klo '+fmtT(T - 2*36e5)+'</small></th><td>indeksi '+ix(b2 && b2.idx2, b2 && b2.why2)+'</td><td>Digitraffic tie '+(b2 && b2.fc2 != null ? n1(b2.fc2)+' °C' : '–')+d(b2 && b2.fc2, o && o.tr)+'</td></tr>'
     + '<tr><th>6 h ennen <small>klo '+fmtT(T - 6*36e5)+'</small></th><td>indeksi '+ix(b6 && b6.idx6, b6 && b6.why6)+'</td><td>sivu tie '+(b6 && b6.fctr6 != null ? n1(b6.fctr6)+' °C' : '–')+d(b6 && b6.fctr6, o && o.tr)+'<br>Digitraffic tie '+(b6 && b6.fc6 != null ? n1(b6.fc6)+' °C' : '–')+d(b6 && b6.fc6, o && o.tr)+'</td></tr>'
+    + rpKomRows(st, T)
     + '</tbody></table></div>';
   h += rpChart(T);
   const near = (rp.routes||[]).filter(r=>Date.parse(r.start) <= T && r.lines.some(l=>l.some(c=>Math.hypot((c[0]-st.lon)*M_LON, (c[1]-st.lat)*M_LAT) <= 1000)));
@@ -2698,9 +2711,65 @@ function rpChart(T){
   s += '<line class="rp-cursor" x1="'+X(T).toFixed(1)+'" x2="'+X(T).toFixed(1)+'" y1="4" y2="'+(H-18)+'"/>';
   return '<div class="rp-chart"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Tienpinta yön aikana">'+s+'</svg><div class="rp-lg"><i class="l-tr"></i>mitattu tie <i class="l-fc"></i>sivun ennuste 6 h aiemmin <i class="l-sl"></i>liukas keli</div></div>';
 }
+function rpInU(r){ if(!netS.d) return true; if(r._u == null) r._u = r.lines.some(l=>l.some(c=>nearNet(c, 150))); return r._u; }
+const rpStep = t => Math.max(0, Math.min(rp.steps.length - 1, Math.round((t - rp.night.from)/(30*60e3))));
+const rpLvl = {toimenpide:'bad', seuranta:'warn', ei:'ok'};
+function rpKeyList(){
+  if(rp.keys && rp.keys.net === !!netS.d) return rp.keys.a;
+  const n = rp.night, a = [], add = (t, txt, cls, st) => { if(t >= n.from - 60*60e3 && t <= n.to + 30*60e3) a.push({t, i:rpStep(t), txt, cls, st: st != null ? String(st) : null}); };
+  for(const sl of ['18','22']){ const C = rp.kom && rp.kom.slots && rp.kom.slots[sl]; if(!C) continue;
+    add(Date.parse(C.t), 'Ehdotus klo '+sl+': '+C.headline, rpLvl[C.level] || 'na', null); }
+  const C = rp.kom && rp.kom.slots && (rp.kom.slots['22'] || rp.kom.slots['18']);
+  const act = C ? (C.roads||[]).filter(r=>r.level === 'toimenpide' && r.by) : [];
+  if(act.length){ const r = act.slice().sort((x,y)=>Date.parse(x.by)-Date.parse(y.by))[0]; const sid = Object.keys(C.stations||{}).find(k=>C.stations[k].name === r.station);
+    add(Date.parse(r.by), 'Ehdotuksen aikaraja: '+(/^\d+$/.test(String(r.road)) ? 'tie '+r.road : r.road)+' – '+String(r.action||'').split(' (')[0].toLowerCase(), 'bad', sid); }
+  for(const x of rp.sent) add(Date.parse(x.t), 'Puhelinilmoitus: '+x.title, x.priority >= 4 ? 'bad' : 'na', null);
+  let f0 = null, fs = null, fm = null, cold = null;
+  rp.steps.forEach((T, i)=>{ const S = rpSnap(T);
+    if(!f0 && S.cold.length){ const x = S.cold.slice().sort((p,q)=>p.o.tr-q.o.tr)[0]; f0 = {T, x}; }
+    if(!fs && S.slip.length){ fs = {T, x:S.slip[0]}; }
+    if(!fm) for(const x of S.rows){ const b6 = rpAt(String(x.s.id), T - 6*36e5); if(b6 && b6.fctr6 != null && x.o.tr <= 2 && b6.fctr6 - x.o.tr > 1){ fm = {T, x, d: b6.fctr6 - x.o.tr}; break; } }
+    if(S.min != null && (!cold || S.min < cold.v)) cold = {T, v:S.min, x:S.coldest}; });
+  if(f0) add(f0.T, 'Tie alle 0 °C: '+f0.x.s.name+' '+n1(f0.x.o.tr)+' °C', 'cold', f0.x.s.id);
+  if(fs) add(fs.T, 'Liukas keli: '+fs.x.s.name+' ('+(KELI_FI[fs.x.o.keli]||'hälytys').toLowerCase()+')', 'bad', fs.x.s.id);
+  if(fm) add(fm.T, 'Sivun ennuste yli 1 °C liian lämmin: '+fm.x.s.name+' (+'+n1(fm.d)+' °C)', 'warn', fm.x.s.id);
+  if(cold && (!f0 || cold.T !== f0.T)) add(cold.T, 'Kylmin: '+cold.x.s.name+' '+n1(cold.v)+' °C', 'cold', cold.x.s.id);
+  const s1 = (rp.routes||[]).filter(r=>r.cats.includes('salt') && Date.parse(r.start) >= n.from && rpInU(r)).sort((x,y)=>Date.parse(x.start)-Date.parse(y.start))[0];
+  if(s1) add(Date.parse(s1.start), 'Suolaus alkoi (urakan tiet)', 'salt', null);
+  a.sort((x,y)=>x.t-y.t);
+  rp.keys = {net: !!netS.d, a}; return a;
+}
+function rpKeys(){
+  const el = $('#rp-keys'); if(!el) return;
+  const a = rpKeyList(), T = rp.steps[rp.i];
+  let h = a.map((k, j)=>'<button type="button" class="rp-key k-'+k.cls+(k.t > T + 15*60e3 ? ' fut' : '')+(k.i === rp.i ? ' on' : '')+'" data-k="'+j+'" title="Siirry hetkeen klo '+fmtT(k.t)+'"><b>'+fmtT(k.t)+'</b> '+esc(k.txt)+'</button>').join('');
+  el.innerHTML = h; h = '';
+  { const on = el.querySelector('.rp-key.on'); if(on && el.scrollWidth > el.clientWidth + 4) el.scrollLeft = Math.max(0, on.offsetLeft - el.offsetLeft - 8); }
+  const notes = [];
+  if(!rp.kom) notes.push('sivun ehdotuksia (varjokomento) ei ole tallessa tältä yöltä');
+  const sentFrom = rp.sent.length ? Math.min(...rp.sent.map(x=>Date.parse(x.t))) : null;
+  if(sentFrom == null || sentFrom > rp.night.from) notes.push('puhelinilmoitukset ovat tallessa vain viimeisiltä öiltä'+(sentFrom ? ' (alkaen '+fmtDT(sentFrom)+')' : ''));
+  const E = rp.kom && rp.kom.eval;
+  if(E){ const c = E.cntNeed || {}; h += '<div class="rp-eval"><b>Aamuvertailu</b> (jälkikäteen): ehdotus '+esc(E.headline)+' · olosuhde toteutui '+(E.needStations ?? '–')+' asemalla · ehdotus aiheellinen '+(c.aiheellinen ?? '–')+', turha '+(c.turha ?? '–')+', ohi '+(c.ohi ?? '–')
+    +' · urakka '+esc(E.urakka||'–')+(E.agree != null ? ' ('+(E.agree ? 'samaa mieltä ehdotuksen kanssa' : 'eri mieltä kuin ehdotus')+')' : '')+'</div>'; }
+  if(notes.length) h += '<div class="rp-knote muted">Huom: '+notes.join(' · ')+'.</div>';
+  $('#rp-eval').innerHTML = h;
+}
+function rpKomRows(st, T){
+  const S = rp.kom && rp.kom.slots; if(!S) return '';
+  return ['18','22'].map(sl=>{ const C = S[sl]; if(!C) return '';
+    const t = Date.parse(C.t), c = C.stations && C.stations[String(st.id)];
+    if(t > T + 15*60e3) return '<tr class="fut"><th>Ehdotus klo '+sl+' <small>tehtiin klo '+fmtT(t)+'</small></th><td colspan="2" class="muted">ei vielä tehty tähän hetkeen mennessä</td></tr>';
+    const body = !c ? '<span class="muted">asema ei mukana</span>'
+      : c.level === 'ei' ? 'ei toimenpiteitä'
+      : '<span class="pill p-'+(rpLvl[c.level]||'na')+'">'+esc(c.level)+'</span> '+(c.action ? esc(c.action)+(c.by ? ' – valmiina ennen klo '+fmtT(c.by) : '') : c.why ? esc(c.why) : '')
+        + (c.weak ? ' <small class="muted">('+esc(c.weak)+')</small>' : '')+(c.trMin != null ? ' <small class="muted">· alin tie-ennuste '+n1(c.trMin)+' °C</small>' : '');
+    return '<tr><th>Ehdotus klo '+sl+' <small>tehtiin klo '+fmtT(t)+'</small></th><td colspan="2">'+body+'</td></tr>'; }).join('');
+}
 function rpStop(){ if(rp.play){ clearInterval(rp.play); rp.play = null; } const b = $('#rp-play'); if(b){ b.textContent = '▶ Toista'; b.setAttribute('aria-pressed','false'); } }
 function rpGo(i){ rp.i = Math.max(0, Math.min(rp.steps.length - 1, i)); $('#rp-t').value = rp.i; rpRender(); }
 $('#rp-night').addEventListener('change', rpLoad);
+$('#rp-keys').addEventListener('click', e=>{ const b = e.target.closest('.rp-key'); if(!b) return; const k = rpKeyList()[Number(b.dataset.k)]; if(!k) return; rpStop(); if(k.st) rp.sel = k.st; rpGo(k.i); });
 $('#rp-t').addEventListener('input', e=>{ rpStop(); rpGo(Number(e.target.value)); });
 $('#rp-prev').addEventListener('click', ()=>{ rpStop(); rpGo(rp.i - 1); });
 $('#rp-next').addEventListener('click', ()=>{ rpStop(); rpGo(rp.i + 1); });
