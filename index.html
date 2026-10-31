@@ -2718,12 +2718,12 @@ function rpKeyList(){
   if(rp.keys && rp.keys.net === !!netS.d) return rp.keys.a;
   const n = rp.night, a = [], add = (t, txt, cls, st) => { if(t >= n.from - 60*60e3 && t <= n.to + 30*60e3) a.push({t, i:rpStep(t), txt, cls, st: st != null ? String(st) : null}); };
   for(const sl of ['18','22']){ const C = rp.kom && rp.kom.slots && rp.kom.slots[sl]; if(!C) continue;
+    if(sl === '18' && rp.kom.slots['22']) continue;
     add(Date.parse(C.t), 'Ehdotus klo '+sl+': '+C.headline, rpLvl[C.level] || 'na', null); }
   const C = rp.kom && rp.kom.slots && (rp.kom.slots['22'] || rp.kom.slots['18']);
   const act = C ? (C.roads||[]).filter(r=>r.level === 'toimenpide' && r.by) : [];
   if(act.length){ const r = act.slice().sort((x,y)=>Date.parse(x.by)-Date.parse(y.by))[0]; const sid = Object.keys(C.stations||{}).find(k=>C.stations[k].name === r.station);
     add(Date.parse(r.by), 'Ehdotuksen aikaraja: '+(/^\d+$/.test(String(r.road)) ? 'tie '+r.road : r.road)+' – '+String(r.action||'').split(' (')[0].toLowerCase(), 'bad', sid); }
-  for(const x of rp.sent) add(Date.parse(x.t), 'Puhelinilmoitus: '+x.title, x.priority >= 4 ? 'bad' : 'na', null);
   let f0 = null, fs = null, fm = null, cold = null;
   rp.steps.forEach((T, i)=>{ const S = rpSnap(T);
     if(!f0 && S.cold.length){ const x = S.cold.slice().sort((p,q)=>p.o.tr-q.o.tr)[0]; f0 = {T, x}; }
@@ -2750,8 +2750,15 @@ function rpKeys(){
   const sentFrom = rp.sent.length ? Math.min(...rp.sent.map(x=>Date.parse(x.t))) : null;
   if(sentFrom == null || sentFrom > rp.night.from) notes.push('puhelinilmoitukset ovat tallessa vain viimeisiltä öiltä'+(sentFrom ? ' (alkaen '+fmtDT(sentFrom)+')' : ''));
   const E = rp.kom && rp.kom.eval;
-  if(E){ const c = E.cntNeed || {}; h += '<div class="rp-eval"><b>Aamuvertailu</b> (jälkikäteen): ehdotus '+esc(E.headline)+' · olosuhde toteutui '+(E.needStations ?? '–')+' asemalla · ehdotus aiheellinen '+(c.aiheellinen ?? '–')+', turha '+(c.turha ?? '–')+', ohi '+(c.ohi ?? '–')
-    +' · urakka '+esc(E.urakka||'–')+(E.agree != null ? ' ('+(E.agree ? 'samaa mieltä ehdotuksen kanssa' : 'eri mieltä kuin ehdotus')+')' : '')+'</div>'; }
+  if(E){ const c = E.cntNeed, p = [];
+    if(!c) p.push('ehdotus: '+esc(E.headline));
+    else if(E.level === 'toimenpide') p.push(c.turha ? (c.aiheellinen ? 'ehdotus aiheellinen '+c.aiheellinen+' asemalla, turha '+c.turha : 'ehdotus ei ollut tarpeen') : 'ehdotus aiheellinen');
+    else p.push('toimenpidettä ei ehdotettu'+(c.ohi ? ', mutta tarve oli '+c.ohi+' asemalla' : ', eikä tarvetta ollut'));
+    p.push('urakka '+esc(E.urakka||'–'));
+    h += '<div class="rp-eval"><b>Jälkikäteen:</b> '+p.join(' · ')+'</div>'; }
+  if(sentFrom != null && sentFrom <= rp.night.from){
+    const ns = rp.sent.filter(x=>{ const t = Date.parse(x.t); return t >= rp.night.from - 60*60e3 && t <= rp.night.to; }).map(x=>Date.parse(x.t)).sort((x,y)=>x-y);
+    h += '<div class="rp-eval"><b>Puhelin:</b> '+(ns.length ? ns.length+' ilmoitusta ('+ns.map(fmtT).join(', ')+')' : 'ei ilmoituksia')+'</div>'; }
   if(notes.length) h += '<div class="rp-knote muted">Huom: '+notes.join(' · ')+'.</div>';
   $('#rp-eval').innerHTML = h;
 }
