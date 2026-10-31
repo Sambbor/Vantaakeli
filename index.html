@@ -2603,7 +2603,7 @@ async function rpLoad(){
   if(Array.isArray(routes)) rp.routes = routes.filter(r=>!r.stationary && r.cats.some(c=>c==='salt'||c==='plow'||c==='sand')); else rp.routesErr = (routes && routes.err) || 'ei saatu';
   const nObs = Object.keys(obs).filter(k=>obs[k].some(o=>o.t >= n.from)).length;
   $('#rp-status').innerHTML = !nObs ? '<span class="err">Tälle yölle ei löytynyt keruun mittauksia.</span>'
-    : nObs+' asemaa · '+(rp.routes ? rp.routes.length+' talvihoidon toteumaa' : 'toteumia ei saatu ('+esc(rp.routesErr)+')')+' · '+rp.labels.length+' kamerakuvaa kuvapankista'
+    : nObs+' asemaa · '+(rp.routes ? rp.routes.length+' toteumakirjausta (suolaus, auraus, hiekoitus)' : 'toteumia ei saatu ('+esc(rp.routesErr)+')')+' · '+rp.labels.length+' kamerakuvaa kuvapankista'
       + (n.to > Date.now() ? ' · yö on kesken' : '');
   let best = 0, bestV = Infinity, firstSlip = -1;
   rp.steps.forEach((T, i)=>{ const s = rpSnap(T); if(firstSlip < 0 && s.slip.length) firstSlip = i; if(s.min != null && s.min < bestV){ bestV = s.min; best = i; } });
@@ -2625,10 +2625,10 @@ function rpRender(){
   if(!rp.sel || !rpAt(rp.sel, T)) rp.sel = S.slip.length ? String(S.slip[0].s.id) : S.coldest ? String(S.coldest.s.id) : rp.sel;
   $('#rp-time').textContent = fmtT(T);
   const doneW = (rp.routes||[]).filter(r=>Date.parse(r.start) <= T);
-  const saltN = doneW.filter(r=>Date.parse(r.end) >= rp.night.from && r.cats.includes('salt')).length;
+  const lastSalt = doneW.filter(r=>r.cats.includes('salt')).reduce((a,r)=>!a || r.end > a ? r.end : a, null);
   $('#rp-now').innerHTML = '<b>'+fmtDT(T)+'</b> · '+(S.min == null ? 'ei mittauksia' : 'kylmin tie <b>'+n1(S.min)+' °C</b> ('+esc(S.coldest.s.name)+')')
     + ' · ≤ 0 °C: '+S.cold.length+' asemaa · <span class="'+(S.slip.length?'err':'')+'">liukas keli: '+S.slip.length+'</span>'
-    + (rp.routes ? ' · suolauksia klo 18 jälkeen: '+saltN : '');
+    + (rp.routes ? ' · suolattu viimeksi (kartan alueella) '+(lastSalt ? 'klo '+fmtT(lastSalt) : '–') : '');
   rpStrip(); rpMap(T, S, doneW); rpSide(T);
 }
 function rpStrip(){
