@@ -465,6 +465,9 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 .rp-key b{font-family:var(--f-mono);margin-right:2px} .rp-key.fut{opacity:.55} .rp-key.on{outline:2px solid var(--accent);outline-offset:1px}
 .rp-key.k-bad{border-color:var(--bad)} .rp-key.k-warn{border-color:var(--warn)} .rp-key.k-cold{border-color:var(--cold)} .rp-key.k-salt{border-color:var(--salt)} .rp-key.k-ok{border-color:var(--ok)}
 .rp-eval{font-size:13px;margin-top:2px} .rp-knote{font-size:12px}
+.rp-plan{margin:6px 0 4px;font-size:13px} .rp-plan table{width:100%;border-collapse:collapse} .rp-plan th,.rp-plan td{text-align:left;padding:4px 8px 4px 0;border-top:1px solid var(--line);vertical-align:top}
+@media (max-width:700px){ .rp-plan tr{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:8px;border-top:1px solid var(--line)} .rp-plan th,.rp-plan td{border-top:0;padding:3px 0} .rp-plan td:last-child{grid-column:1/-1;padding-top:0} }
+.rp-plan tr[data-i]{cursor:pointer} .rp-plan tr[data-i]:hover td{background:rgba(127,127,127,.08)} .rp-plan .ok{color:var(--ok)} .rp-plan .late{color:var(--warn)} .rp-plan small{color:var(--muted)}
 .rp-knew tr.fut th,.rp-knew tr.fut td{opacity:.6}
 .rp{padding:12px 14px}
 .rp-bar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
@@ -2627,7 +2630,7 @@ async function rpLoad(){
   const n = rpNights().find(x=>x.key === $('#rp-night').value); if(!n) return;
   const tok = ++rp.tok; rpStop();
   rp.night = n; rp.steps = []; for(let t = n.from; t <= n.to; t += 30*60e3) rp.steps.push(t);
-  rp.obs = null; rp.routes = null; rp.labels = null; rp.routesErr = null;
+  rp.obs = null; rp.routes = null; rp.labels = null; rp.routesErr = null; rp.ajot = null; rp.plan = null;
   $('#rp-t').max = rp.steps.length - 1; $('#rp-status').textContent = 'Haetaan yön aineistoa…'; $('#rp-side').innerHTML = ''; $('#rp-map').innerHTML = ''; $('#rp-strip').innerHTML = '';
   const months = monthKeys(n.from - 7*36e5, n.to);
   rp.kom = null; rp.sent = []; rp.keys = null;
@@ -2652,7 +2655,7 @@ async function rpLoad(){
   if(Array.isArray(routes)) rp.routes = routes.filter(r=>!r.stationary && r.cats.some(c=>c==='salt'||c==='plow'||c==='sand')); else rp.routesErr = (routes && routes.err) || 'ei saatu';
   const nObs = Object.keys(obs).filter(k=>obs[k].some(o=>o.t >= n.from)).length;
   $('#rp-status').innerHTML = !nObs ? '<span class="err">Tälle yölle ei löytynyt keruun mittauksia.</span>'
-    : nObs+' asemaa · '+(rp.routes ? rp.routes.length+' toteumakirjausta (suolaus, auraus, hiekoitus)' : 'toteumia ei saatu ('+esc(rp.routesErr)+')')+' · '+rp.labels.length+' kamerakuvaa kuvapankista'
+    : nObs+' asemaa · '+(rp.routes ? rpWorkTxt() : 'toteumia ei saatu ('+esc(rp.routesErr)+')')+' · '+rp.labels.length+' kamerakuvaa kuvapankista'
       + (n.to > Date.now() ? ' · yö on kesken' : '');
   let best = 0, bestV = Infinity, firstSlip = -1;
   rp.steps.forEach((T, i)=>{ const s = rpSnap(T); if(firstSlip < 0 && s.slip.length) firstSlip = i; if(s.min != null && s.min < bestV){ bestV = s.min; best = i; } });
@@ -2673,8 +2676,8 @@ function rpRender(){
   const T = rp.steps[rp.i], S = rpSnap(T);
   if(!rp.sel || !rpAt(rp.sel, T)) rp.sel = S.slip.length ? String(S.slip[0].s.id) : S.coldest ? String(S.coldest.s.id) : rp.sel;
   $('#rp-time').textContent = fmtT(T);
-  const doneW = (rp.routes||[]).filter(r=>Date.parse(r.start) <= T);
-  const lastSalt = doneW.filter(r=>r.cats.includes('salt') && rpInU(r)).reduce((a,r)=>!a || r.end > a ? r.end : a, null);
+  const doneW = rpAjot().filter(a=>a.s <= T);
+  const lastSalt = doneW.filter(a=>a.cat === 'salt').reduce((m,a)=>{ for(const r of a.recs) if(r._s <= T && (m == null || r._e > m)) m = r._e; return m; }, null);
   $('#rp-now').innerHTML = '<b>'+fmtDT(T)+'</b> · '+(S.min == null ? 'ei mittauksia' : 'kylmin tie <b>'+n1(S.min)+' °C</b> ('+esc(S.coldest.s.name)+')')
     + ' · ≤ 0 °C: '+S.cold.length+' asemaa · <span class="'+(S.slip.length?'err':'')+'">liukas keli: '+S.slip.length+'</span>'
     + (rp.routes ? ' · suolattu viimeksi (urakan tiet) '+(lastSalt ? 'klo '+fmtT(lastSalt) : '–') : '');
@@ -2686,8 +2689,10 @@ function rpStrip(){
   rp.steps.forEach((T, i)=>{ const S = rpSnap(T);
     s += '<rect class="rp-c t-'+tempCls(S.min)+'" x="'+(i*w+0.5).toFixed(1)+'" y="8" width="'+(w-1).toFixed(1)+'" height="16" data-i="'+i+'"><title>'+fmtT(T)+': kylmin tie '+n1(S.min)+' °C · liukas keli '+S.slip.length+'</title></rect>';
     if(S.slip.length) s += '<circle class="rp-slip" cx="'+(i*w+w/2).toFixed(1)+'" cy="4" r="3"/>'; });
-  for(const r of (rp.routes||[])){ const e = Date.parse(r.start); if(e < rp.night.from || e > rp.night.to) continue;
-    const x = (e - rp.night.from)/(rp.night.to - rp.night.from + 30*60e3)*W; s += '<rect class="wkbar wk-'+rpCat(r)+'" x="'+x.toFixed(1)+'" y="27" width="2" height="6"><title>'+esc(r.tasks.map(taskFi).join(', '))+' '+fmtT(r.start)+'</title></rect>'; }
+  const span = rp.night.to - rp.night.from + 30*60e3;
+  for(const a of rpAjot()){ if(a.e < rp.night.from || a.s > rp.night.to) continue;
+    const x0 = Math.max(0, (a.s - rp.night.from)/span*W), x1 = Math.min(W, (a.e - rp.night.from)/span*W);
+    s += '<rect class="wkbar wk-'+a.cat+'" x="'+x0.toFixed(1)+'" y="27" width="'+Math.max(2, x1-x0).toFixed(1)+'" height="6"><title>'+esc(a.tasks.map(taskFi).join(', '))+' '+fmtT(a.s)+'–'+fmtT(a.e)+rpRoadsTxt(a)+'</title></rect>'; }
   s += '<rect class="rp-cur" x="'+(rp.i*w).toFixed(1)+'" y="6" width="'+w.toFixed(1)+'" height="20"/>';
   $('#rp-strip').innerHTML = '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Yön aikajana: kylmin tienpinta puolen tunnin välein, punainen piste = liukas keli, alla tehdyt työt">'+s+'</svg>'
     + '<div class="rp-ticks">'+[0, 4, 8, 12, 16, 20, 24, 28].filter(i=>i < N).map(i=>'<span'+(i === N-1 ? ' class="last"' : '')+' style="left:'+((i+(i === N-1 ? 1 : 0.5))/N*100).toFixed(2)+'%">'+fmtT(rp.steps[i])+'</span>').join('')+'</div>';
@@ -2696,8 +2701,9 @@ function rpMap(T, S, doneW){
   const lineD = l => l.map((c,i)=>(i?'L':'M')+px(c[0]).toFixed(1)+' '+py(c[1]).toFixed(1)).join(' ');
   const R = MAP_W/48; let s = '';
   if(netS.d){ for(const rd of netS.d.roads||[]) for(const l of rd.l) if(l.some(inMap)) s += '<path class="rp-rd" d="'+lineD(l)+'"/>'; } else if(!rp.netTried){ rp.netTried = true; loadNet().then(()=>{ if(netS.d) rpRender(); }); }
-  for(const r of doneW){ const age = (T - Date.parse(r.end))/36e5, op = age <= 1 ? 1 : Math.max(0.2, 1 - (age-1)/6);
-    for(const l of r.lines) if(l.length > 1) s += '<path class="wk wk-'+rpCat(r)+'" opacity="'+op.toFixed(2)+'" d="'+lineD(l)+'"><title>'+esc(r.tasks.map(taskFi).join(', '))+' '+fmtT(r.start)+'–'+fmtT(r.end)+'</title></path>'; }
+  for(const a of doneW){ const rs = a.recs.filter(r=>r._s <= T); if(!rs.length) continue; const e = Math.max(...rs.map(r=>r._e)), d = rs.map(rpRecD).join(' ').trim(); if(!d) continue;
+    const age = (T - e)/36e5, op = age <= 1 ? 1 : Math.max(0.2, 1 - (age-1)/6);
+    s += '<path class="wk wk-'+a.cat+'" opacity="'+op.toFixed(2)+'" d="'+d+'"><title>'+esc(a.tasks.map(taskFi).join(', '))+' '+fmtT(a.s)+'–'+fmtT(Math.min(e, a.e))+rpRoadsTxt(a)+'</title></path>'; }
   for(const [nm,lon,lat] of PLACES) if(inMap([lon,lat])) s += '<text class="place" x="'+px(lon).toFixed(1)+'" y="'+py(lat).toFixed(1)+'">'+esc(nm)+'</text>';
   for(const st of state.stations){ if(!st.lon) continue; const o = rpAt(String(st.id), T), x = px(st.lon), y = py(st.lat), sl = rpSlip(o);
     s += '<g class="mst t-'+tempCls(o ? o.tr : null)+(sl?' mwarn':'')+(String(st.id) === rp.sel ? ' rp-sel' : '')+'" data-st="'+st.id+'" tabindex="0" role="button"><circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+R.toFixed(1)+'"/>'
@@ -2719,7 +2725,7 @@ function rpSide(T){
     + rpKomRows(st, T)
     + '</tbody></table></div>';
   h += rpChart(T);
-  const near = (rp.routes||[]).filter(r=>Date.parse(r.start) <= T && r.lines.some(l=>l.some(c=>Math.hypot((c[0]-st.lon)*M_LON, (c[1]-st.lat)*M_LAT) <= 1000)));
+  const near = (rp.routes||[]).filter(r=>Date.parse(r.start) <= T && rpInU(r) && r.lines.some(l=>l.some(c=>Math.hypot((c[0]-st.lon)*M_LON, (c[1]-st.lat)*M_LAT) <= 1000)));
   const lastOf = c => near.filter(r=>r.cats.includes(c)).reduce((a,r)=>!a || r.end > a ? r.end : a, null);
   const lw = [['salt','suolaus'],['plow','auraus'],['sand','hiekoitus']].map(([c,nm])=>{ const t = lastOf(c); return t ? nm+' klo '+fmtT(t)+' ('+n1((T-Date.parse(t))/36e5)+' h ennen)' : null; }).filter(Boolean);
   h += '<p class="rp-w"><b>Työt aseman lähellä (1 km):</b> '+(rp.routes ? (lw.length ? lw.join(' · ') : 'ei suolausta, aurausta eikä hiekoitusta 6 h ennen yötä tai yön aikana') : 'toteumia ei saatu')+'</p>';
@@ -2749,6 +2755,82 @@ function rpChart(T){
   return '<div class="rp-chart"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Tienpinta yön aikana">'+s+'</svg><div class="rp-lg"><i class="l-tr"></i>mitattu tie <i class="l-fc"></i>sivun ennuste 6 h aiemmin <i class="l-sl"></i>liukas keli</div></div>';
 }
 function rpInU(r){ if(!netS.d) return true; if(r._u == null) r._u = r.lines.some(l=>l.some(c=>nearNet(c, 150))); return r._u; }
+const rpRoadIdx = {d:null, v:null};
+function rpRoadIndex(){
+  if(rpRoadIdx.d === netS.d && rpRoadIdx.v) return rpRoadIdx.v;
+  const G = 0.005, idx = new Map();
+  for(const rd of (netS.d && netS.d.roads) || []) for(const l of rd.l) for(const c of densify(l, 40)){ const k = Math.floor(c[0]/G)+':'+Math.floor(c[1]/G); let a = idx.get(k); if(!a) idx.set(k, a = []); a.push([c[0], c[1], rd.r]); }
+  rpRoadIdx.d = netS.d; return rpRoadIdx.v = {idx, G};
+}
+function rpRoadAt(c){ const {idx, G} = rpRoadIndex(), cx = Math.floor(c[0]/G), cy = Math.floor(c[1]/G); let best = null, bd = 60;
+  for(let dx = -1; dx <= 1; dx++) for(let dy = -1; dy <= 1; dy++){ const a = idx.get((cx+dx)+':'+(cy+dy)); if(!a) continue;
+    for(const q of a){ const d = Math.hypot((q[0]-c[0])*M_LON, (q[1]-c[1])*M_LAT); if(d < bd){ bd = d; best = q[2]; } } }
+  return best; }
+function rpRoadsOf(lines){ const len = {};
+  for(const l of lines){ let pr = null; for(let i = 0; i < l.length; i++){ const r = rpRoadAt(l[i]);
+    if(i && r != null && r === pr) len[r] = (len[r]||0) + Math.hypot((l[i][0]-l[i-1][0])*M_LON, (l[i][1]-l[i-1][1])*M_LAT); pr = r; } }
+  return Object.fromEntries(Object.entries(len).filter(([,v])=>v >= 300)); }
+function rpAjot(){
+  if(!rp.routes) return [];
+  const net = !!netS.d; if(rp.ajot && rp.ajot.net === net) return rp.ajot.a;
+  const recs = rp.routes.filter(rpInU).map(r=>{ r._s = Date.parse(r.start); r._e = Date.parse(r.end); return r; }).sort((a,b)=>a._s-b._s);
+  let open = []; const out = [];
+  for(const r of recs){ const cat = rpCat(r), p0 = r.lines[0][0], ll = r.lines[r.lines.length-1], last = ll[ll.length-1];
+    open = open.filter(a=>r._s - a.e <= 10*60e3);
+    let best = null, bd = 1000;
+    for(const a of open){ if(a.cat !== cat) continue; const d = Math.hypot((a.last[0]-p0[0])*M_LON, (a.last[1]-p0[1])*M_LAT); if(d < bd){ bd = d; best = a; } }
+    if(best){ best.recs.push(r); best.e = Math.max(best.e, r._e); best.last = last; }
+    else { const a = {cat, s:r._s, e:r._e, last, recs:[r]}; open.push(a); out.push(a); } }
+  for(const a of out){ a.tasks = [...new Set(a.recs.flatMap(r=>r.tasks))]; a.roads = net ? rpRoadsOf(a.recs.flatMap(r=>r.lines)) : {}; }
+  rp.ajot = {net, a:out}; rp.plan = null; return out;
+}
+function rpRecD(r){
+  if(r._d != null) return r._d; let d = '';
+  for(const l of r.lines){ if(l.length < 2) continue; let px0 = null, py0 = null, seg = '';
+    l.forEach((c, i)=>{ const x = px(c[0]), y = py(c[1]); if(i && i < l.length-1 && Math.hypot(x-px0, y-py0) < 1.5) return; seg += (seg ? 'L' : 'M')+x.toFixed(1)+' '+y.toFixed(1); px0 = x; py0 = y; });
+    d += seg+' '; }
+  return r._d = d;
+}
+const rpRoadName = r => /^\d+$/.test(String(r)) ? 'tie '+r : String(r);
+function rpRoadsTxt(a){ const k = Object.keys(a.roads||{}).filter(r=>Number(r) < 10000).sort((x,y)=>a.roads[y]-a.roads[x]); return k.length ? '\n'+k.slice(0, 6).map(rpRoadName).join(', ') : ''; }
+function rpWorkTxt(){
+  const a = rpAjot(), n = a.reduce((m,x)=>m+x.recs.length, 0), hid = rp.routes.length - n;
+  return 'urakan teillä '+a.length+' ajoa ('+n+' toteumakirjausta yhdistettynä)'+(netS.d && hid > 0 ? ' · naapuriurakoiden '+hid+' kirjausta piilotettu' : '');
+}
+function rpPlan(){
+  const net = !!netS.d; if(rp.plan && rp.plan.net === net && rp.plan.n === (rp.routes ? rp.routes.length : -1)) return rp.plan.v;
+  const C = rp.kom && rp.kom.slots && (rp.kom.slots['22'] || rp.kom.slots['18']); let v = null;
+  if(C && rp.routes){
+    const ajot = rpAjot(), n = rp.night, catOf = act => /hiekoitus/i.test(act||'') ? ['sand'] : /lumity|auraus/i.test(act||'') ? ['plow','salt'] : ['salt'];
+    const firstOn = (road, cats, from) => ajot.filter(a=>cats.includes(a.cat) && a.roads[String(road)] && a.e >= from).sort((x,y)=>x.s-y.s)[0] || null;
+    const rows = (C.roads||[]).filter(r=>r.level === 'toimenpide' && r.by).map(r=>{ const by = Date.parse(r.by), a = firstOn(r.road, catOf(r.action), n.from - 6*36e5);
+      const sid = Object.keys(C.stations||{}).find(k=>C.stations[k].name === r.station) || null;
+      return {road:r.road, action:String(r.action||'').split(' (')[0], by, a, sid, cat:catOf(r.action)[0]}; });
+    const acted = new Set(rows.map(x=>String(x.road)));
+    const other = {}; for(const a of ajot){ if(a.cat !== 'salt' || a.e < n.from || a.s > n.to) continue;
+      for(const r of Object.keys(a.roads)) if(Number(r) < 10000 && !acted.has(r) && !(r in other)) other[r] = a.s; }
+    v = {slot:rp.kom.slots['22'] ? '22' : '18', t:Date.parse(C.t), level:C.level, rows, other:Object.entries(other).sort((x,y)=>x[1]-y[1])};
+  }
+  rp.plan = {net, n: rp.routes ? rp.routes.length : -1, v}; return v;
+}
+function rpPlanHtml(){
+  const P = rpPlan(); if(!P) return '';
+  if(!netS.d) return '<div class="rp-eval muted">Tiekohtainen vertailu odottaa urakan tieverkkoa (ei latautunut).</div>';
+  const mins = ms => { const m = Math.round(Math.abs(ms)/6e4); return m >= 90 ? n1(m/60)+' h' : m+' min'; };
+  const work = {salt:'suolaus', plow:'auraus', sand:'hiekoitus'}, workP = {salt:'suolausta', plow:'aurausta', sand:'hiekoitusta'};
+  let h = '<div class="rp-plan"><b>Ehdotus ja toteuma tie kerrallaan</b> <small>(klo '+P.slot+' ehdotus, tehty klo '+fmtT(P.t)+'; toteuma = ensimmäinen saman työlajin ajo tiellä Harja-kirjausten mukaan)</small>';
+  if(P.rows.length){
+    h += '<table><tbody>'+P.rows.map(x=>{ const a = x.a;
+      const t = !a ? '<span class="muted">ei '+workP[x.cat]+' tiellä yön aikana</span>'
+        : a.s < P.t ? '<span class="ok">'+work[a.cat]+' klo '+fmtT(a.s)+'</span> <small>jo ennen ehdotusta</small>'
+        : a.s <= x.by ? '<span class="ok">'+work[a.cat]+' alkoi klo '+fmtT(a.s)+'</span> <small>'+mins(x.by - a.s)+' ennen aikarajaa</small>'
+        : '<span class="late">'+work[a.cat]+' alkoi klo '+fmtT(a.s)+'</span> <small>'+mins(a.s - x.by)+' aikarajan jälkeen</small>';
+      const nm = rpRoadName(x.road);
+      return '<tr'+(a ? ' data-i="'+rpStep(Math.max(a.s, rp.night.from))+'"'+(x.sid ? ' data-st="'+esc(x.sid)+'"' : '') : '')+'><th>'+esc(nm.charAt(0).toUpperCase()+nm.slice(1))+'</th><td>'+esc(x.action)+' valmiina ennen klo '+fmtT(x.by)+'</td><td>'+t+'</td></tr>'; }).join('')+'</tbody></table>';
+  } else h += '<div>Ehdotus: '+(P.level === 'seuranta' ? 'seuranta, ei toimenpiderajaa' : 'ei toimenpiteitä')+'.</div>';
+  if(P.other.length) h += '<div class="rp-eval">Suolattiin myös (ei ehdotusta tielle): '+P.other.slice(0, 8).map(([r,t])=>rpRoadName(r)+' klo '+fmtT(t)).join(', ')+(P.other.length > 8 ? ' …' : '')+'</div>';
+  return h + '</div>';
+}
 const rpStep = t => Math.max(0, Math.min(rp.steps.length - 1, Math.round((t - rp.night.from)/(30*60e3))));
 const rpLvl = {toimenpide:'bad', seuranta:'warn', ei:'ok'};
 function rpKeyList(){
@@ -2786,6 +2868,7 @@ function rpKeys(){
   if(!rp.kom) notes.push('sivun ehdotuksia (varjokomento) ei ole tallessa tältä yöltä');
   const sentFrom = rp.sent.length ? Math.min(...rp.sent.map(x=>Date.parse(x.t))) : null;
   if(sentFrom == null || sentFrom > rp.night.from) notes.push('puhelinilmoitukset ovat tallessa vain viimeisiltä öiltä'+(sentFrom ? ' (alkaen '+fmtDT(sentFrom)+')' : ''));
+  h += rpPlanHtml();
   const E = rp.kom && rp.kom.eval;
   if(E){ const c = E.cntNeed, p = [];
     if(!c) p.push('ehdotus: '+esc(E.headline));
@@ -2813,6 +2896,7 @@ function rpKomRows(st, T){
 function rpStop(){ if(rp.play){ clearInterval(rp.play); rp.play = null; } const b = $('#rp-play'); if(b){ b.textContent = '▶ Toista'; b.setAttribute('aria-pressed','false'); } }
 function rpGo(i){ rp.i = Math.max(0, Math.min(rp.steps.length - 1, i)); $('#rp-t').value = rp.i; rpRender(); }
 $('#rp-night').addEventListener('change', rpLoad);
+$('#rp-eval').addEventListener('click', e=>{ const r = e.target.closest('tr[data-i]'); if(!r) return; rpStop(); if(r.dataset.st) rp.sel = r.dataset.st; rpGo(Number(r.dataset.i)); });
 $('#rp-keys').addEventListener('click', e=>{ const b = e.target.closest('.rp-key'); if(!b) return; const k = rpKeyList()[Number(b.dataset.k)]; if(!k) return; rpStop(); if(k.st) rp.sel = k.st; rpGo(k.i); });
 $('#rp-t').addEventListener('input', e=>{ rpStop(); rpGo(Number(e.target.value)); });
 $('#rp-prev').addEventListener('click', ()=>{ rpStop(); rpGo(rp.i - 1); });
