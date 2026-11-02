@@ -705,6 +705,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     <div class="sec-h"><h2>Osuiko tienpintaennuste?</h2><span class="note">Yö klo 18–08: mitattu tienpinta vs. sivun 6 h aiemmin antama ennuste · arvosana keskivirheestä (tie −2…+2 °C painaa kaksinkertaisesti)</span></div>
     <div class="panel" id="osuma-body"><div class="status">Ladataan…</div></div>
     <div class="panel sg-panel sg-more">
+      <details class="sg-det" id="tmvarjo" open><summary>Oma tienpintamalli (varjo) <span class="muted">· koko Suomen aineistolla opetettu korjaus Vantaan asemille, ei käytössä indeksissä</span></summary><div id="tmv-body"><div class="status">Ladataan…</div></div></details>
       <details class="sg-det" id="rsverif"><summary>Mallivertailu <span class="muted">· RoadSurf, Digitraffic ja sääntö samoilla hetkillä, päivittyy tunneittain</span></summary><div id="rsv-body"><div class="status">Ladataan…</div></div></details>
       <details class="sg-det"><summary>Säämallien osuvuus <span class="muted">· ilman lämpötila 6, 12 ja 24 h</span></summary><div id="sc-models"><div class="status">Ladataan…</div></div></details>
     </div>
@@ -2132,7 +2133,43 @@ async function loadHistory(){
   }));
 }
 const osu = {d:null, t:0, sel:null, dt:(()=>{ try{ return localStorage.getItem(U.key+'-osudt') === '1'; }catch(e){ return false; } })()};
+const TMV_URL = 'https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/tm/verif.json';
+const tmv = {d:null, t:0};
+async function loadTmVarjo(){
+  if(!(tmv.d && Date.now() - tmv.t < 10*60e3)){ tmv.d = await fetch(TMV_URL+'?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null); tmv.t = Date.now(); }
+  renderTmVarjo();
+}
+function renderTmVarjo(){
+  const el = $('#tmv-body'); if(!el) return; const V = tmv.d;
+  const foot = '<p class="muted">Varjoajo: malli ei vaikuta liukkausindeksiin, toimenpide-ehdotuksiin eikä puhelinilmoituksiin. Sivu = Digitrafficin tiekohtaennuste kiinnitettynä aseman mittaukseen, malli = sivu + koko Suomen aineistosta opittu korjaus. Lähde: Tiesää-arkisto, tm/verif.json.</p>';
+  if(!V){ el.innerHTML = '<p class="muted">Varjoajo käynnistyy: ensimmäiset ennusteet tulevat seuraavassa arkistoajossa ja ensimmäiset tarkistukset 2 h sen jälkeen.</p>'+foot; return; }
+  const M = V.model, mInfo = M ? 'Malli opetettu '+fmtDT(M.trained)+' · '+(M.stations||'–')+' asemaa, '+((M.rows && M.rows['6'])||0).toLocaleString('fi-FI')+' opetusriviä (6 h).' : 'Mallia ei vielä ole opetettu.';
+  const G = V.groups;
+  if(!G){ el.innerHTML = '<p>'+mInfo+' Ennusteita tehdään, ensimmäiset tarkistukset 2 h kuluttua ensimmäisestä ennusteesta.</p>'+foot; return; }
+  const n2 = v => v==null||isNaN(v) ? '–' : v.toLocaleString('fi-FI',{minimumFractionDigits:2,maximumFractionDigits:2}), sgn = v => (v>0?'+':'')+n2(v), SRC = [['malli','Oma malli'],['sivu','Sivu'],['dig','Digitraffic']], L = ['2','4','6','12'];
+  const win = G['7'] && G['7'].yo && Object.keys(G['7'].yo).length ? '7' : 'all';
+  const tbl = (g, title) => { if(!g || !Object.keys(g).length) return '';
+    let h = '<div class="scroll"><table><thead><tr><th>'+title+'</th>'+L.map(l=>'<th>'+l+' h</th>').join('')+'</tr></thead><tbody>';
+    for(const [k, n] of SRC) h += '<tr><td class="name">'+n+'</td>'+L.map(l=>{ const d = g[l]; if(!d || !d[k]) return '<td class="num">–</td>';
+      const best = Math.min(...SRC.map(([q])=>d[q] ? d[q].mae : 1e9)), b = d[k].mae <= best + 0.005;
+      return '<td class="num">'+(b?'<b>':'')+n2(d[k].mae)+' °C'+(b?'</b>':'')+' <small class="muted">('+sgn(d[k].bias)+')</small></td>'; }).join('')+'</tr>';
+    return h + '<tr class="muted"><td class="name">Ennusteita</td>'+L.map(l=>'<td class="num">'+(g[l] ? g[l].n : 0)+'</td>').join('')+'</tr></tbody></table></div>'; };
+  let h = '<p>Varjoajo alkoi '+fmtDT(V.since)+'. '+mInfo+'</p>';
+  h += '<h3 style="margin:12px 0 4px;font-size:17px">Yö klo 18–08'+(win === '7' ? ', viimeiset 7 vrk' : '')+'</h3>' + tbl(G[win].yo, 'Ennuste');
+  h += '<p class="muted">Keskivirhe °C, suluissa harha (+ = ennuste liian lämmin). Lihavoitu = paras.</p>';
+  const z = G[win].yo['6'] && G[win].yo['6'].zero;
+  h += z ? '<p><b>Nollaraja (6 h, yö):</b> kun tie oli mitattuna −2…+2 °C, ennuste oli oikealla puolella nollaa: oma malli '+z.malli+' %, sivu '+z.sivu+' %, Digitraffic '+z.dig+' % ('+z.n+' ennustetta).</p>'
+    : '<p class="muted"><b>Nollaraja:</b> tie ei ole vielä ollut yöllä lähellä nollaa (−2…+2 °C) – tämä on liukkauden kannalta ratkaiseva mittari.</p>';
+  const C = G.all.yo_kylma;
+  h += C && C['6'] && C['6'].n >= 20 ? '<h3 style="margin:12px 0 4px;font-size:17px">Kylmä tie yöllä (tie −4…+4 °C ennustehetkellä), koko jakso</h3>' + tbl(C, 'Ennuste')
+    : '<p class="muted"><b>Kylmä tie yöllä</b> (−4…+4 °C): tilanteita vielä '+((C && C['6'] && C['6'].n) || 0)+'. Ratkaiseva näyttö tulee pakkasöistä.</p>';
+  if(V.nights && V.nights.length) h += '<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:600">Öittäin (6 h ennuste)</summary><div class="scroll"><table><thead><tr><th>Yö</th><th>Alin tie</th><th>Oma malli</th><th>Sivu</th><th>Digitraffic</th><th>Ennusteita</th></tr></thead><tbody>'
+    + V.nights.slice().reverse().map(n=>{ const best = Math.min(n.malli, n.sivu, n.dig), c = v => '<td class="num">'+(v <= best + 0.005 ? '<b>'+n2(v)+' °C</b>' : n2(v)+' °C')+'</td>';
+      return '<tr><td class="name">'+osuNight(n.night)+'</td><td class="num">'+n1(n.trMin)+' °C</td>'+c(n.malli)+c(n.sivu)+c(n.dig)+'<td class="num">'+n.n+'</td></tr>'; }).join('')+'</tbody></table></div></details>';
+  el.innerHTML = h + foot;
+}
 async function loadOsuma(){
+  loadTmVarjo();
   if(osu.d && Date.now() - osu.t < 10*60e3){ renderOsuma(); return; }
   osu.d = await fetch(U.data+'osuma.json?'+Math.floor(Date.now()/6e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null); osu.t = Date.now();
   renderOsuma();
