@@ -1,0 +1,367 @@
+name: Lähdetesti (kertaluontoinen)
+# lt1 (3.11.2026): kokeilee uusia tietolähteitä ennen käyttöönottoa – Ilmatieteen laitoksen varoitukset (CAP) sekä säähavainnot
+# (lentoaseman säätila ja pilvisyys, säteily). Vertaa samalla havaittua yön pilvisyyttä tallennettuihin pilvisyysennusteisiin
+# (data/obs-*.csv). Ei tallenna mitään. Ajetaan pushista kehityshaaraan, ei koske main-haaraa.
+on:
+  push:
+    branches: [claude/clever-brown-bf6to0]
+    paths: ['.github/workflows/lahdetesti.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  testi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          sparse-checkout: |
+            data
+      - name: Kokeile lähteet 1 ja 2
+        run: |
+          python3 -I - <<'EOF'
+          import csv, glob, gzip, math, statistics as stt, urllib.request
+          import xml.etree.ElementTree as ET
+          from collections import Counter
+          from datetime import datetime, timedelta, timezone
+          from zoneinfo import ZoneInfo
+
+          HEL = ZoneInfo('Europe/Helsinki')
+          UA = {'User-Agent': 'Vantaakeli-lahdetesti/1 (+https://github.com/Sambbor/Vantaakeli)', 'Accept-Encoding': 'gzip'}
+          FMI = 'https://opendata.fmi.fi/wfs?service=WFS&version=2.0.0&request=getFeature&storedquery_id='
+          BBOX = '24.5,60.1,25.5,60.55'
+          NOW = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+          POINTS = [(60.30, 24.97, 'Vantaa (sivun piste)'), (60.40, 25.10, 'Kerava'), (60.26, 24.85, 'Myyrmäki')]
+          DAYS = 20
+
+
+          def iso(t):
+              return t.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+
+          def L(tag):
+              return tag.rsplit('}', 1)[-1]
+
+
+          def sect(t):
+              print('\n======== ' + t + ' ========', flush=True)
+
+
+          def get(url, timeout=90):
+              req = urllib.request.Request(url, headers=UA)
+              with urllib.request.urlopen(req, timeout=timeout) as r:
+                  b = r.read()
+                  info = (r.status, r.headers.get('Content-Type', ''))
+              if b[:2] == b'\x1f\x8b':
+                  b = gzip.decompress(b)
+              return info, b
+
+
+          def txt(el, name):
+              x = next((c for c in el.iter() if L(c.tag) == name), None)
+              return x.text if x is not None else None
+
+
+          def bswfs(b):
+              """FMI ::simple -vastaus → [(lat, lon, aika, parametri, arvo)]"""
+              out = []
+              for el in ET.fromstring(b).iter():
+                  if L(el.tag) != 'BsWfsElement':
+                      continue
+                  pos = (txt(el, 'pos') or '').split()
+                  try:
+                      v = float(txt(el, 'ParameterValue'))
+                      if math.isnan(v):
+                          v = None
+                  except (TypeError, ValueError):
+                      v = None
+                  if len(pos) >= 2:
+                      out.append((float(pos[0]), float(pos[1]), txt(el, 'Time'), txt(el, 'ParameterName'), v))
+              return out
+
+
+          def pip(lat, lon, poly):
+              """CAP-monikulmio 'lat,lon lat,lon …' – onko piste sisällä"""
+              pts = [tuple(map(float, p.split(',')[:2])) for p in poly.split()]
+              inside = False
+              for i in range(len(pts)):
+                  (y1, x1), (y2, x2) = pts[i], pts[i - 1]
+                  if (y1 > lat) != (y2 > lat) and lon < (x2 - x1) * (lat - y1) / (y2 - y1) + x1:
+                      inside = not inside
+              return inside
+
+
+          # ---------------------------------------------------------------- 1. varoitukset
+          sect('1. Ilmatieteen laitoksen varoitukset (CAP)')
+          url = 'https://alerts.fmi.fi/cap/feed/atom_fi-FI.xml'
+          try:
+              info, b = get(url)
+              print(url, info, len(b), 'tavua')
+              root = ET.fromstring(b)
+              entries = [e for e in root.iter() if L(e.tag) == 'entry']
+              print('merkintöjä syötteessä:', len(entries))
+              if entries:
+                  print('--- 1. merkinnän alku ---')
+                  print(ET.tostring(entries[0], encoding='unicode')[:1800])
+                  print('--- / ---')
+              alerts = []
+              for e in entries:
+                  a = next((x for x in e.iter() if L(x.tag) == 'alert'), None)
+                  if a is None:
+                      for x in e.iter():
+                          if L(x.tag) == 'link' and x.get('href') and len(alerts) < 60:
+                              try:
+                                  a = ET.fromstring(get(x.get('href'))[1])
+                                  if L(a.tag) != 'alert':
+                                      a = next((y for y in a.iter() if L(y.tag) == 'alert'), None)
+                              except Exception as ex:
+                                  print('  linkki ei ollut CAP-viesti:', x.get('href'), type(ex).__name__)
+                                  a = None
+                              if a is not None:
+                                  break
+                  if a is not None:
+                      alerts.append(a)
+              print('CAP-viestejä luettu:', len(alerts))
+              codes, shown = Counter(), 0
+              for a in alerts:
+                  infos = [i for i in a if L(i.tag) == 'info']
+                  inf = next((i for i in infos if (txt(i, 'language') or '').lower().startswith('fi')), infos[0] if infos else None)
+                  if inf is None:
+                      continue
+                  ecs = [(txt(ec, 'valueName'), txt(ec, 'value')) for ec in inf.iter() if L(ec.tag) == 'eventCode']
+                  areas = []
+                  for ar in inf.iter():
+                      if L(ar.tag) != 'area':
+                          continue
+                      polys = [c.text for c in ar.iter() if L(c.tag) == 'polygon' and c.text]
+                      geos = [(txt(g, 'valueName'), txt(g, 'value')) for g in ar.iter() if L(g.tag) == 'geocode']
+                      areas.append((txt(ar, 'areaDesc'), polys, geos))
+                  for _, v in ecs:
+                      codes[v] += 1
+                  hit = [nm for (la, lo, nm) in POINTS if any(pip(la, lo, p) for _, ps, _ in areas for p in ps)]
+                  if shown == 0:
+                      print('--- 1. viestin rakenne ---')
+                      print('  eventCode-parit:', ecs)
+                      print('  alueita:', len(areas), '· 1. alue:', areas[0][0] if areas else None,
+                            '· geokoodit:', areas[0][2][:4] if areas else None,
+                            '· monikulmion alku:', (areas[0][1][0][:80] if areas and areas[0][1] else None))
+                  shown += 1
+                  print(f"  {txt(inf, 'event')!s:<28} {','.join(v for _, v in ecs)[:40]:<40} {txt(inf, 'severity')!s:<9} "
+                        f"{(txt(inf, 'onset') or '')[:16]} – {(txt(inf, 'expires') or '')[:16]} · alueita {len(areas)}"
+                        f"{' · VANTAA: ' + ', '.join(hit) if hit else ''} · {', '.join(str(x[0]) for x in areas[:3])[:80]}")
+              print('tapahtumakoodit:', dict(codes))
+          except Exception as e:
+              print('VIRHE', url, type(e).__name__, e)
+
+          # ---------------------------------------------------------------- 2a. asemat
+          sect('2a. Havaintoasemat urakan alueella (fmi::ef::stations)')
+          stations = {}
+          try:
+              info, b = get(FMI + 'fmi::ef::stations&bbox=' + BBOX)
+              print(info, len(b), 'tavua')
+              for el in ET.fromstring(b).iter():
+                  if L(el.tag) != 'EnvironmentalMonitoringFacility':
+                      continue
+                  ident = txt(el, 'identifier')
+                  names = [c.text for c in el.iter() if L(c.tag) == 'name']
+                  pos = txt(el, 'pos')
+                  nets = [c.get('{http://www.w3.org/1999/xlink}title') for c in el.iter() if L(c.tag) == 'belongsTo']
+                  if pos:
+                      la, lo = map(float, pos.split()[:2])
+                      stations[(round(la, 3), round(lo, 3))] = (ident, names[0] if names else '?')
+                      print(f"  {ident!s:>7} {la:.4f} {lo:.4f} {(names[0] if names else '?'):<38} {', '.join(n for n in nets if n)[:70]}")
+          except Exception as e:
+              print('VIRHE', type(e).__name__, e)
+
+
+          def sname(la, lo):
+              k = (round(la, 3), round(lo, 3))
+              if k in stations:
+                  return f'{stations[k][1]} ({stations[k][0]})'
+              if stations:
+                  kk, v = min(stations.items(), key=lambda kv: (kv[0][0] - la) ** 2 + (kv[0][1] - lo) ** 2)
+                  return f'{v[1]}? ({la:.3f},{lo:.3f})'
+              return f'{la:.3f},{lo:.3f}'
+
+
+          # ---------------------------------------------------------------- 2b. lentoasema
+          sect('2b. Helsinki-Vantaan lentoasema 100968, oletusparametrit, 3 h')
+          try:
+              info, b = get(FMI + f'fmi::observations::weather::simple&fmisid=100968&starttime={iso(NOW - timedelta(hours=3))}&endtime={iso(NOW)}')
+              rows = bswfs(b)
+              print(info, len(rows), 'arvoa')
+              last = {}
+              for la, lo, t, p, v in rows:
+                  if v is not None:
+                      last[p] = (t, v)
+              params = sorted({r[3] for r in rows})
+              print('parametrit:', ', '.join(params))
+              for p in params:
+                  print(f'  {p:<12} {last.get(p, ("–", "ei arvoa"))}')
+          except Exception as e:
+              print('VIRHE', type(e).__name__, e)
+
+          # ---------------------------------------------------------------- 2c. alueen asemat
+          sect('2c. Säätila, pilvisyys ja näkyvyys alueen asemilta, viimeisin tunti')
+          try:
+              info, b = get(FMI + f'fmi::observations::weather::simple&bbox={BBOX}&parameters=wawa,n_man,vis,t2m,td,ri_10min,snow_aws'
+                            f'&starttime={iso(NOW - timedelta(hours=1))}&endtime={iso(NOW)}')
+              rows = bswfs(b)
+              print(info, len(rows), 'arvoa')
+              by = {}
+              for la, lo, t, p, v in rows:
+                  d = by.setdefault((la, lo), {})
+                  if v is not None:
+                      d[p] = v
+              for (la, lo), d in sorted(by.items()):
+                  print(f'  {sname(la, lo):<46} ' + ' '.join(f'{k}={d[k]:g}' for k in sorted(d)))
+          except Exception as e:
+              print('VIRHE', type(e).__name__, e)
+
+          # ---------------------------------------------------------------- 2d. säteily
+          sect('2d. Säteilyhavainnot, 3 h (fmi::observations::radiation::simple)')
+          rad_params = set()
+          for q in (f'bbox={BBOX}', 'fmisid=101004', 'fmisid=100968'):
+              try:
+                  info, b = get(FMI + f'fmi::observations::radiation::simple&{q}&starttime={iso(NOW - timedelta(hours=3))}&endtime={iso(NOW)}&timestep=10')
+                  rows = bswfs(b)
+                  print(q, info, len(rows), 'arvoa')
+                  by = {}
+                  for la, lo, t, p, v in rows:
+                      rad_params.add(p)
+                      d = by.setdefault((la, lo), {})
+                      if v is not None:
+                          d[p] = (t[11:16], v)
+                  for (la, lo), d in sorted(by.items()):
+                      print(f'  {sname(la, lo)}: ' + ', '.join(f'{k}={v[1]:g}' for k, v in sorted(d.items())) + (f' (klo {max(v[0] for v in d.values())} UTC)' if d else ' – ei arvoja'))
+                  if rows:
+                      break
+              except Exception as e:
+                  print('VIRHE', q, type(e).__name__, e)
+          print('säteilyparametrit:', ', '.join(sorted(rad_params)) or '–')
+
+          # ---------------------------------------------------------------- 2e. vertailu
+          sect(f'2e. Havaittu pilvisyys ja säteily vs. ennusteen pilvisyys öisin klo 18–08, {DAYS} vrk')
+          START = NOW - timedelta(days=DAYS)
+
+
+          def hist(q, hours=72):
+              out, t0 = [], START
+              while t0 < NOW:
+                  t1 = min(NOW, t0 + timedelta(hours=hours))
+                  try:
+                      out += bswfs(get(FMI + q + f'&starttime={iso(t0)}&endtime={iso(t1)}&timestep=60')[1])
+                  except Exception as e:
+                      print('  VIRHE', iso(t0), type(e).__name__, e)
+                  t0 = t1
+              return out
+
+
+          def hkey(t):
+              return t[:13]
+
+
+          def is_night(h):
+              lt = datetime.strptime(h, '%Y-%m-%dT%H').replace(tzinfo=timezone.utc).astimezone(HEL)
+              return lt.hour >= 18 or lt.hour < 8
+
+
+          def night_of(lt):
+              return (lt - timedelta(hours=12)).date() if lt.hour < 8 else lt.date()
+
+
+          obs = {}
+          for la, lo, t, p, v in hist('fmi::observations::weather::simple&fmisid=100968&parameters=n_man,wawa,t2m,td'):
+              if v is not None:
+                  obs.setdefault(hkey(t), {})[p] = v
+          lw_param = next((p for p in sorted(rad_params) if 'LWIN' in p.upper()), None)
+          lw = {}
+          if lw_param:
+              for la, lo, t, p, v in hist(f'fmi::observations::radiation::simple&fmisid=101004&parameters={lw_param}'):
+                  if v is not None:
+                      lw[hkey(t)] = v
+          print(f'lentoaseman tunteja {len(obs)}, joista yöllä n_man-arvo {sum(1 for h, d in obs.items() if is_night(h) and "n_man" in d)}; '
+                f'pitkäaaltosäteily ({lw_param or "ei parametria"}, Kumpula) {len(lw)} tuntia')
+
+          fc = {'mp': {}, 'f2': {}, 'f6': {}, 'f12': {}}
+          road = {}
+          for fn in sorted(glob.glob('data/obs-*.csv')):
+              with open(fn, newline='') as f:
+                  for r in csv.DictReader(f):
+                      try:
+                          t = datetime.fromisoformat(r['t'].replace('Z', '+00:00'))
+                      except ValueError:
+                          continue
+                      if t < START - timedelta(hours=13):
+                          continue
+                      for key, col, lead in (('mp', 'mp_cc', 0), ('f2', 'f2_cc', 2), ('f6', 'f6_cc', 6), ('f12', 'f12_cc', 12)):
+                          try:
+                              v = float(r.get(col) or 'x')
+                          except ValueError:
+                              continue
+                          h = (t + timedelta(hours=lead, minutes=30)).strftime('%Y-%m-%dT%H')
+                          fc[key].setdefault(h, v)
+                      lt = t.astimezone(HEL)
+                      if lt.hour >= 18 or lt.hour < 8:
+                          x = road.setdefault(night_of(lt), {'tr': 99.0, 'kuura': set()})
+                          try:
+                              tr = float(r['tr'])
+                              ta = float(r['ta']) if r.get('ta') else None
+                              if -30 < tr < 40 and (ta is None or tr >= ta - 10):   # anturivirheet pois (esim. −20,8 °C 18.10.)
+                                  x['tr'] = min(x['tr'], tr)
+                          except ValueError:
+                              pass
+                          if r.get('keli') == '5':
+                              x['kuura'].add(r['st'])
+          if fc['mp'] and max(fc['mp'].values()) <= 1.01:
+              fc['mp'] = {h: v * 100 for h, v in fc['mp'].items()}
+
+
+          def okta(cc):
+              return cc / 12.5
+
+
+          for key, name in (('mp', 'MEPS samalle tunnille'), ('f2', 'IL toimitettu +2 h'), ('f6', 'IL toimitettu +6 h'), ('f12', 'IL toimitettu +12 h')):
+              pairs = [(fc[key][h], d['n_man']) for h, d in obs.items() if is_night(h) and 'n_man' in d and h in fc[key]]
+              if not pairs:
+                  print(f'  {name:<22} ei vertailupareja')
+                  continue
+              clear = [(f, o) for f, o in pairs if o <= 2]
+              print(f'  {name:<22} pareja {len(pairs):>4} · keskivirhe {stt.mean(abs(okta(f) - o) for f, o in pairs):.1f}/8 · '
+                    f'havaittu selkeä (≤2/8) {len(clear)} h, joista ennuste pilvinen (≥75 %) {sum(1 for f, o in clear if f >= 75)} h · '
+                    f'havaittu pilvinen (≥6/8) mutta ennuste selkeä (≤25 %) {sum(1 for f, o in pairs if o >= 6 and f <= 25)} h')
+
+          if lw:
+              cl = [lw[h] for h, d in obs.items() if is_night(h) and h in lw and d.get('n_man', 9) <= 2]
+              cd = [lw[h] for h, d in obs.items() if is_night(h) and h in lw and d.get('n_man', -1) >= 6]
+              if cl and cd:
+                  print(f'  pitkäaaltosäteily yöllä: selkeinä tunteina ka {stt.mean(cl):.0f} W/m² ({len(cl)} h), pilvisinä {stt.mean(cd):.0f} W/m² ({len(cd)} h)')
+
+          wawa = Counter(int(d['wawa']) for h, d in obs.items() if 'wawa' in d)
+          print('  säätilakoodit (wawa) koko jaksolta, tunteja:', dict(sorted(wawa.items())))
+
+          print('\n  yö (alkaa)   tunteja  selkeä hav.  selkeä enn.+6h  pilvinen enn. mutta selkeä  LW-säteily ka  alin tie  kuura asemilla')
+          nights = {}
+          for h, d in sorted(obs.items()):
+              if not is_night(h) or 'n_man' not in d:
+                  continue
+              lt = datetime.strptime(h, '%Y-%m-%dT%H').replace(tzinfo=timezone.utc).astimezone(HEL)
+              x = nights.setdefault(night_of(lt), {'h': 0, 'c': 0, 'fc': 0, 'miss': 0, 'lw': []})
+              x['h'] += 1
+              c = d['n_man'] <= 2
+              x['c'] += c
+              f = fc['f6'].get(h)
+              if f is not None and f <= 25:
+                  x['fc'] += 1
+              if c and f is not None and f >= 75:
+                  x['miss'] += 1
+              if h in lw:
+                  x['lw'].append(lw[h])
+          for n, x in sorted(nights.items()):
+              rd = road.get(n, {'tr': 99.0, 'kuura': set()})
+              lws = '%.0f' % stt.mean(x['lw']) if x['lw'] else '–'
+              trs = '%.1f' % rd['tr'] if rd['tr'] < 99 else '–'
+              print(f"  {n}   {x['h']:>5}   {x['c']:>8}   {x['fc']:>12}   {x['miss']:>24}   {lws:>12}   {trs:>7}   {len(rd['kuura']):>5}")
+          print('\nvalmis', iso(datetime.now(timezone.utc)))
+          EOF
