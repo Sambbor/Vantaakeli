@@ -1421,12 +1421,12 @@ function renderSlipModel(){
   { const ve = $('#sg-verif'); if(ve) ve.innerHTML = hv; }
   if(L.cold){ const sg = x => (x>0?'+':'')+n1(x)+' °C', C = L.cold;
     h += '<p><b>Kylmät yöt</b> (ennustettu tienpinta enintään +3 °C, '+C.nights.length+' yötä, '+C.n+' vertailua): mitattu miinus 6 h ennuste keskimäärin <b>'+sg(C.mean)+'</b> (mediaani '+sg(C.med)+'). Ennuste oli yli 0,5 °C liian kylmä '+C.warm+' %:ssa ja yli 0,5 °C liian lämmin '+C.coldP+' %:ssa vertailuista.'
-      + ' <span class="muted">Käytössä oleva korjaus lasketaan kaikista öistä. Kylmien öiden virhe on toistaiseksi vain seurannassa eikä vaikuta indeksiin.'+(C.nights.length < 8 ? ' Kylmiä öitä on vielä vähän luotettavaan arvioon.' : '')+'</span></p>'; }
+      + ' <span class="muted">Korjaus (v17): yöllä, kun ennustettu tienpinta on enintään +3 °C, käytetään kylmien öiden virhettä (vähintään 30 vertailua, muuten ei korjausta); +3…+5 °C liukuva siirtymä koko yön korjaukseen. Korjaus enintään ±1 °C.'+(C.nights.length < 8 ? ' Kylmiä öitä on vielä vähän luotettavaan arvioon.' : '')+'</span></p>'; }
   h += '<div class="scroll"><table><thead><tr><th>Asema</th><th>Rivejä</th><th>Liukkaita havaintoja</th><th>Tieennusteen virhe 6 h, yö</th><th>päivä</th><th>kylmät yöt</th><th>Korjaus</th><th>Osumat / ohi / turhat</th></tr></thead><tbody>';
   for(const st of state.stations){ const b = L.bias[st.id]; if(!b) continue; const ps = (L.perSt||{})[st.id] || {hit:0,miss:0,fa:0};
     const f = x => x ? (x.mean>0?'+':'')+n1(x.mean)+' °C <small class="muted">('+x.n+')</small>' : '–';
     const on = (b.night && b.night.n >= 12) || (b.day && b.day.n >= 12);
-    h += '<tr><td class="name">'+esc(st.name)+'</td><td class="num">'+b.rows+'</td><td class="num">'+b.slipH+'</td><td class="num">'+f(b.night)+'</td><td class="num">'+f(b.day)+'</td><td class="num">'+f(b.cold)+'</td><td>'+(on?'<span class="pill p-ok">käytössä</span>':'<span class="pill p-na">kertyy</span>')+'</td><td class="num">'+ps.hit+' / '+ps.miss+' / '+ps.fa+'</td></tr>'; }
+    h += '<tr><td class="name">'+esc(st.name)+'</td><td class="num">'+b.rows+'</td><td class="num">'+b.slipH+'</td><td class="num">'+f(b.night)+'</td><td class="num">'+f(b.day)+'</td><td class="num">'+f(b.cold)+'</td><td>'+(on?'<span class="pill p-ok">käytössä</span>':'<span class="pill p-na">kertyy</span>')+(on ? ' <small class="muted">kylmä yö: '+(b.cold && b.cold.n >= 30 ? (b.cold.mean>0?'+':'')+n1(Math.max(-1, Math.min(1, b.cold.mean)))+' °C' : 'ei korjausta (alle 30 vertailua)')+'</small>' : '')+'</td><td class="num">'+ps.hit+' / '+ps.miss+' / '+ps.fa+'</td></tr>'; }
   h += '</tbody></table></div>';
   if(L.salt && L.salt.some(x=>x.n)){
     h += '<h3 style="margin:14px 0 4px;font-size:17px">Suolauksen suojavaikutus</h3><p class="muted" style="margin:0 0 6px">Märkä tai kostea tie pakkasella (tienpinta ≤ +0,5 °C): kuinka usein asema mittasi liukkautta sen mukaan, kauanko viimeisestä suolauksesta oli kulunut (500 m säteellä).</p>'
