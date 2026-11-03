@@ -1443,9 +1443,11 @@ async function loadNight(){
   nightS.t = Date.now();
   nightS.d = await fetch(U.data+'night.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   nightS.k = await fetch(U.data+'komento.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  nightS.p = await fetch(U.data+'sivupaatos.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   nightS.nb = await fetch('https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/naapurit.json?'+Math.floor(Date.now()/3e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   renderNight(); renderKomento();
   try{ renderNightLine(); }catch(e){ console.error(e); }
+  try{ if(state.actions) renderStatusLine(state.actions); }catch(e){ console.error(e); }
 }
 const KLEVEL = {toimenpide:['p-bad','Toimenpide'], seuranta:['p-warn','Seuranta'], ei:['p-ok','Ei toimenpiteitä']};
 const KNEED = {aiheellinen:['p-ok','aiheellinen'], turha:['p-warn','ei tarvetta'], ohi:['p-bad','ohi'], oikein:['p-ok','oikein: ei tarvetta']};
@@ -1488,6 +1490,17 @@ function renderKomento(){
     x += '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Kaikki yöt ('+H.length+') · samaa mieltä urakan kanssa '+sum.agree+'/'+H.length+' · asemittain: osui '+(sum.osui||0)+', myöhässä '+(sum.myohassa||0)+', ohi '+(sum.ohi||0)+', turha '+(sum.turha||0)+(H.some(n=>n.cntNeed) ? ' · olosuhteen mukaan: aiheellinen '+(sum.n_aiheellinen||0)+', ei tarvetta '+(sum.n_turha||0)+', ohi '+(sum.n_ohi||0) : '')+'</summary>'
       + '<div class="scroll"><table><thead><tr><th>Yö</th><th>Ehdotus</th><th>Urakka</th><th>Liukkaita asemia</th><th>Olosuhde toteutui</th><th>Osui / myöhässä / ohi / turha / suolattiin / oikein</th><th>Olosuhteen mukaan: aiheellinen / ei tarvetta / ohi / oikein</th></tr></thead><tbody>'
       + H.map(n=>{ const c = n.cnt||{}; return '<tr><td class="name">'+esc(new Date(n.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'}))+'</td><td><span class="pill '+(KLEVEL[n.level]||KLEVEL.ei)[0]+'">'+(KLEVEL[n.level]||KLEVEL.ei)[1]+'</span></td><td>'+esc(n.urakka)+(n.agree?'':' ≠')+(n.urakkaNeed ? ' <small class="muted">('+esc(n.urakkaNeed)+')</small>' : '')+'</td><td class="num">'+n.slip+'</td><td class="num">'+(n.need!=null ? n.need+(n.near ? ' <small class="muted">+'+n.near+' lähellä</small>' : '') : '–')+'</td><td class="num">'+[c.osui,c.myohassa,c.ohi,c.turha,c.suolattiin,c.oikein].map(v=>v||0).join(' / ')+'</td><td class="num">'+(n.cntNeed ? [n.cntNeed.aiheellinen,n.cntNeed.turha,n.cntNeed.ohi,n.cntNeed.oikein].join(' / ') : '–')+'</td></tr>'; }).join('') + '</tbody></table></div></details>';
+  }
+  const PS = nightS.p, PH = (PS && PS.history) || [], PE = PS && PS.eval;
+  const PRES = {aiheellinen:['p-ok','aiheellinen'], turha:['p-warn','ei tarvetta'], ohi:['p-bad','ohi'], oikein:['p-ok','oikein: ei tarvetta']};
+  if(PS){ x += '<h3 style="margin:14px 0 4px;font-size:17px">Sivun päätöslaatikko vs. varjokomento</h3>';
+    if(PE){ const day = new Date(PE.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'}), r = PRES[PE.res];
+      x += '<p style="margin:0 0 6px">Yö '+esc(day)+': sivu klo '+esc(PE.slot||'–')+' <b>'+esc(PD_LV[PE.level]||'–')+'</b>'+(PE.level === 'toimenpide' && PE.by ? ' ennen klo '+fmtT(PE.by) : '')+(PE.titles && PE.titles.length ? ' <small class="muted">('+esc(PE.titles.join(', '))+')</small>' : '')
+        + ' · olosuhde toteutui '+PE.need+' asemalla'+(r ? ' → <span class="pill '+r[0]+'">'+r[1]+'</span>' : '')+(PE.timing ? ' <small>('+esc(PE.timing)+')</small>' : '')
+        + (PE.kom ? '<br>Varjokomento: '+esc(PD_LV[PE.kom.level]||'–')+(PE.kom.by ? ' ennen klo '+fmtT(PE.kom.by) : '')+' · '+(PE.agree ? '<span class="pill p-ok">sama taso</span>' : '<span class="pill p-warn">eri taso</span>') : '')+'</p>'; }
+    else x += '<p class="muted" style="margin:0 0 6px">Sivun päätöksen tallennus alkoi '+fmtDT(PS.first || PS.updated)+'. Ensimmäinen vertailu aamulla, kun yö on valmis.</p>';
+    if(PH.length){ const c = {}; let ag = 0, agN = 0; for(const n of PH){ if(n.res) c[n.res] = (c[n.res]||0) + 1; if(n.agree != null){ agN++; if(n.agree) ag++; } }
+      x += '<p class="muted" style="margin:0 0 6px">Kaikki yöt ('+PH.length+'): sivun päätös aiheellinen '+(c.aiheellinen||0)+', ei tarvetta '+(c.turha||0)+', ohi '+(c.ohi||0)+', oikein ei '+(c.oikein||0)+(agN ? ' · sama taso kuin varjokomennolla '+ag+'/'+agN : '')+'</p>'; }
   }
   const NT = K.notify;
   if(NT) x += '<p class="muted" style="margin:10px 0 0">Puhelinhälytykset: '+(NT.off ? 'ei käytössä (NTFY_TOPIC-salaisuus puuttuu)' : 'käytössä'+(NT.last ? ' · viimeisin ilmoitus '+fmtDT(NT.last.t)+': '+esc(NT.last.title) : ' · ei vielä ilmoituksia'))+'</p>';
@@ -1722,6 +1735,19 @@ function renderActions(){
   tabDot('tilanne', top>=3 ? 'bad' : top>=2 ? 'warn' : null);
 }
 
+const PD_SLIP = /^(Liukkaudentorjunta|Kitkantorjunta|Kuura|Mahdollinen liukkaus|Suolaa tiellä|Jäätävä sade|Jäätä|Vesisadetta jäiselle|Asemat hälyttävät|Auraus|Lumisade)/;
+function pageDecision(acts){
+  const sl = (acts||[]).filter(a=>a.slip), act = sl.filter(a=>a.sev === 'bad' || a.sev === 'warn'), watch = sl.filter(a=>a.sev === 'info');
+  const by = act.map(a=>a.by).filter(v=>v != null).sort((x,y)=>x-y)[0];
+  return {level: act.length ? 'toimenpide' : watch.length ? 'seuranta' : 'ei', by: by != null ? new Date(by).toISOString() : null, titles: (act.length ? act : watch).map(a=>a.title)};
+}
+const PD_LV = {toimenpide:'toimenpide', seuranta:'seuranta', ei:'ei toimenpiteitä'};
+function pdDiff(acts){
+  const K = typeof nightS !== 'undefined' && nightS.k, C = K && K.now; if(!C || !C.t || Date.now() - Date.parse(C.t) > 90*60e3) return '';
+  const D = pageDecision(acts), kBy = (C.roads||[]).filter(r=>r.level === 'toimenpide' && r.by).map(r=>Date.parse(r.by)).sort((a,b)=>a-b)[0];
+  const diff = D.level !== C.level || (D.level === 'toimenpide' && D.by && kBy != null && Math.abs(Date.parse(D.by) - kBy) > 2*36e5);
+  return diff ? '<div class="sl-next sl-kom"><b>Puhelinilmoitukset (varjokomento) toisin:</b> '+esc(C.headline)+' <small>· sivu: '+PD_LV[D.level]+(D.level === 'toimenpide' && D.by ? ' ennen klo '+fmtT(D.by) : '')+'</small></div>' : '';
+}
 function renderStatusLine(acts){
   const el = $('#status-line'); if(!el) return;
   const a = acts[0]; if(!a){ setSec(el, false); return; }
@@ -1733,6 +1759,7 @@ function renderStatusLine(acts){
   el.querySelector('.sl-main').innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="sl-top">'+(String(SEV[a.sev][0]).toLowerCase() === String(a.title).toLowerCase() ? '' : '<span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span>')+'<span class="sl-title">'+esc(a.title)+'</span></span>'
     + (sub ? '<span class="sl-sub">'+esc(sub)+'</span>' : '')+'</button>'
     + (nxt ? '<div class="sl-next">Lisäksi: '+esc(nxt.title)+(nxt.where ? ' – '+esc(nxt.where) : '')+(rest.length > 1 ? ' ja '+(rest.length-1)+' muuta' : '')+'</div>' : '')
+    + pdDiff(acts)
     + (calcT ? '<div class="sl-next sl-calc">Laskettu klo '+fmtT(calcT)+'</div>' : '');
 }
 $('#status-line').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if(!b) return;
