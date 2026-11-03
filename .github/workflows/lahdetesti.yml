@@ -150,6 +150,9 @@ jobs:
                   print(f"  {txt(inf, 'event')!s:<28} {','.join(v for _, v in ecs)[:40]:<40} {txt(inf, 'severity')!s:<9} "
                         f"{(txt(inf, 'onset') or '')[:16]} – {(txt(inf, 'expires') or '')[:16]} · alueita {len(areas)}"
                         f"{' · VANTAA: ' + ', '.join(hit) if hit else ''} · {', '.join(str(x[0]) for x in areas[:3])[:80]}")
+                  if hit:
+                      pars = [(txt(pp, 'valueName'), txt(pp, 'value')) for pp in inf.iter() if L(pp.tag) == 'parameter']
+                      print(f"    → {txt(inf, 'headline')} | {txt(inf, 'description')} | {pars}")
               print('tapahtumakoodit:', dict(codes))
           except Exception as e:
               print('VIRHE', url, type(e).__name__, e)
