@@ -4,6 +4,10 @@ name: Keruun ajastin
 # ka2 (30.10.2026): täysi keruu :17 ja :47 UTC (tallennus, ilmoitukset), kevyt laskenta :07, :27, :37 ja :57 (vain pohdinta + julkaisu).
 # Varalla cron: jos ketju katkeaa, ajastin käynnistyy uudelleen viimeistään 3 h kuluttua. Ketjun ollessa käynnissä
 # varakäynnistys jää jonoon ja peruuntuu (näkyy Actionsissa "cancelled" – normaalia). Julkisessa säilössä ajominuutit ovat ilmaisia.
+# kv1 (3.11.2026): keruun vahti. Joka kierroksella tarkistetaan julkaistulta sivulta, milloin pohdinta (10 min välein) ja täysi
+# keruu (30 min välein) on viimeksi tehty. Jos pohdinta on yli 35 min tai keruu yli 45 min vanha, puhelimeen lähtee ilmoitus
+# (NTFY_TOPIC, sama kuin liukkausilmoituksilla) – kerran katkon aikana, ja toinen, kun keruu toimii taas. Muuten hiljainen puhelin
+# näyttäisi samalta kuin "ei riskiä". Jos tämä ajastin itse pysähtyy, keruu jatkuu varacronilla, mutta vahti on poissa enintään 3 h.
 on:
   workflow_dispatch:
   schedule:
@@ -20,7 +24,39 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: |
+          SIVU=https://sambbor.github.io/Vantaakeli
+          ilmoitettu=""; hakuvirhe=0
+          ilmoita() {   # $1 otsikko, $2 viesti, $3 prioriteetti, $4 tunniste
+            echo "::warning::$1: $2"
+            [ -n "$NTFY_TOPIC" ] || { echo "NTFY_TOPIC puuttuu – ilmoitusta ei lähetetty"; return 0; }
+            jq -n --arg topic "$NTFY_TOPIC" --arg title "$1" --arg message "$2" --argjson priority "$3" --arg tag "$4" --arg click "$SIVU/" \
+              '{topic:$topic, title:$title, message:$message, priority:$priority, tags:[$tag], click:$click}' \
+              | curl -fsS -m 20 --retry 2 -H 'Content-Type: application/json' -d @- https://ntfy.sh/ >/dev/null \
+              || echo "::warning::Vahdin ilmoitus jäi lähettämättä"
+          }
+          ika() {   # minuutteja julkaistun tiedoston aikaleimasta ($1 tiedosto, $2 jq-kenttä); tyhjä, jos ei saatu
+            local t; t=$(curl -fsS -m 20 "$SIVU/data/$1?v=$(date +%s)" | jq -r "$2 // empty" 2>/dev/null) || return 0
+            [ -n "$t" ] && echo $(( ($(date +%s) - $(date -d "$t" +%s)) / 60 ))
+          }
+          vahti() {
+            local p k syy=""; p=$(ika pohdinta.json .t); k=$(ika index.json .updated)
+            if [ -z "$p" ] || [ -z "$k" ]; then
+              hakuvirhe=$((hakuvirhe + 1)); [ "$hakuvirhe" -ge 2 ] && syy="Sivun tietoja ei saatu haettua kahdella peräkkäisellä tarkistuksella."
+            else
+              hakuvirhe=0
+              [ "$p" -gt 35 ] && syy="Liukkauslaskenta on $p min vanha (normaalisti enintään 10 min)."
+              [ "$k" -gt 45 ] && syy="${syy:+$syy }Viimeisin keruu $k min sitten (normaalisti 30 min välein) – puhelinilmoitukset eivät nyt toimi."
+            fi
+            echo "vahti: pohdinta ${p:-?} min, keruu ${k:-?} min${syy:+ – VIKA}"
+            local h; h=$(TZ=Europe/Helsinki date +%H); local pr=3; { [ "$h" -ge 18 ] || [ "$h" -lt 8 ]; } && pr=4
+            if [ -n "$syy" ] && [ -z "$ilmoitettu" ]; then
+              ilmoita "Kelisivun keruu pysähtynyt" "$syy Tarkista asemat ja kamerat itse. Actions: https://github.com/$GH_REPO/actions" $pr warning; ilmoitettu=1
+            elif [ -z "$syy" ] && [ -n "$ilmoitettu" ]; then
+              ilmoita "Kelisivun keruu toimii taas" "Laskenta ja keruu ovat taas ajan tasalla." 2 white_check_mark; ilmoitettu=""
+            fi
+          }
           loppu=$(( $(date +%s) + 340*60 ))
           while :; do
             nyt=$(date +%s)
@@ -32,6 +68,7 @@ jobs:
             gh workflow run keli-data.yml --ref main -f tila=$tila || echo "::warning::Keruun käynnistys epäonnistui"
             # ka3 (30.10.2026): RoadSurf-varjoajo kerran tunnissa :27 UTC (10 min täyden keruun jälkeen); oma cron jää varalle
             if [ "$m" = 27 ]; then gh workflow run roadsurf.yml --ref main || echo "::warning::RoadSurfin käynnistys epäonnistui"; fi
+            vahti || echo "::warning::Vahdin tarkistus epäonnistui"
           done
       - name: Käynnistä ajastin uudelleen
         if: success() || failure()   # ei peruttaessa: käsin peruttu ketju pysähtyy

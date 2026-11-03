@@ -130,6 +130,7 @@ footer a{color:var(--accent)}
 .act-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .act h3{font-size:20px}
 .act-when{font-weight:600;margin:4px 0 6px;font-size:14px} .act-where{color:var(--ink,inherit)}
+.act-why{font-weight:600;font-size:14px;margin:0 0 6px;color:var(--muted)}
 .status-line{margin:0 0 12px;padding:12px 14px 0;border-radius:8px;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--na)}
 .status-line button{all:unset;cursor:pointer;display:block;line-height:1.35}
 .status-line .sl-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
@@ -319,7 +320,7 @@ body.wall .tabs{display:none}
   .act-hd::after{content:"";position:absolute;right:2px;top:10px;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
   .act.open .act-hd::after{transform:rotate(-135deg);top:14px}
   .act:not(.open) ul{display:none}
-  .act:not(.open) .act-when{margin-bottom:0}
+  .act:not(.open) .act-when{margin-bottom:0} .act:not(.open) .act-why{margin-bottom:0}
   .actions{gap:8px}
   .rule{display:none} .legend{gap:4px 12px;font-size:12px}
   .mg-now{grid-template-columns:repeat(3,minmax(0,1fr))} .mg-lg{font-size:11.5px}
@@ -1420,12 +1421,12 @@ function renderSlipModel(){
   { const ve = $('#sg-verif'); if(ve) ve.innerHTML = hv; }
   if(L.cold){ const sg = x => (x>0?'+':'')+n1(x)+' °C', C = L.cold;
     h += '<p><b>Kylmät yöt</b> (ennustettu tienpinta enintään +3 °C, '+C.nights.length+' yötä, '+C.n+' vertailua): mitattu miinus 6 h ennuste keskimäärin <b>'+sg(C.mean)+'</b> (mediaani '+sg(C.med)+'). Ennuste oli yli 0,5 °C liian kylmä '+C.warm+' %:ssa ja yli 0,5 °C liian lämmin '+C.coldP+' %:ssa vertailuista.'
-      + ' <span class="muted">Käytössä oleva korjaus lasketaan kaikista öistä. Kylmien öiden virhe on toistaiseksi vain seurannassa eikä vaikuta indeksiin.'+(C.nights.length < 8 ? ' Kylmiä öitä on vielä vähän luotettavaan arvioon.' : '')+'</span></p>'; }
+      + ' <span class="muted">Korjaus (v17): yöllä, kun ennustettu tienpinta on enintään +3 °C, käytetään kylmien öiden virhettä (vähintään 30 vertailua, muuten ei korjausta); +3…+5 °C liukuva siirtymä koko yön korjaukseen. Korjaus enintään ±1 °C.'+(C.nights.length < 8 ? ' Kylmiä öitä on vielä vähän luotettavaan arvioon.' : '')+'</span></p>'; }
   h += '<div class="scroll"><table><thead><tr><th>Asema</th><th>Rivejä</th><th>Liukkaita havaintoja</th><th>Tieennusteen virhe 6 h, yö</th><th>päivä</th><th>kylmät yöt</th><th>Korjaus</th><th>Osumat / ohi / turhat</th></tr></thead><tbody>';
   for(const st of state.stations){ const b = L.bias[st.id]; if(!b) continue; const ps = (L.perSt||{})[st.id] || {hit:0,miss:0,fa:0};
     const f = x => x ? (x.mean>0?'+':'')+n1(x.mean)+' °C <small class="muted">('+x.n+')</small>' : '–';
     const on = (b.night && b.night.n >= 12) || (b.day && b.day.n >= 12);
-    h += '<tr><td class="name">'+esc(st.name)+'</td><td class="num">'+b.rows+'</td><td class="num">'+b.slipH+'</td><td class="num">'+f(b.night)+'</td><td class="num">'+f(b.day)+'</td><td class="num">'+f(b.cold)+'</td><td>'+(on?'<span class="pill p-ok">käytössä</span>':'<span class="pill p-na">kertyy</span>')+'</td><td class="num">'+ps.hit+' / '+ps.miss+' / '+ps.fa+'</td></tr>'; }
+    h += '<tr><td class="name">'+esc(st.name)+'</td><td class="num">'+b.rows+'</td><td class="num">'+b.slipH+'</td><td class="num">'+f(b.night)+'</td><td class="num">'+f(b.day)+'</td><td class="num">'+f(b.cold)+'</td><td>'+(on?'<span class="pill p-ok">käytössä</span>':'<span class="pill p-na">kertyy</span>')+(on ? ' <small class="muted">kylmä yö: '+(b.cold && b.cold.n >= 30 ? (b.cold.mean>0?'+':'')+n1(Math.max(-1, Math.min(1, b.cold.mean)))+' °C' : 'ei korjausta (alle 30 vertailua)')+'</small>' : '')+'</td><td class="num">'+ps.hit+' / '+ps.miss+' / '+ps.fa+'</td></tr>'; }
   h += '</tbody></table></div>';
   if(L.salt && L.salt.some(x=>x.n)){
     h += '<h3 style="margin:14px 0 4px;font-size:17px">Suolauksen suojavaikutus</h3><p class="muted" style="margin:0 0 6px">Märkä tai kostea tie pakkasella (tienpinta ≤ +0,5 °C): kuinka usein asema mittasi liukkautta sen mukaan, kauanko viimeisestä suolauksesta oli kulunut (500 m säteellä).</p>'
@@ -1726,8 +1727,11 @@ function renderActions(){
   try{ renderSaltStrip(); }catch(e){ console.error(e); }
   if(!actOpen) actOpen = new Set(acts.filter((a,i)=>i===0 && a.sev==='bad').map(a=>a.title));
   if(acts.length && acts.every(a=>a.sev === 'ok')) $('#actions-body').innerHTML = '<div class="act-calm"><span class="calm-ic" aria-hidden="true">✓</span><span>'+acts.map(a=>a.lines.join(' ')).join(' ')+'</span></div>';
-  else $('#actions-body').innerHTML = acts.map(a=>'<article class="act a-'+a.sev+(actOpen.has(a.title)?' open':'')+'" data-t="'+esc(a.title)+'"><div class="act-hd" tabindex="0" role="button" aria-expanded="'+actOpen.has(a.title)+'"><div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
-    + '<div class="act-when">'+(a.where ? '<span class="act-where">'+esc(a.where)+'</span> · ' : '')+a.when+'</div></div><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></article>').join('');
+  else $('#actions-body').innerHTML = acts.map((a,i)=>'<article class="act a-'+a.sev+(i===0?' act-lead':'')+(actOpen.has(a.title)?' open':'')+'" data-t="'+esc(a.title)+'"><div class="act-hd" tabindex="0" role="button" aria-expanded="'+actOpen.has(a.title)+'">'
+    + (i===0 ? '<div class="act-why">Perustelut ylimpään ehdotukseen</div>'
+      : '<div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
+      + '<div class="act-when">'+(a.where ? '<span class="act-where">'+esc(a.where)+'</span> · ' : '')+a.when+'</div>')
+    + '</div><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></article>').join('');
   try{ renderStatusLine(acts); }catch(e){ console.error(e); }
   try{ renderNightLine(); }catch(e){ console.error(e); }
   const top = acts[0] ? SEV[acts[0].sev][1] : 0;
@@ -1872,7 +1876,7 @@ function applyTabs(){
     if((curTab === 'asemat' || wall) && state.stations.length && Date.now()-histFetched >= 15*60e3) loadHistory().then(()=>{ renderStations(); if(state.lastCtx) updateSources(state.lastCtx); });
   }, 0);
   if(curTab === 'asemat' && !wall && state.stations.length) ensureMg();
-  if((curTab === 'liukkaus' || curTab === 'selvitys' || curTab === 'seuranta') && state.stations.length) setTimeout(()=>loadObsData(), 0);
+  if(curTab === 'liukkaus' || curTab === 'selvitys' || curTab === 'seuranta') setTimeout(()=>loadObsData(), 0);
   if(curTab === 'seuranta') setTimeout(()=>loadOsuma(), 0);
   if(curTab === 'selvitys' && !wall) setTimeout(()=>rpInit(), 0);
 }
@@ -3241,7 +3245,7 @@ async function refresh(ev){
     applyData(meta, d, errs, false); snapShownT = 0;
     saveSnap(d);
     const stale = Object.entries(srcCache).filter(([k,c])=>c.stale).map(([k])=>k);
-    $('#updated').innerHTML = 'Päivitetty '+fmtT(Date.now()) + (errs.length ? ' · <span class="err">Osa tiedoista puuttuu: '+esc(errs.join('; '))+'</span>' : '')
+    $('#updated').innerHTML = 'Päivitetty '+fmtT(Date.now()) + (errs.length ? ' · <span class="err" title="'+esc(errs.join('; '))+'">'+(errs.length === 1 ? 'Yksi lähde puuttuu' : errs.length+' lähdettä puuttuu')+' – katso lähdepalkki</span>' : '')
       + (stale.length ? ' · <span class="err">vanhaa tietoa: '+stale.length+' lähdettä</span>' : '');
     Object.values(srcCache).forEach(c=>{ c.stale = false; });
   }catch(e){
