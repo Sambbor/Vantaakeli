@@ -103,7 +103,7 @@ jobs:
               print('merkintöjä syötteessä:', len(entries))
               if entries:
                   print('--- 1. merkinnän alku ---')
-                  print(ET.tostring(entries[0], encoding='unicode')[:1800])
+                  print(ET.tostring(entries[0], encoding='unicode')[:3000])
                   print('--- / ---')
               alerts = []
               for e in entries:
@@ -170,6 +170,8 @@ jobs:
                   if pos:
                       la, lo = map(float, pos.split()[:2])
                       stations[(round(la, 3), round(lo, 3))] = (ident, names[0] if names else '?')
+                      if not (60.1 <= la <= 60.55 and 24.5 <= lo <= 25.5) or 'ilmanlaadun' in ' '.join(n or '' for n in nets).lower():
+                          continue   # bbox ei rajaa tätä kyselyä: tulostetaan vain urakan alueen sääasemat
                       print(f"  {ident!s:>7} {la:.4f} {lo:.4f} {(names[0] if names else '?'):<38} {', '.join(n for n in nets if n)[:70]}")
           except Exception as e:
               print('VIRHE', type(e).__name__, e)
