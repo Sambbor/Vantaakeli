@@ -120,6 +120,49 @@ jobs:
             } catch (e) { console.log(d + ': ' + e.message); }
           }
           EOF
+      # pd1 (3.11.2026, Samuli): sivun päätös (Toimenpidetarve, pohdinta.json → paatos) talteen klo 18 ja 22 samoin kuin varjokomento,
+      # ja aamulla vertailu yön toteutuneeseen olosuhteeseen (data/nights) ja varjokomentoon (data/komennot) → data/sivupaatos.json.
+      # Kierros 2 (noin 17.11.) päättää, kumpi logiikka on päälogiikka.
+      - name: Sivun päätös talteen (pd1)
+        if: inputs.tila != 'kevyt'
+        continue-on-error: true
+        run: |
+          node --input-type=module <<'EOF'
+          import fs from 'node:fs';
+          const d = 'data', f = d + '/sivupaatos.json';
+          const hel = t => Object.fromEntries(new Intl.DateTimeFormat('en-GB', {timeZone: 'Europe/Helsinki', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23'}).formatToParts(new Date(t)).map(x => [x.type, x.value]));
+          const helDate = t => { const p = hel(t); return p.year + '-' + p.month + '-' + p.day; }, helH = t => Number(hel(t).hour);
+          const rd = p => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return null; } };
+          const P = rd(d + '/pohdinta.json');
+          if (!P || !P.paatos || !P.t || Date.now() - Date.parse(P.t) > 20 * 60e3) { console.log('pd1: ei tuoretta sivun päätöstä'); process.exit(0); }
+          const now = Date.now(), h = helH(now), night = helDate(h < 8 ? now - 12 * 36e5 : now);
+          const S = rd(f) || {v: 'pd1', first: new Date(now).toISOString(), history: []};
+          const D = {...P.paatos, t: P.t};
+          // aamuvertailu valmiista yöstä: olosuhde toteutui (mitattu liukas, kuura tai märkä tie pakkasella) ja varjokomennon taso
+          if (S.night && S.evaluated !== S.night) {
+            const N = rd(d + '/nights/' + S.night + '.json');
+            if (N && N.complete) {
+              const C = S.slots && (S.slots['22'] || S.slots['18']);
+              const need = (N.stations || []).filter(s => s.need || s.slipFirst);
+              const first = need.map(s => Date.parse(s.needT || s.slipFirst)).filter(x => !isNaN(x)).sort((a, b) => a - b)[0] ?? null;
+              const F = rd(d + '/komennot/' + S.night + '.json'), KC = F && F.slots && (F.slots['22'] || F.slots['18']);
+              const kBy = KC ? (KC.roads || []).filter(r => r.level === 'toimenpide' && r.by).map(r => Date.parse(r.by)).sort((a, b) => a - b)[0] ?? null : null;
+              const act = C && C.level === 'toimenpide', nd = need.length > 0;
+              const E = {night: S.night, slot: S.slots && S.slots['22'] ? '22' : S.slots && S.slots['18'] ? '18' : null, level: C ? C.level : null, by: C ? C.by : null, titles: C ? C.titles : [],
+                need: need.length, firstNeed: first != null ? new Date(first).toISOString() : null,
+                res: !C ? null : act ? (nd ? 'aiheellinen' : 'turha') : nd ? 'ohi' : 'oikein',
+                timing: act && nd && C.by && first != null ? (Date.parse(C.by) <= first ? 'ajoissa' : 'myöhässä') : null,
+                kom: KC ? {level: KC.level, by: kBy != null ? new Date(kBy).toISOString() : null, headline: KC.headline} : null,
+                agree: KC && C ? KC.level === C.level : null, salted: !!(N.works && N.works.salt && N.works.salt.n)};
+              S.eval = E; S.history = [E].concat((S.history || []).filter(x => x.night !== E.night)).slice(0, 60); S.evaluated = S.night;
+              console.log('pd1: aamuvertailu ' + JSON.stringify(E));
+            }
+          }
+          if (h >= 18 && S.night !== night) { S.night = night; S.slots = {}; S.evaluated = null; }
+          for (const [slot, a, b] of [['18', 18, 19], ['22', 22, 23]]) if (h >= a && h <= b && S.night === night && S.slots && !S.slots[slot]) { S.slots[slot] = {...D, slot}; console.log('pd1: sivun päätös klo ' + slot + ': ' + D.level + ' ' + (D.titles || []).join(', ')); }
+          S.now = D; S.updated = new Date(now).toISOString(); S.v = 'pd1';
+          fs.writeFileSync(f, JSON.stringify(S));
+          EOF
       - name: Tallenna aineisto säilöön (ilman pohdintaa)
         if: inputs.tila != 'kevyt'
         run: |
