@@ -1743,13 +1743,14 @@ const PD_SLIP = /^(Liukkaudentorjunta|Kitkantorjunta|Kuura|Mahdollinen liukkaus|
 function pageDecision(acts){
   const sl = (acts||[]).filter(a=>a.slip), act = sl.filter(a=>a.sev === 'bad' || a.sev === 'warn'), watch = sl.filter(a=>a.sev === 'info');
   const by = act.map(a=>a.by).filter(v=>v != null).sort((x,y)=>x-y)[0];
-  return {level: act.length ? 'toimenpide' : watch.length ? 'seuranta' : 'ei', by: by != null ? new Date(by).toISOString() : null, titles: (act.length ? act : watch).map(a=>a.title)};
+  const na = !sl.length && (acts||[]).some(a=>a.sev === 'na');
+  return {level: act.length ? 'toimenpide' : watch.length ? 'seuranta' : na ? 'na' : 'ei', by: by != null ? new Date(by).toISOString() : null, titles: (act.length ? act : watch).map(a=>a.title)};
 }
-const PD_LV = {toimenpide:'toimenpide', seuranta:'seuranta', ei:'ei toimenpiteitä'};
+const PD_LV = {toimenpide:'toimenpide', seuranta:'seuranta', ei:'ei toimenpiteitä', na:'ei arviota (tiedot puuttuivat)'};
 function pdDiff(acts){
   const K = typeof nightS !== 'undefined' && nightS.k, C = K && K.now; if(!C || !C.t || Date.now() - Date.parse(C.t) > 90*60e3) return '';
   const D = pageDecision(acts), kBy = (C.roads||[]).filter(r=>r.level === 'toimenpide' && r.by).map(r=>Date.parse(r.by)).sort((a,b)=>a-b)[0];
-  const diff = D.level !== C.level || (D.level === 'toimenpide' && D.by && kBy != null && Math.abs(Date.parse(D.by) - kBy) > 2*36e5);
+  const diff = D.level !== 'na' && D.level !== C.level || (D.level === 'toimenpide' && D.by && kBy != null && Math.abs(Date.parse(D.by) - kBy) > 2*36e5);
   return diff ? '<div class="sl-next sl-kom"><b>Puhelinilmoitukset (varjokomento) toisin:</b> '+esc(C.headline)+' <small>· sivu: '+PD_LV[D.level]+(D.level === 'toimenpide' && D.by ? ' ennen klo '+fmtT(D.by) : '')+'</small></div>' : '';
 }
 function renderStatusLine(acts){
