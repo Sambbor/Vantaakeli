@@ -1,11 +1,11 @@
 {
- "t": "2026-11-04T08:47:45.731Z",
+ "t": "2026-11-04T09:17:39.432Z",
  "src": {
   "stations": {
    "name": "Asemat",
-   "status": "ok",
-   "detail": "10/10 kunnossa · 2 min",
-   "title": "Kaikki asemat antavat tuoretta tienpintatietoa"
+   "status": "warn",
+   "detail": "9/10 kunnossa · 2 min",
+   "title": "Tarkista: Tie 3 Vantaa, Keimola: tienpinta-anturi ei päivity"
   },
   "roadfc": {
    "name": "Tieennuste",
@@ -28,7 +28,7 @@
   "fmi": {
    "name": "FMI-ennuste",
    "status": "ok",
-   "detail": "haettu 10.47",
+   "detail": "haettu 11.17",
    "title": "Ilmatieteen laitoksen pisteennuste · haetaan 30 min välein"
   },
   "models": {
@@ -40,20 +40,20 @@
   "works": {
    "name": "Toteumat",
    "status": "ok",
-   "detail": "248 kpl · viim. 10.37",
+   "detail": "260 kpl · viim. 11.14",
    "title": "Harja-toteumat, talvihoidon tehtävät"
   },
   "radar": {
    "name": "Sadetutka",
    "status": "ok",
-   "detail": "10.35 · 13 min",
+   "detail": "11.05 · 13 min",
    "title": "Viimeisin tutkakuva; sadetyyppi analysoitu teiden kohdalta"
   },
   "keruu": {
    "name": "Keruu",
    "status": "ok",
    "detail": "0 min sitten",
-   "title": "Liukkausdatan keruu (GitHub Actions) 30 min välein, viimeisin ke 4.11. klo 10.47."
+   "title": "Liukkausdatan keruu (GitHub Actions) 30 min välein, viimeisin ke 4.11. klo 11.17."
   },
   "traffic": {
    "name": "Tiedotteet",
