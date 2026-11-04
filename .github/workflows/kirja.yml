@@ -1,0 +1,69 @@
+name: Päivystyskirjan yöpaketti
+# pk1 (4.11.2026, Samuli: "Tee koko päivystyskirja"): joka aamu edellisen yön paketti Päivystyskirja-sivulle.
+# Koodi yksityisessä säilössä (Vantaakeli-laskenta/kirja/rakenna.py). Tulos data/kirja/yo-, kuvat- ja yht-YYYY-MM-DD.json.
+# Clauden aamuajo (Cowork, klo 8.40) vie paketin sivun tietokantaan. Ajoreitit säilyvät Digitrafficissa vain 24 h,
+# joten paketti tehdään samana aamuna. Varakierros klo 8.55 ohittaa, jos paketti on jo tehty.
+on:
+  schedule:
+    - cron: '25 6 * * *'     # 8.25 Suomen talviaikaa (yön yhteenveto valmistuu klo 8.17 keruussa)
+    - cron: '55 6 * * *'     # varalla
+  workflow_dispatch:
+    inputs:
+      yo:
+        description: 'Illan päivämäärä YYYY-MM-DD (tyhjä = eilen)'
+        type: string
+        required: false
+permissions:
+  contents: write
+concurrency: kirja
+jobs:
+  paketti:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Yö
+        id: yo
+        run: |
+          YO="${{ inputs.yo }}"
+          [ -n "$YO" ] || YO=$(TZ=Europe/Helsinki date -d yesterday +%F)
+          D1=$(date -d "$YO +1 day" +%F)
+          echo "yo=$YO" >> $GITHUB_OUTPUT; echo "d1=$D1" >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" = "schedule" ] && [ -f "data/kirja/yo-$YO.json" ]; then echo "skip=1" >> $GITHUB_OUTPUT; echo "Paketti $YO on jo tehty."; fi
+      - name: Hae koodi (yksityinen säilö)
+        if: steps.yo.outputs.skip != '1'
+        uses: actions/checkout@v5
+        with:
+          repository: Sambbor/Vantaakeli-laskenta
+          token: ${{ secrets.CODE_TOKEN }}
+          path: .laskenta
+          sparse-checkout: |
+            kirja
+      - name: Hae arkistosta yön tiedostot
+        if: steps.yo.outputs.skip != '1'
+        run: |
+          YO=${{ steps.yo.outputs.yo }}; D1=${{ steps.yo.outputs.d1 }}
+          for i in 1 2 3; do
+            rm -rf .ta && git clone -q --depth 1 --filter=blob:none --sparse https://github.com/Sambbor/Tiesaa-arkisto.git .ta && break
+            sleep $((i*10))
+          done
+          cd .ta && git sparse-checkout set --no-cone /meta/stations.json /data/naapurit.json /kuura/meta/cams.json \
+            "/archive/${YO:0:7}/obs-$YO.csv.gz" "/archive/${D1:0:7}/obs-$D1.csv.gz" "/data/current/obs-$YO/" "/data/current/obs-$D1/" \
+            "/kuura/data/kuura-${D1:0:7}.csv" "/kuura/kuvat/${D1:0:7}/${D1:8:2}/"
+      - name: Koosta paketti
+        if: steps.yo.outputs.skip != '1'
+        run: python3 .laskenta/kirja/rakenna.py --ta .ta --vk . --yo ${{ steps.yo.outputs.yo }} --out data/kirja
+      - name: Tallenna säilöön
+        if: steps.yo.outputs.skip != '1'
+        run: |
+          # kuvat säilyvät sivun tietokannassa; säilössä pidetään vain viimeiset 14 yötä
+          ls data/kirja/kuvat-*.json 2>/dev/null | sort | head -n -14 | xargs -r git rm -q
+          git config user.name "keli-bot"
+          git config user.email "keli-bot@users.noreply.github.com"
+          git add data/kirja
+          git diff --cached --quiet && exit 0
+          git commit -q -m "Päivystyskirja: yö ${{ steps.yo.outputs.yo }}"
+          for i in 1 2 3 4 5; do git pull -q --rebase --autostash && git push -q && exit 0; sleep $((i*7)); done
+          exit 1
