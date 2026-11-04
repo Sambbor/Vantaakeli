@@ -1,5 +1,6 @@
 {
- "t": 1793220666725,
+ "t": 1793809512000,
+ "v": "st2",
  "stations": [
   {
    "id": 1004,
@@ -44,6 +45,13 @@
    "lat": 60.326306
   },
   {
+   "id": 1049,
+   "name": "Tie 50 Vantaa, Porttipuisto",
+   "road": 50,
+   "lon": 25.078063,
+   "lat": 60.276891
+  },
+  {
    "id": 1084,
    "name": "Tie 50 Vantaa, Suutarila",
    "road": 50,
@@ -70,6 +78,13 @@
    "road": 148,
    "lon": 25.261519,
    "lat": 60.364585
+  },
+  {
+   "id": 1193,
+   "name": "Tie 50 Vantaa, Vantaankoski",
+   "road": 50,
+   "lon": 24.86676,
+   "lat": 60.296227
   }
  ]
 }
