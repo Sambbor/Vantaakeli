@@ -719,7 +719,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 'use strict';
 const fetch = (u, o) => window.fetch(u, (o && o.signal) || typeof AbortSignal === 'undefined' || !AbortSignal.timeout ? o : {...(o||{}), signal: AbortSignal.timeout(25000)});
 const URAKAT = {
-  vantaa: {id:'vantaa', name:'Vantaa', gen:'Vantaan', ade:'Vantaalla', code:301,
+  vantaa: {id:'vantaa', name:'Vantaa', gen:'Vantaan', ade:'Vantaalla', code:301, extraSt:{1193:50, 1049:50},
     bbox:{xMin:24.55, yMin:60.15, xMax:25.45, yMax:60.50}, fcBbox:'xMin=24.7&yMin=60.18&xMax=25.3&yMax=60.42',
     fcSections:['00003_101_000_0','00003_101_001_0','00004_101_000_0','00004_103_000_0','00007_001_000_0',
       '00045_001_000_0','00045_002_000_0','00050_003_000_0','00050_006_000_0','00101_001_000_0','00101_006_000_0'], fineRoads:null,
@@ -758,7 +758,7 @@ if(U.id !== 'vantaa'){
 }
 const HDR = {headers:{'Digitraffic-User':'Vantaa-urakka-keliennuste'}};
 const TZ = 'Europe/Helsinki';
-const META_KEY = U.key+'-meta-v4';
+const META_KEY = U.key+'-meta-v5';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -823,8 +823,8 @@ async function loadMeta(){
     lon:d.geometry&&d.geometry.coordinates[0], lat:d.geometry&&d.geometry.coordinates[1],
     presets:d.properties.presets.filter(p=>p.inCollection).map(p=>({id:p.id, name:p.presentationName||'', url:p.imageUrl||('https://weathercam.digitraffic.fi/'+p.id+'.jpg')}))
   })).filter(c=>c.presets.length).sort((a,b)=>a.road-b.road || a.name.localeCompare(b.name,'fi'));
-  const stations = wsDet.filter(inContract).map(d => ({
-    id:d.id, name:(d.properties.names&&d.properties.names.fi)||d.properties.name, road:d.properties.roadAddress.roadNumber, municipality:d.properties.municipality,
+  const stations = wsDet.filter(d => inContract(d) || (d && (U.extraSt||{})[d.id] != null)).map(d => ({
+    id:d.id, name:(d.properties.names&&d.properties.names.fi)||d.properties.name, road:(U.extraSt||{})[d.id] || d.properties.roadAddress.roadNumber, municipality:d.properties.municipality,
     lon:d.geometry&&d.geometry.coordinates[0], lat:d.geometry&&d.geometry.coordinates[1]
   })).sort((a,b)=>a.road-b.road || a.name.localeCompare(b.name,'fi'));
   { const cnt = {}; stations.forEach(x=>{ cnt[x.name] = (cnt[x.name]||0)+1; }); stations.forEach(x=>{ if(cnt[x.name] > 1) x.name += ' ('+x.id+')'; }); }
@@ -1743,13 +1743,14 @@ const PD_SLIP = /^(Liukkaudentorjunta|Kitkantorjunta|Kuura|Mahdollinen liukkaus|
 function pageDecision(acts){
   const sl = (acts||[]).filter(a=>a.slip), act = sl.filter(a=>a.sev === 'bad' || a.sev === 'warn'), watch = sl.filter(a=>a.sev === 'info');
   const by = act.map(a=>a.by).filter(v=>v != null).sort((x,y)=>x-y)[0];
-  return {level: act.length ? 'toimenpide' : watch.length ? 'seuranta' : 'ei', by: by != null ? new Date(by).toISOString() : null, titles: (act.length ? act : watch).map(a=>a.title)};
+  const na = !sl.length && (acts||[]).some(a=>a.sev === 'na');
+  return {level: act.length ? 'toimenpide' : watch.length ? 'seuranta' : na ? 'na' : 'ei', by: by != null ? new Date(by).toISOString() : null, titles: (act.length ? act : watch).map(a=>a.title)};
 }
-const PD_LV = {toimenpide:'toimenpide', seuranta:'seuranta', ei:'ei toimenpiteitä'};
+const PD_LV = {toimenpide:'toimenpide', seuranta:'seuranta', ei:'ei toimenpiteitä', na:'ei arviota (tiedot puuttuivat)'};
 function pdDiff(acts){
   const K = typeof nightS !== 'undefined' && nightS.k, C = K && K.now; if(!C || !C.t || Date.now() - Date.parse(C.t) > 90*60e3) return '';
   const D = pageDecision(acts), kBy = (C.roads||[]).filter(r=>r.level === 'toimenpide' && r.by).map(r=>Date.parse(r.by)).sort((a,b)=>a-b)[0];
-  const diff = D.level !== C.level || (D.level === 'toimenpide' && D.by && kBy != null && Math.abs(Date.parse(D.by) - kBy) > 2*36e5);
+  const diff = D.level !== 'na' && D.level !== C.level || (D.level === 'toimenpide' && D.by && kBy != null && Math.abs(Date.parse(D.by) - kBy) > 2*36e5);
   return diff ? '<div class="sl-next sl-kom"><b>Puhelinilmoitukset (varjokomento) toisin:</b> '+esc(C.headline)+' <small>· sivu: '+PD_LV[D.level]+(D.level === 'toimenpide' && D.by ? ' ennen klo '+fmtT(D.by) : '')+'</small></div>' : '';
 }
 function renderStatusLine(acts){

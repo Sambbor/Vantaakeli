@@ -142,18 +142,18 @@ jobs:
           if (S.night && S.evaluated !== S.night) {
             const N = rd(d + '/nights/' + S.night + '.json');
             if (N && N.complete) {
-              const C = S.slots && (S.slots['22'] || S.slots['18']);
+              const C = S.slots && ([S.slots['22'], S.slots['18']].find(x => x && x.level !== 'na') || S.slots['22'] || S.slots['18']);   // pd1b: "Tiedot puuttuvat" (na) ei ratkaise
               const need = (N.stations || []).filter(s => s.need || s.slipFirst);
               const first = need.map(s => Date.parse(s.needT || s.slipFirst)).filter(x => !isNaN(x)).sort((a, b) => a - b)[0] ?? null;
               const F = rd(d + '/komennot/' + S.night + '.json'), KC = F && F.slots && (F.slots['22'] || F.slots['18']);
               const kBy = KC ? (KC.roads || []).filter(r => r.level === 'toimenpide' && r.by).map(r => Date.parse(r.by)).sort((a, b) => a - b)[0] ?? null : null;
-              const act = C && C.level === 'toimenpide', nd = need.length > 0;
-              const E = {night: S.night, slot: S.slots && S.slots['22'] ? '22' : S.slots && S.slots['18'] ? '18' : null, level: C ? C.level : null, by: C ? C.by : null, titles: C ? C.titles : [],
+              const act = C && C.level === 'toimenpide', nd = need.length > 0, na = !C || C.level === 'na';
+              const E = {night: S.night, slot: C ? C.slot : null, level: C ? C.level : null, by: C ? C.by : null, titles: C ? C.titles : [],
                 need: need.length, firstNeed: first != null ? new Date(first).toISOString() : null,
-                res: !C ? null : act ? (nd ? 'aiheellinen' : 'turha') : nd ? 'ohi' : 'oikein',
+                res: na ? null : act ? (nd ? 'aiheellinen' : 'turha') : nd ? 'ohi' : 'oikein',
                 timing: act && nd && C.by && first != null ? (Date.parse(C.by) <= first ? 'ajoissa' : 'myöhässä') : null,
                 kom: KC ? {level: KC.level, by: kBy != null ? new Date(kBy).toISOString() : null, headline: KC.headline} : null,
-                agree: KC && C ? KC.level === C.level : null, salted: !!(N.works && N.works.salt && N.works.salt.n)};
+                agree: KC && !na ? KC.level === C.level : null, salted: !!(N.works && N.works.salt && N.works.salt.n)};
               S.eval = E; S.history = [E].concat((S.history || []).filter(x => x.night !== E.night)).slice(0, 60); S.evaluated = S.night;
               console.log('pd1: aamuvertailu ' + JSON.stringify(E));
             }
