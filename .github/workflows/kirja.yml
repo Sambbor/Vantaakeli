@@ -2,7 +2,7 @@ name: Päivystyskirjan yöpaketti
 # pk1 (4.11.2026, Samuli: "Tee koko päivystyskirja"): joka aamu edellisen yön paketti Päivystyskirja-sivulle.
 # Koodi yksityisessä säilössä (Vantaakeli-laskenta/kirja/rakenna.py). Tulos data/kirja/yo-, kuvat- ja yht-YYYY-MM-DD.json.
 # Clauden aamuajo (Cowork, klo 8.40) vie paketin sivun tietokantaan. Ajoreitit säilyvät Digitrafficissa vain 24 h,
-# joten paketti tehdään samana aamuna. Varakierros klo 8.55 ohittaa, jos paketti on jo tehty.
+# joten paketti tehdään samana aamuna. Käynnistys: Keruun ajastin klo 8.27 ja 8.57 (talviaikaa); oma cron on varalla.
 on:
   schedule:
     - cron: '25 6 * * *'     # 8.25 Suomen talviaikaa (yön yhteenveto valmistuu klo 8.17 keruussa)
@@ -31,7 +31,8 @@ jobs:
           [ -n "$YO" ] || YO=$(TZ=Europe/Helsinki date -d yesterday +%F)
           D1=$(date -d "$YO +1 day" +%F)
           echo "yo=$YO" >> $GITHUB_OUTPUT; echo "d1=$D1" >> $GITHUB_OUTPUT
-          if [ "${{ github.event_name }}" = "schedule" ] && [ -f "data/kirja/yo-$YO.json" ]; then echo "skip=1" >> $GITHUB_OUTPUT; echo "Paketti $YO on jo tehty."; fi
+          # ajastettu tai ajastimen käynnistämä ajo (ei päivämäärää) ohittaa valmiin yön; käsin annettu päivämäärä tekee paketin aina uudelleen
+          if [ -z "${{ inputs.yo }}" ] && [ -f "data/kirja/yo-$YO.json" ]; then echo "skip=1" >> $GITHUB_OUTPUT; echo "Paketti $YO on jo tehty."; fi
       - name: Hae koodi (yksityinen säilö)
         if: steps.yo.outputs.skip != '1'
         uses: actions/checkout@v5
