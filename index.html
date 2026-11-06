@@ -1446,6 +1446,7 @@ async function loadNight(){
   nightS.k = await fetch(U.data+'komento.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   nightS.p = await fetch(U.data+'sivupaatos.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   nightS.nb = await fetch('https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/naapurit.json?'+Math.floor(Date.now()/3e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  nightS.jk = await fetch('https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/joukko.json?'+Math.floor(Date.now()/36e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   renderNight(); renderKomento();
   try{ renderNightLine(); }catch(e){ console.error(e); }
   try{ if(state.actions) renderStatusLine(state.actions); }catch(e){ console.error(e); }
@@ -1454,6 +1455,31 @@ const KLEVEL = {toimenpide:['p-bad','Toimenpide'], seuranta:['p-warn','Seuranta'
 const KNEED = {aiheellinen:['p-ok','aiheellinen'], turha:['p-warn','ei tarvetta'], ohi:['p-bad','ohi'], oikein:['p-ok','oikein: ei tarvetta']};
 const needTxt = s => s.need ? '<b>'+esc(s.need)+'</b>'+(s.needT ? ' klo '+fmtT(s.needT) : '') : s.near ? esc(s.near)+' <small class="muted">(lähellä)</small>' : 'ei'+(s.frMax ? ' <small class="muted">· kuurakertymä '+n1(s.frMax)+' °C·h</small>' : '');
 const KRES = {osui:['p-ok','osui ajoissa'], myohassa:['p-warn','myöhässä / jo liukas'], ohi:['p-bad','ohi'], turha:['p-na','turha'], suolattiin:['p-na','ei liukasta – suolattiin'], oikein:['p-ok','oikein: ei tarvetta']};
+// jk1 (6.11.2026, Samuli: kollektiivinen päivystäjä): mitä koko Suomen urakat tekivät, kun kelikeskuksen indeksi ja tienpinta
+// päätöshetkellä olivat samat kuin nyt Vantaalla (Tiesää-arkisto data/joukko.json, suomi.py su5). Varjo: ei vaikuta mihinkään.
+const JK_IDX = [[0, 30, 'alle 30'], [30, 50, '30–49'], [50, 90, '50–89'], [90, 101, '90–100']];
+const JK_TR = [[-99, -2, 'alle −2'], [-2, 0, '−2…0'], [0, 2, '0…+2'], [2, 4, '+2…+4'], [4, 99, 'yli +4']];
+const jkLuokka = (v, B) => (B.find(([a, b]) => v != null && v >= a && v < b) || [])[2];
+function joukkoArvio(J, slot, idx, tr){
+  if(!J || !J.taulu || idx == null) return null;
+  const T = J.taulu[slot] || {}, i = jkLuokka(idx, JK_IDX);
+  let key = i + '|' + jkLuokka(tr, JK_TR), c = tr != null ? T[key] : null;
+  if(!c || c.n < J.min){ key = i + '|*'; c = T[key]; }
+  return c ? Object.assign({solu: key}, c) : null;
+}
+function joukkoRivi(C){
+  const J = nightS.jk; if(!J) return '';
+  const st = Object.values(C.stations || {}), ix = st.map(s => s.idx).filter(v => v != null), tr = st.map(s => s.trNow).filter(v => v != null);
+  if(!ix.length) return '';
+  const hh = hourHel(Date.parse(C.t)), slot = C.slot === '18' || C.slot === '22' ? C.slot : (hh >= 20 || hh < 8 ? '22' : '18');
+  const a = joukkoArvio(J, slot, Math.max(...ix), tr.length ? Math.min(...tr) : null); if(!a) return '';
+  const pc = v => v == null ? '–' : v + ' %', h = a.suolaH;
+  return '<p class="muted" style="margin:0 0 6px"><b>Muut urakat vastaavissa oloissa</b> (indeksi '+esc(a.solu.split('|')[0])+(a.solu.endsWith('*') ? '' : ', tienpinta '+esc(a.solu.split('|')[1])+' °C')+', klo '+slot+', '+a.n+' urakkayötä koko Suomesta): '
+    + 'suolasi <b>'+pc(a.suolasiPros)+'</b>'+(a.joPros ? ' (jo ennen klo '+slot+' '+a.joPros+' %)' : '')
+    + (h != null && a.suolasiPros ? ', ensimmäinen suolaus tyypillisesti '+(h <= 0.25 ? 'heti' : 'noin '+n1(h)+' h kuluttua') : '')
+    + ' · liukasta tuli (kitka) <b>'+pc(a.liukasPros)+'</b>'+(a.liukasSuolatut != null && a.liukasEi != null ? ' (suolatuilla '+pc(a.liukasSuolatut)+', suolaamattomilla '+pc(a.liukasEi)+')' : '')
+    + ' · varjo, ei vaikuta ehdotukseen</p>';
+}
 let komOpen = false;
 function renderKomento(){
   const sec = $('#komento'), el = $('#komento-body'), K = nightS.k; if(!sec || !el) return;
@@ -1471,6 +1497,7 @@ function renderKomento(){
   const viSt = Object.values(C.stations||{}).filter(s=>s.vi !== undefined);
   if(viSt.length){ const on = viSt.filter(s=>s.viBy).sort((a,b)=>new Date(a.viBy)-new Date(b.viBy));
     x += '<p class="muted" style="margin:6px 0 0">Varjoindeksi (RoadSurfin tienpinta ja kuura/jää, vertailua varten): '+(on.length ? '≥ 50 '+on.length+' asemalla, aikaisin klo '+fmtT(on[0].viBy)+' ('+esc(on[0].name)+(on[0].viWhy ? ', '+esc(on[0].viWhy) : '')+')' : 'alle 50 kaikilla asemilla')+'</p>'; }
+  let jkRow = ''; try{ jkRow = joukkoRivi(C); }catch(e){ console.error(e); }
   const E = K.eval;
   if(E){ const day = new Date(E.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'}), c = E.cnt || {};
     const ws = E.works && E.works.salt && E.works.salt.n ? 'suolasi '+E.works.salt.n+(E.works.salt.n > 1 ? ' kertaa ('+fmtT(E.works.salt.first)+'–'+fmtT(E.works.salt.last)+')' : ' kerran ('+fmtT(E.works.salt.first)+')') : 'ei suolannut';
@@ -1508,7 +1535,7 @@ function renderKomento(){
   const cut = x.indexOf('</p>') + 4, agreeN = H.filter(n=>n.agree).length;
   const ksum = [E ? 'Aamuvertailu yö '+new Date(E.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'})+': '+(E.agree ? 'samaa mieltä urakan kanssa' : 'eri mieltä urakan kanssa')+', liukasta '+E.slipStations+' asemalla' : '',
     H.length ? 'kaikki yöt: samaa mieltä '+agreeN+'/'+H.length : ''].filter(Boolean).join(' · ');
-  x = x.slice(0, cut) + (ksum ? '<p class="muted" style="margin:0 0 6px">'+esc(ksum)+'</p>' : '')
+  x = x.slice(0, cut) + jkRow + (ksum ? '<p class="muted" style="margin:0 0 6px">'+esc(ksum)+'</p>' : '')
     + '<details class="kmore"'+(komOpen ? ' open' : '')+'><summary>Näytä ehdotus asemittain, aamuvertailu ja kaikki yöt</summary>' + x.slice(cut) + '</details>';
   el.innerHTML = x + '<p class="muted help" style="margin-top:8px">Ehdotus syntyy, kun liukkausindeksi nousee asemalla 50:een ennen klo 08: toimenpide valmiiksi ennen riskin alkua. Alle −6 °C ehdotetaan hiekoitusta rampeille ja liittymiin, koska suola ei tehoa. Seuranta = indeksi 30–49 tai RoadSurf ennustaa kuuraa, jäätä tai lunta. Turha = ehdotettiin, mutta liukasta ei mitattu eikä lähellä suolattu. <b>Olosuhde toteutui</b> arvioi tarpeen mittauksista suolauksesta riippumatta: asema mittasi liukasta, aseman kuurakertymä nousi vähintään 4 °C·h:iin tai tie oli märkä, lunta tai jäässä tienpinnan ollessa enintään 0 °C vähintään kahdessa peräkkäisessä mittauksessa (märkyyttä ei lasketa, jos lähellä suolattiin 6 h sisällä eikä satanut, koska se on suolaliuosta). Kostea tie pakkasella ja kuurakertymä 2–4 °C·h näytetään lähellä rajaa olevina, mutta niitä ei lasketa tarpeeksi.</p>';
 }
