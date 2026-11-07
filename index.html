@@ -1447,6 +1447,7 @@ async function loadNight(){
   nightS.p = await fetch(U.data+'sivupaatos.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   nightS.nb = await fetch('https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/naapurit.json?'+Math.floor(Date.now()/3e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   nightS.jk = await fetch('https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/joukko.json?'+Math.floor(Date.now()/36e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
+  nightS.jki = await fetch('https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/joukko-ilta.json?'+Math.floor(Date.now()/3e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   renderNight(); renderKomento();
   try{ renderNightLine(); }catch(e){ console.error(e); }
   try{ if(state.actions) renderStatusLine(state.actions); }catch(e){ console.error(e); }
@@ -1467,8 +1468,21 @@ function joukkoArvio(J, slot, idx, tr){
   if(!c || c.n < J.min){ key = i + '|*'; c = T[key]; }
   return c ? Object.assign({solu: key}, c) : null;
 }
+const JK_OMA = 'PR00054053';   // Vantaa 24-29 (Väyläviraston urakkakoodi)
 function joukkoRivi(C){
   const J = nightS.jk; if(!J) return '';
+  // jk2 (7.11.2026): illan arvio Tiesää-arkiston samasta laskennasta kuin taulukko (klo 18.23 / 22.23, data/joukko-ilta.json).
+  // Kelikeskuksen oma indeksi voi poiketa (opittu korjaus, RoadSurf, MET); varjokomennon lukuja käytetään vain, jos illan arviota ei ole.
+  const I = nightS.jki, nightKey = C.night || (K => K && K.night)(nightS.k);
+  const IO = I && I.urakat && I.urakat[JK_OMA] && (!nightKey || I.yo === nightKey) && Date.now() - Date.parse(I.t) < 14 * 36e5 ? I.urakat[JK_OMA] : null;
+  if(IO && IO.solu){
+    const pc = v => v == null ? '–' : v + ' %', h = IO.suolaH;
+    return '<p class="muted" style="margin:0 0 6px"><b>Muut urakat vastaavissa oloissa</b> (klo '+esc(I.slot)+': koko maan laskennan indeksi '+IO.idx+', alin tienpinta '+n1(IO.tr)+' °C → '+esc(IO.solu.replace('|*','').replace('|', ', tie '))+(IO.solu.endsWith('*') ? '' : ' °C')+', '+IO.n+' urakkayötä): '
+      + 'suolasi <b>'+pc(IO.suolasiPros)+'</b>'+(IO.joPros ? ' (jo ennen klo '+esc(I.slot)+' '+IO.joPros+' %)' : '')
+      + (h != null && IO.suolasiPros ? ', ensimmäinen suolaus tyypillisesti '+(h <= 0.25 ? (h < -0.25 ? 'jo ennen' : 'heti') : 'noin '+n1(h)+' h kuluttua') : '')
+      + ' · liukasta tuli (kitka) <b>'+pc(IO.liukasPros)+'</b>'+(IO.liukasSuolatut != null && IO.liukasEi != null ? ' (suolatuilla '+pc(IO.liukasSuolatut)+', suolaamattomilla '+pc(IO.liukasEi)+')' : '')
+      + ' · varjo, ei vaikuta ehdotukseen</p>';
+  }
   const st = Object.values(C.stations || {}), ix = st.map(s => s.idx).filter(v => v != null), tr = st.map(s => s.trNow).filter(v => v != null);
   if(!ix.length) return '';
   const hh = hourHel(Date.parse(C.t)), slot = C.slot === '18' || C.slot === '22' ? C.slot : (hh >= 20 || hh < 8 ? '22' : '18');
