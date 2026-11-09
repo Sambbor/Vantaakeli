@@ -54,7 +54,7 @@ jobs:
             "/archive/${YO:0:7}/obs-$YO.csv.gz" "/archive/${D1:0:7}/obs-$D1.csv.gz" "/data/current/obs-$YO/" "/data/current/obs-$D1/" \
             "/kuura/data/kuura-${D1:0:7}.csv" "/kuura/kuvat/${D1:0:7}/${D1:8:2}/" \
             "/archive/${YO:0:7}/fmi-obs-$YO.csv.gz" "/archive/${D1:0:7}/fmi-obs-$D1.csv.gz" "/data/current/fmi-obs-$YO/" "/data/current/fmi-obs-$D1/" \
-            "/suomi/$YO.json" /data/suomi.json /data/joukko.json "/retro/yot/$YO.json" /meta/urakat.json
+            "/suomi/$YO.json" /data/suomi.json /data/joukko.json "/retro/yot/$YO.json" /meta/urakat.json /tm/verif.json /retro/summary.json
       - name: Koosta paketti
         if: steps.yo.outputs.skip != '1'
         run: python3 .laskenta/kirja/rakenna.py --ta .ta --vk . --yo ${{ steps.yo.outputs.yo }} --out data/kirja

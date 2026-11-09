@@ -542,7 +542,6 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     <button type="button" class="tab" role="tab" id="tab-kamerat" data-tab="kamerat" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="15" height="12" rx="2"/><path d="m17 10 5-3v10l-5-3"/></svg><span class="l">Kelikamerat</span><span class="s">Kamerat</span></button>
     <button type="button" class="tab" role="tab" id="tab-kartta" data-tab="kartta" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3Z"/><path d="M9 3v15M15 6v15"/></svg><span class="l">Tilannekartta</span><span class="s">Kartta</span></button>
     <button type="button" class="tab" role="tab" id="tab-selvitys" data-tab="selvitys" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.8-4.8"/></svg><span class="l">Jälkiselvitys</span><span class="s">Selvitys</span></button>
-    <button type="button" class="tab" role="tab" id="tab-seuranta" data-tab="seuranta" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/></svg><span class="l">Seuranta</span><span class="s">Seuranta</span></button>
   </nav>
 
   <div class="status-line" id="status-line" data-tab="tilanne" hidden><div class="sl-main"></div><div class="sl-facts" id="sl-facts"></div></div>
@@ -675,30 +674,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     </div>
   </section>
 
-  <!-- sg1 (30.10.2026, Samuli): Seuranta-välilehti. Arviointiosiot pois Jälkiselvityksestä ja Kokeiluista, jokainen luku yhdessä paikassa. -->
-  <section id="scorecard" class="hide-wall" data-tab="seuranta">
-    <div class="sec-h"><h2>Osuiko liukkausennuste?</h2><span class="note">Urakan asemat viikoittain · koko Suomen jälkitarkistus samoilla säännöillä</span></div>
-    <div class="panel sg-panel">
-      <div id="sc-body"><div class="status">Ladataan…</div></div>
-      <div id="sg-verif" class="sg-verif"></div>
-      <details class="sg-det" id="retro"><summary>Koko Suomen jälkitarkistus <span class="muted">· Tiesää-arkiston noin 525 asemaa, päivittyy kerran vuorokaudessa</span></summary><div id="retro-body"><div class="status">Ladataan…</div></div></details>
-    </div>
-  </section>
-
-  <section id="osuma" class="hide-wall" data-tab="seuranta">
-    <div class="sec-h"><h2>Osuiko tienpintaennuste?</h2><span class="note">Yö klo 18–08: mitattu tienpinta vs. sivun 6 h aiemmin antama ennuste · arvosana keskivirheestä (tie −2…+2 °C painaa kaksinkertaisesti)</span></div>
-    <div class="panel" id="osuma-body"><div class="status">Ladataan…</div></div>
-    <div class="panel sg-panel sg-more">
-      <details class="sg-det" id="tmvarjo" open><summary>Oma tienpintamalli (varjo) <span class="muted">· koko Suomen aineistolla opetettu korjaus Vantaan asemille, ei käytössä indeksissä</span></summary><div id="tmv-body"><div class="status">Ladataan…</div></div></details>
-      <details class="sg-det" id="rsverif"><summary>Mallivertailu <span class="muted">· RoadSurf, Digitraffic ja sääntö samoilla hetkillä, päivittyy tunneittain</span></summary><div id="rsv-body"><div class="status">Ladataan…</div></div></details>
-      <details class="sg-det"><summary>Säämallien osuvuus <span class="muted">· ilman lämpötila 6, 12 ja 24 h</span></summary><div id="sc-models"><div class="status">Ladataan…</div></div></details>
-    </div>
-  </section>
-
-  <section id="slipmodel" class="hide-wall" data-tab="seuranta">
-    <div class="sec-h"><h2>Mitä malli on oppinut</h2><span class="note">Keruu laskee asemakohtaiset korjaukset kerätystä aineistosta ja ottaa ne käyttöön indeksissä automaattisesti · liukkaussäännöt muuttuvat vain säätökierroksella</span></div>
-    <div class="panel slip-model sg-panel"><div id="slip-data"><div class="status">Ladataan…</div></div><div id="sc-learned"></div></div>
-  </section>
+  <!-- se1 (9.11.2026, Samuli): Seuranta siirretty Päivystyskirjaan (Seuranta-välilehti); kelisivulla vain yön työkalut. -->
 
   <footer>
     Lähteet: <a href="https://www.digitraffic.fi/tieliikenne/" target="_blank" rel="noopener">Fintraffic / Digitraffic</a> (CC BY 4.0) ja <a href="https://www.ilmatieteenlaitos.fi/avoin-data" target="_blank" rel="noopener">Ilmatieteen laitos, avoin data</a> (CC BY 4.0).
@@ -1905,7 +1881,7 @@ function setSec(el, on){ if(!el) return; el.dataset.off = on ? '' : '1';
   let tabOk = true; try{ tabOk = document.body.classList.contains('wall') || el.dataset.tab === curTab; }catch(e){}
   el.hidden = !on || !tabOk; }
 const TAB_IDS = [...document.querySelectorAll('#tabs .tab')].map(b=>b.dataset.tab);
-const TAB_ALIAS = {tyot:'kartta', ennuste:'asemat', kokeilut:'seuranta'};
+const TAB_ALIAS = {tyot:'kartta', ennuste:'asemat', kokeilut:'tilanne', seuranta:'tilanne'};   // se1: Seuranta Päivystyskirjassa
 let curTab = (location.hash||'').slice(1); curTab = TAB_ALIAS[curTab] || curTab; if(!TAB_IDS.includes(curTab)){ try{ const v = localStorage.getItem(U.key+'-tab') || ''; curTab = TAB_ALIAS[v] || v; }catch(e){} } if(!TAB_IDS.includes(curTab)) curTab = 'tilanne';
 if(TAB_ALIAS[(location.hash||'').slice(1)]) history.replaceState(null, '', '#'+curTab);
 function applyTabs(){
@@ -1918,8 +1894,7 @@ function applyTabs(){
     if((curTab === 'asemat' || wall) && state.stations.length && Date.now()-histFetched >= 15*60e3) loadHistory().then(()=>{ renderStations(); if(state.lastCtx) updateSources(state.lastCtx); });
   }, 0);
   if(curTab === 'asemat' && !wall && state.stations.length) ensureMg();
-  if(curTab === 'liukkaus' || curTab === 'selvitys' || curTab === 'seuranta') setTimeout(()=>loadObsData(), 0);
-  if(curTab === 'seuranta') setTimeout(()=>loadOsuma(), 0);
+  if(curTab === 'liukkaus' || curTab === 'selvitys') setTimeout(()=>loadObsData(), 0);
   if(curTab === 'selvitys' && !wall) setTimeout(()=>rpInit(), 0);
 }
 function showTab(t, keepScroll){
@@ -2276,8 +2251,6 @@ function renderOsuma(){
     + '<span class="muted">heikoin ensin · erinomainen &lt; 0,5 · hyvä &lt; 1 · välttävä &lt; 1,5 °C</span></div>'
     + '<div class="os-cards">'+cards+'</div>';
 }
-$('#osuma-body').addEventListener('click', e=>{ const b = e.target.closest('.os-n'); if(b){ osu.sel = b.dataset.n; renderOsuma(); } });
-$('#osuma-body').addEventListener('change', e=>{ if(e.target.id === 'osu-dt'){ osu.dt = e.target.checked; try{ localStorage.setItem(U.key+'-osudt', osu.dt ? '1' : '0'); }catch(_){} renderOsuma(); } });
 function spark(pts){
   if(!pts || pts.length < 2) return '<span class="muted" title="Historia kertyy, kun sivu on auki">kertyy…</span>';
   const W = 120, H = 30, t1 = Date.now(), t0 = t1-24*36e5;
@@ -3111,7 +3084,7 @@ function radarTypeText(rt){
 
 state.src = {};
 const SRC_ORDER = ['stations','roadfc','finefc','cams','fmi','models','works','radar','traffic','keruu'];
-const SRC_TARGET = {stations:'#stations', roadfc:'#map', finefc:'#map', cams:'#cams', fmi:'#stmg', models:'#stmg', works:'#works', radar:'#map', traffic:'#tm-body', keruu:'#slipmodel'};
+const SRC_TARGET = {stations:'#stations', roadfc:'#map', finefc:'#map', cams:'#cams', fmi:'#stmg', models:'#stmg', works:'#works', radar:'#map', traffic:'#tm-body', keruu:'#komento'}   // se1: Seuranta (#slipmodel) siirretty Päivystyskirjaan;
 function setSrc(key, name, status, detail, title){ state.src[key] = {name, status, detail, title}; }
 let srcOpen = false;
 function renderSrc(){
@@ -3256,7 +3229,7 @@ function applyData(meta, d, errs, snapshot){
   for(const f of [renderModels, renderActions, renderBrief, renderWorks, renderSummary, renderMap, renderRoadFilter, renderCams, renderSlip, renderStations]){
     try{ f(); }catch(e){ console.error(f.name, e); }
   }
-  if((curTab === 'liukkaus' || curTab === 'selvitys' || curTab === 'seuranta') && !snapshot) loadObsData();
+  if((curTab === 'liukkaus' || curTab === 'selvitys') && !snapshot) loadObsData();
   if(snapshot) return;
   loadKeruu(); loadNight();
   loadRadar(); loadWarnings(); loadTraffic(); analyzeRadarType();
