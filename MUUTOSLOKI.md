@@ -2,6 +2,14 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 13.11.2026: Märkä tie hälyttää vasta toisesta pakkaslukemasta, räntä tutkakortissa (mr1, ei sääntömuutos)
+Salossa sivu näytti iltapäivällä räntäsateessa "Asemat hälyttävät nyt" -kortin, koska Haukkalan tienpinta kävi yhden mittauksen ajan −0,1 °C:ssa. Seuraavassa mittauksessa tie oli taas +0,2 °C ja kitka hyvä (0,7). Kortti alkoi laueta herkemmin 12.11. kelikorjauksen jälkeen, kun märkä keli saadaan taas tienpinnan tilasta. Liukkausindeksin säännöt (v17) ennallaan.
+
+- **Märkä tie pakkasella** hälyttää nyt, kun tienpinta on alle −0,3 °C tai enintään 0 °C kahdessa peräkkäisessä mittauksessa. Sama ehto on jo aamuvertailun "olosuhde toteutui" -säännössä, ja anturin tarkkuus on noin ±0,2 °C. Kuura-, lumi-, jää- ja varoitushälytykset eivät muuttuneet.
+- **Keruu** muistaa jokaisen aseman 4 viimeistä tienpinnan lukemaa (data/index.json), jotta edellinen mittaus on käytettävissä.
+- **Tutkan lumikortti:** jos useampi asema mittaa vesisadetta kuin lunta ja ilma on plussalla, kortti on "Räntäsadetta nyt (tutka ja asemat)" (SEURAA). Muuten kortti on ennallaan, mutta siinä näkyy nyt myös, mitä asemat mittaavat maassa. Tutka näki Salossa "kuivaa lunta 100 %", vaikka asemat mittasivat vesisadetta ja räntää.
+- Ei muutettu: "Jäätävä sade" ja "Liukkaudentorjunta" tulevat edelleen Digitrafficin tiesääennusteesta sellaisenaan. Salossa ennuste oli 13.11. noin 0,5 °C mittausta kylmempi. Ennusteen korjaus mittauksen mukaan on kierroksen 2 ja tienpintamallin asia.
+
 ## 13.11.2026: Tilanne-välilehti tiiviimmäksi (tl1, ei sääntömuutos)
 Ensimmäinen ruutu riittää päätökseen, kaikki muu avautuu napista. Mitään ei poistettu, laskentaan ja sääntöihin (v17) ei koskettu. Välilehden korkeus 800 px leveällä näytöllä: noin 2 800 px → 1 400 px (puhelimessa noin 2 000 → 1 600 px).
 
