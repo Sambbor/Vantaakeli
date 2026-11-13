@@ -130,7 +130,6 @@ footer a{color:var(--accent)}
 .act-h{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .act h3{font-size:20px}
 .act-when{font-weight:600;margin:4px 0 6px;font-size:14px} .act-where{color:var(--ink,inherit)}
-.act-why{font-weight:600;font-size:14px;margin:0 0 6px;color:var(--muted)}
 .status-line{margin:0 0 12px;padding:12px 14px 0;border-radius:8px;background:var(--panel);border:1px solid var(--line);border-left:6px solid var(--na)}
 .status-line button{all:unset;cursor:pointer;display:block;line-height:1.35}
 .status-line .sl-top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px}
@@ -165,6 +164,12 @@ body.wall .status-line:not([hidden]) ~ .summary{display:grid} body.wall .sl-fact
 .act-calm{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid var(--line);border-left:5px solid var(--ok);border-radius:8px;background:var(--panel);font-size:14px;color:var(--muted)}
 .act-calm .calm-ic{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;font-weight:700}
 .act ul{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px}
+.act-why-d{margin-top:4px} .act-why-d > summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--accent);width:max-content;padding:2px 0}
+.act-why-d[open] > summary{margin-bottom:4px} .act .act-when{margin-bottom:0}
+.sl-why{margin:2px 0 0} .sl-why ul{margin:0;padding-left:18px;font-size:14px;display:flex;flex-direction:column;gap:3px}
+.link-btn,.status-line .link-btn{all:unset;display:inline;cursor:pointer;color:var(--accent);text-decoration:underline;font-size:13px} .link-btn:focus-visible{outline:2px solid var(--accent)}
+.night-sum{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.nb-d,.kmore{margin-top:8px} .nb-d{margin-bottom:8px} .nb-d > summary{cursor:pointer;font-weight:600;margin:4px 0}
 .act-cams{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 .act-cams a{width:150px;max-width:31%;color:inherit;text-decoration:none}
 .act-cams img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:4px;display:block;background:var(--soft)}
@@ -316,11 +321,6 @@ body.wall .tabs{display:none}
   .map-ctrl > *{flex:none}
   .lgd summary{display:list-item}
   .tile .d{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .tile{padding:7px 10px} .tile .k{font-size:10.5px;letter-spacing:.05em} .tile .v{font-size:19px} .summary{margin-bottom:14px}
-  .act-hd{cursor:pointer;position:relative;padding-right:22px}
-  .act-hd::after{content:"";position:absolute;right:2px;top:10px;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
-  .act.open .act-hd::after{transform:rotate(-135deg);top:14px}
-  .act:not(.open) ul{display:none}
-  .act:not(.open) .act-when{margin-bottom:0} .act:not(.open) .act-why{margin-bottom:0}
   .actions{gap:8px}
   .rule{display:none} .legend{gap:4px 12px;font-size:12px}
   .mg-now{grid-template-columns:repeat(3,minmax(0,1fr))} .mg-lg{font-size:11.5px}
@@ -555,7 +555,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
       <div class="actions" id="actions-body"><div class="status">Lasketaan…</div></div>
       <div class="panel brief hide-wall">
         <div class="brief-h"><h3>Kelikatsaus</h3><button type="button" id="copybrief">Kopioi teksti</button></div>
-        <details id="brief-d" open><summary class="muted" style="cursor:pointer;font-size:13px">Teksti</summary><pre id="brief">Ladataan…</pre></details>
+        <details id="brief-d"><summary class="muted" style="cursor:pointer;font-size:13px">Teksti</summary><pre id="brief">Ladataan…</pre></details>
       </div>
     </div>
   </section>
@@ -1471,6 +1471,7 @@ function joukkoRivi(C){
     + ' · varjo, ei vaikuta ehdotukseen</p>';
 }
 let komOpen = false;
+$('#komento-body').addEventListener('toggle', e=>{ if(e.target.classList && e.target.classList.contains('kmore')) komOpen = e.target.open; }, true);
 function renderKomento(){
   const sec = $('#komento'), el = $('#komento-body'), K = nightS.k; if(!sec || !el) return;
   if(!K || !K.now){ setSec(sec, false); return; }
@@ -1525,10 +1526,12 @@ function renderKomento(){
   const cut = x.indexOf('</p>') + 4, agreeN = H.filter(n=>n.agree).length;
   const ksum = [E ? 'Aamuvertailu yö '+new Date(E.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'})+': '+(E.agree ? 'samaa mieltä urakan kanssa' : 'eri mieltä urakan kanssa')+', liukasta '+E.slipStations+' asemalla' : '',
     H.length ? 'kaikki yöt: samaa mieltä '+agreeN+'/'+H.length : ''].filter(Boolean).join(' · ');
-  x = x.slice(0, cut) + jkRow + (ksum ? '<p class="muted" style="margin:0 0 6px">'+esc(ksum)+'</p>' : '')
-    + '<details class="kmore"'+(komOpen ? ' open' : '')+'><summary>Näytä ehdotus asemittain, aamuvertailu ja kaikki yöt</summary>' + x.slice(cut) + '</details>';
+  x = x.slice(0, cut) + '<details class="kmore"'+(komOpen ? ' open' : '')+'><summary>Näytä ehdotus asemittain, aamuvertailu ja kaikki yöt</summary>'
+    + jkRow + (ksum ? '<p class="muted" style="margin:0 0 6px">'+esc(ksum)+'</p>' : '') + x.slice(cut) + '</details>';
   el.innerHTML = x + '<p class="muted help" style="margin-top:8px">Ehdotus syntyy, kun liukkausindeksi nousee asemalla 50:een ennen klo 08: toimenpide valmiiksi ennen riskin alkua. Alle −6 °C ehdotetaan hiekoitusta rampeille ja liittymiin, koska suola ei tehoa. Seuranta = indeksi 30–49 tai RoadSurf ennustaa kuuraa, jäätä tai lunta. Turha = ehdotettiin, mutta liukasta ei mitattu eikä lähellä suolattu. <b>Olosuhde toteutui</b> arvioi tarpeen mittauksista suolauksesta riippumatta: asema mittasi liukasta, aseman kuurakertymä nousi vähintään 4 °C·h:iin tai tie oli märkä, lunta tai jäässä tienpinnan ollessa enintään 0 °C vähintään kahdessa peräkkäisessä mittauksessa (märkyyttä ei lasketa, jos lähellä suolattiin 6 h sisällä eikä satanut, koska se on suolaliuosta). Kostea tie pakkasella ja kuurakertymä 2–4 °C·h näytetään lähellä rajaa olevina, mutta niitä ei lasketa tarpeeksi.</p>';
 }
+const nightOpen = {slip:false, nb:false};
+$('#night-body').addEventListener('toggle', e=>{ const k = e.target.dataset && e.target.dataset.k; if(k && k in nightOpen) nightOpen[k] = e.target.open; }, true);
 function renderNight(){
   const sec = $('#night'), el = $('#night-body'), N = nightS.d; if(!sec || !el) return;
   if(!N || !N.stations || !N.stations.length){ setSec(sec, false); return; }
@@ -1537,33 +1540,35 @@ function renderNight(){
   const w = (x, nm) => x && x.n ? nm+' '+x.n+(x.n > 1 ? ' kertaa (' : ' kerran (')+(x.n > 1 ? fmtT(x.first)+'–'+fmtT(x.last) : fmtT(x.first))+')' : null;
   const works = [w(N.works.salt,'suolaus'), w(N.works.plow,'auraus'), w(N.works.sand,'hiekoitus')].filter(Boolean);
   const slip = N.stations.filter(s=>s.slipFirst).sort((a,b)=>a.slipFirst.localeCompare(b.slipFirst));
-  let h = '<p><b>Yö '+day+' klo 18–08</b>'+(N.complete ? '' : ' <span class="pill p-warn">käynnissä</span>')+' · '+S.stations+' asemaa · päivitetty '+fmtT(N.updated)+'</p><ul class="night-l">'
+  let nb = null; try{ nb = neighborsHtml(N); }catch(e){ console.error(e); }
+  let h = '<p class="muted" style="margin:8px 0 6px;font-size:13px"><b>Yö '+day+' klo 18–08</b>'+(N.complete ? '' : ' <span class="pill p-warn">käynnissä</span>')+' · '+S.stations+' asemaa · päivitetty '+fmtT(N.updated)+'</p><ul class="night-l night-sum">'
     + '<li><b>Alin mitattu tienpinta:</b> '+(S.coldest ? n1(S.coldest.tr)+' °C, '+esc(S.coldest.name)+' klo '+fmtT(S.coldest.t) : '–')+'</li>'
     + '<li><b>Liukkautta:</b> '+(S.slipStations ? S.slipStations+'/'+S.stations+' asemalla · oma ennuste varoitti ajoissa '+S.warned+', ei varoittanut '+S.missed : 'ei yhdelläkään asemalla')
     + (S.falseHours ? ' · turhia hälytyksiä '+S.falseHours+' asematuntia' : '')+'</li>'
     + '<li><b>Työt:</b> '+(works.length ? works.join(', ') : 'ei suolausta, aurausta eikä hiekoitusta Harjassa')+'</li>'
+    + (nb ? '<li>'+nb.head+'</li>' : '')
     + '</ul>';
-  if(slip.length) h += '<div class="scroll"><table><thead><tr><th>Asema</th><th>Liukasta alkaen</th><th>Keli</th><th>Alin tie</th><th>Oma ennuste</th></tr></thead><tbody>'
+  if(slip.length) h += '<details class="nb-d" data-k="slip"'+(nightOpen.slip ? ' open' : '')+'><summary>Liukkaat asemat ('+slip.length+')</summary><div class="scroll"><table><thead><tr><th>Asema</th><th>Liukasta alkaen</th><th>Keli</th><th>Alin tie</th><th>Oma ennuste</th></tr></thead><tbody>'
     + slip.map(s=>'<tr><td class="name">'+esc(s.name)+'</td><td>'+fmtT(s.slipFirst)+'</td><td>'+esc(KELI_FI[s.keli] || '–')+'</td><td class="num">'+n1(s.trMin)+' °C</td><td>'
       + (s.lead != null ? '<span class="pill p-ok">varoitti '+s.lead+' h ennen</span>' : '<span class="pill p-bad">ei varoittanut</span>'+(s.dtWarned ? ' <small class="muted">Digitraffic varoitti</small>' : ''))+'</td></tr>').join('')
-    + '</tbody></table></div>';
-  try{ h += neighborsHtml(N); }catch(e){ console.error(e); }
+    + '</tbody></table></div></details>';
+  if(nb) h += nb.html;
   el.innerHTML = h + '<p class="muted help" style="margin-top:6px">Liukas = keli kuura, lumi, jää tai sohjo, hälyvaroitus, tai kun tie on enintään +1 °C: kitka alle 0,45, jäätä (≥ 0,1 mm) tai lunta tiellä. "Varoitti" = liukkausindeksi oli vähintään 50 jo 2, 6 tai 12 tuntia ennen. Turha hälytys = indeksi ≥ 50, mutta asema ei mitannut liukasta tunnin sisällä. Työt Harjan toteumista.</p>';
 }
 
 function neighborsHtml(N){
   const B = nightS.nb, key = Object.keys(URAKAT).find(k=>URAKAT[k] === U) || 'vantaa';
-  const L = B && B.groups && B.groups[key]; if(!L || !L.length || B.night !== N.night) return '';
+  const L = B && B.groups && B.groups[key]; if(!L || !L.length || B.night !== N.night) return null;
   const run = (x, nm) => x && x.n ? (x.n > 1 ? x.n+' krt ' : '')+fmtT(x.first)+(x.n > 1 || x.last !== x.first ? '–'+fmtT(x.last) : '') : '–';
   const nb = L.filter(x=>!x.home), sal = nb.filter(x=>x.salt && x.salt.n), sl = nb.filter(x=>x.slip);
   const head = 'Naapureista '+(sal.length ? 'suolasi '+sal.length+'/'+nb.length+' ('+sal.map(x=>x.name).join(', ')+')' : 'kukaan ei suolannut')
     + ' · liukasta mitattiin '+(sl.length ? sl.map(x=>x.name+' '+x.slip+' as.').join(', ') : 'ei missään');
-  return '<h3 style="margin:14px 0 4px;font-size:16px">Naapuriurakat samana yönä</h3><p style="margin:0 0 6px">'+esc(head)+(B.complete ? '' : ' <span class="pill p-warn">käynnissä</span>')+'</p>'
+  return {head: esc(head)+(B.complete ? '' : ' <span class="pill p-warn">käynnissä</span>'), html: '<details class="nb-d" data-k="nb"'+(nightOpen.nb ? ' open' : '')+'><summary>Naapuriurakat samana yönä</summary>'
     + '<div class="scroll"><table><thead><tr><th>Urakka</th><th>Asemia</th><th>Liukasta</th><th>Kuuraehto</th><th>Alin tie</th><th>Suolaus</th><th>Auraus / hiekoitus</th></tr></thead><tbody>'
     + L.map(x=>'<tr'+(x.home ? ' style="font-weight:600"' : '')+'><td class="name">'+esc(x.name)+(x.home ? ' (oma)' : '')+'</td><td class="num">'+x.stations+'</td>'
       + '<td>'+(x.slip ? '<span class="pill p-bad">'+x.slip+' as. klo '+fmtT(x.slipFirst)+'</span>' : '–')+'</td><td class="num">'+(x.frost ? x.frost+' as.' : '–')+'</td>'
       + '<td class="num" title="'+esc(x.trMinName||'')+'">'+(x.trMin != null ? n1(x.trMin)+' °C' : '–')+'</td><td>'+run(x.salt)+'</td><td>'+[x.plow && x.plow.n ? 'A '+run(x.plow) : '', x.sand && x.sand.n ? 'H '+run(x.sand) : ''].filter(Boolean).join(', ')+'</td></tr>').join('')
-    + '</tbody></table></div><p class="muted" style="margin:4px 0 0;font-size:12px">Koko maan Tiesää-arkistosta, päivitetty '+fmtT(B.updated)+'. Työ lasketaan urakalle, jos kone kulki 2 km päässä sen tiesääasemasta (rajan lähellä naapurin kone voi osua); kerrat = yli 30 min tauko aloittaa uuden. Kuuraehto = tie ≤ +1 °C ja kastepistettä kylmempi. Oma rivi samalla menetelmällä, voi poiketa yllä olevasta.</p>';
+    + '</tbody></table></div><p class="muted" style="margin:4px 0 0;font-size:12px">Koko maan Tiesää-arkistosta, päivitetty '+fmtT(B.updated)+'. Työ lasketaan urakalle, jos kone kulki 2 km päässä sen tiesääasemasta (rajan lähellä naapurin kone voi osua); kerrat = yli 30 min tauko aloittaa uuden. Kuuraehto = tie ≤ +1 °C ja kastepistettä kylmempi. Oma rivi samalla menetelmällä, voi poiketa yllä olevasta.</p></details>'};
 }
 
 const keruu = {t:0, idx:null, salt:null};
@@ -1735,20 +1740,18 @@ function snowOf(r){
 }
 
 
-let actOpen = null;
-function toggleAct(e){ const hd = e.target.closest('.act-hd'); if(!hd || innerWidth >= 700) return; if(e.type==='keydown' && e.key!=='Enter' && e.key!==' ') return; e.preventDefault();
-  const art = hd.parentElement, t = art.dataset.t, on = !art.classList.contains('open'); art.classList.toggle('open', on); hd.setAttribute('aria-expanded', on); on ? actOpen.add(t) : actOpen.delete(t); }
-$('#actions-body').addEventListener('click', toggleAct); $('#actions-body').addEventListener('keydown', toggleAct);
+const whyOpen = new Map();
+const whyIsOpen = a => document.body.classList.contains('wall') || (whyOpen.has(a.title) ? whyOpen.get(a.title) : a.sev === 'bad' || a.title === 'Asemat hälyttävät nyt');
+const whyHtml = (a, cls) => a.lines && a.lines.length ? '<details class="act-why-d'+(cls ? ' '+cls : '')+'" data-t="'+esc(a.title)+'"'+(whyIsOpen(a) ? ' open' : '')+'><summary>Miksi?</summary><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></details>' : '';
+document.addEventListener('toggle', e=>{ const d = e.target; if(!d.classList || !d.classList.contains('act-why-d') || document.body.classList.contains('wall')) return; whyOpen.set(d.dataset.t, d.open); }, true);
 function renderActions(){
   const acts = state.actions = computeActions();
   try{ renderSaltStrip(); }catch(e){ console.error(e); }
-  if(!actOpen) actOpen = new Set(acts.filter((a,i)=>i===0 && a.sev==='bad').map(a=>a.title));
   if(acts.length && acts.every(a=>a.sev === 'ok')) $('#actions-body').innerHTML = '<div class="act-calm"><span class="calm-ic" aria-hidden="true">✓</span><span>'+acts.map(a=>a.lines.join(' ')).join(' ')+'</span></div>';
-  else $('#actions-body').innerHTML = acts.map((a,i)=>'<article class="act a-'+a.sev+(i===0?' act-lead':'')+(actOpen.has(a.title)?' open':'')+'" data-t="'+esc(a.title)+'"><div class="act-hd" tabindex="0" role="button" aria-expanded="'+actOpen.has(a.title)+'">'
-    + (i===0 ? '<div class="act-why">Perustelut ylimpään ehdotukseen</div>'
-      : '<div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
-      + '<div class="act-when">'+(a.where ? '<span class="act-where">'+esc(a.where)+'</span> · ' : '')+a.when+'</div>')
-    + '</div><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></article>').join('');
+  else { const rest = acts.slice(1);
+    $('#actions-body').innerHTML = rest.length ? rest.map(a=>'<article class="act a-'+a.sev+'" data-t="'+esc(a.title)+'"><div class="act-hd"><div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
+      + '<div class="act-when">'+(a.where ? '<span class="act-where">'+esc(a.where)+'</span> · ' : '')+a.when+'</div></div>'+whyHtml(a)+'</article>').join('')
+      : '<p class="muted" style="margin:0">Ei muita ehdotuksia – ylin ehdotus perusteluineen on päätöslaatikossa.</p>'; }
   try{ renderStatusLine(acts); }catch(e){ console.error(e); }
   try{ renderNightLine(); }catch(e){ console.error(e); }
   const top = acts[0] ? SEV[acts[0].sev][1] : 0;
@@ -1768,7 +1771,9 @@ function pdDiff(acts){
   const K = typeof nightS !== 'undefined' && nightS.k, C = K && K.now; if(!C || !C.t || Date.now() - Date.parse(C.t) > 90*60e3) return '';
   const D = pageDecision(acts), kBy = (C.roads||[]).filter(r=>r.level === 'toimenpide' && r.by).map(r=>Date.parse(r.by)).sort((a,b)=>a-b)[0];
   const diff = D.level !== 'na' && D.level !== C.level || (D.level === 'toimenpide' && D.by && kBy != null && Math.abs(Date.parse(D.by) - kBy) > 2*36e5);
-  return diff ? '<div class="sl-next sl-kom"><b>Puhelinilmoitukset (varjokomento) toisin:</b> '+esc(C.headline)+' <small>· sivu: '+PD_LV[D.level]+(D.level === 'toimenpide' && D.by ? ' ennen klo '+fmtT(D.by) : '')+'</small></div>' : '';
+  if(!diff) return '';
+  const hl = String(C.headline||''), parts = hl.split(' – '), short = C.level === 'toimenpide' && parts.length > 1 ? hl.split(':')[0]+' '+parts[parts.length-1].replace(/^valmiina /, '') : parts[0];
+  return '<div class="sl-next sl-kom" title="'+esc(hl+' · sivu: '+PD_LV[D.level]+(D.level === 'toimenpide' && D.by ? ' ennen klo '+fmtT(D.by) : ''))+'">Varjokomento ehdottaa: '+esc(short.charAt(0).toLowerCase()+short.slice(1))+' <button type="button" class="link-btn hide-wall" data-go="komento">Näytä</button></div>';
 }
 function renderStatusLine(acts){
   const el = $('#status-line'); if(!el) return;
@@ -1782,11 +1787,13 @@ function renderStatusLine(acts){
     + (sub ? '<span class="sl-sub">'+esc(sub)+'</span>' : '')+'</button>'
     + (nxt ? '<div class="sl-next">Lisäksi: '+esc(nxt.title)+(nxt.where ? ' – '+esc(nxt.where) : '')+(rest.length > 1 ? ' ja '+(rest.length-1)+' muuta' : '')+'</div>' : '')
     + pdDiff(acts)
-    + (calcT ? '<div class="sl-next sl-calc">Laskettu klo '+fmtT(calcT)+'</div>' : '');
+    + (calcT ? '<div class="sl-next sl-calc">Laskettu klo '+fmtT(calcT)+'</div>' : '')
+    + (a.sev === 'ok' ? '' : whyHtml(a, 'sl-why'));
 }
-$('#status-line').addEventListener('click', e => { const b = e.target.closest('button[data-t]'); if(!b) return;
-  const card = [...document.querySelectorAll('#actions-body .act')].find(x=>x.dataset.t === b.dataset.t); if(!card) return;
-  card.classList.add('open'); if(actOpen) actOpen.add(b.dataset.t); card.scrollIntoView({behavior:'smooth', block:'start'}); });
+$('#status-line').addEventListener('click', e => {
+  const g = e.target.closest('[data-go]'); if(g){ const sec = $('#'+g.dataset.go); if(sec && !sec.hidden) sec.scrollIntoView({behavior:'smooth', block:'start'}); return; }
+  const b = e.target.closest('button[data-t]'); if(!b) return;
+  const d = $('#status-line .sl-why'); if(d) d.open = !d.open; });
 
 function nightWindow(now){
   let t = Math.floor(now/36e5)*36e5; const h = hourHel(now);
@@ -1842,7 +1849,8 @@ function renderBrief(){
   const rs = okStations().map(s=>svv(s,'TIE_1')).filter(v=>v!=null);
   if(rs.length){
     const kel = {}; okStations().forEach(s=>{ const k = svd(s,'KELI_1'); if(k) kel[k]=(kel[k]||0)+1; });
-    L.push('NYT: tienpinta '+n1(Math.min(...rs))+' … '+n1(Math.max(...rs))+' °C ('+rs.length+' asemaa). Keli: '+Object.entries(kel).map(([k,v])=>k.toLowerCase()+' '+v).join(', ')+'.');
+    const kelT = Object.entries(kel).map(([k,v])=>k.toLowerCase()+' '+v).join(', ');
+    L.push('NYT: tienpinta '+n1(Math.min(...rs))+' … '+n1(Math.max(...rs))+' °C ('+rs.length+' asemaa).'+(kelT ? ' Keli: '+kelT+'.' : ''));
   }
   const bad = state.stations.filter(s=>!stationIssues(s).ok);
   if(bad.length) L.push('HUOM: '+bad.length+' asemaa ilman käyttökelpoista tienpintatietoa ('+bad.map(s=>s.name).join(', ')+').');
@@ -1907,7 +1915,7 @@ $('#tabs').addEventListener('click', e=>{ const b = e.target.closest('.tab'); if
 $('#tabs').addEventListener('keydown', e=>{ if(e.key!=='ArrowRight' && e.key!=='ArrowLeft') return; const i = TAB_IDS.indexOf(curTab) + (e.key==='ArrowRight'?1:-1); const t = TAB_IDS[(i+TAB_IDS.length)%TAB_IDS.length]; showTab(t); $('#tab-'+t).focus(); });
 window.addEventListener('hashchange', ()=>{ let t = location.hash.slice(1); t = TAB_ALIAS[t] || t; if(TAB_IDS.includes(t)) showTab(t); });
 function tabDot(t, level){ const b = $('#tab-'+t); if(!b) return; let d = b.querySelector('.dot'); if(!level){ if(d) d.remove(); return; } if(!d){ d = document.createElement('i'); d.className = 'dot'; b.appendChild(d); } d.className = 'dot'+(level==='warn'?' warn':''); d.title = level==='bad' ? 'Kiireellinen toimenpide' : 'Valmistaudu'; }
-const applyWall = () => { document.body.classList.toggle('wall', settings.wall); applyTabs(); $('#wallbtn').setAttribute('aria-pressed', settings.wall); $('#wallbtn').textContent = settings.wall ? 'Normaalinäkymä' : 'Seinänäyttö'; };
+const applyWall = () => { document.body.classList.toggle('wall', settings.wall); if(settings.wall) document.querySelectorAll('.act-why-d').forEach(d=>{ d.open = true; }); applyTabs(); $('#wallbtn').setAttribute('aria-pressed', settings.wall); $('#wallbtn').textContent = settings.wall ? 'Normaalinäkymä' : 'Seinänäyttö'; };
 $('#wallbtn').addEventListener('click', ()=>{ settings.wall = !settings.wall; saveSettings(); applyWall(); });
 applyWall();
 
@@ -3283,7 +3291,6 @@ $('#auto').addEventListener('change', schedule);
 try{ const r = localStorage.getItem(U.key+'-road'); if(r){ $('#roadfilter').innerHTML += '<option value="'+esc(r)+'"></option>'; $('#roadfilter').value = r; } const only = localStorage.getItem(U.key+'-only'); if(only || (only===null && innerWidth < 700)) $('#onlyfirst').checked = true; }catch(e){}
 $('#map-box').style.setProperty('--map-ratio', (MAP_H/MAP_W*100).toFixed(2)+'%');
 if(innerWidth < 700) $('#map-lgd').open = false;
-if(innerWidth < 700) $('#brief-d').open = false;
 startFromSnapshot();
 schedule(); refresh();
 document.addEventListener('visibilitychange', () => { if(!document.hidden && Date.now()-lastRefresh > 60e3) refresh(); });
