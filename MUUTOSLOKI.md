@@ -2,6 +2,19 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 16.11.2026: Säätökierros 2 – säännöt v18 ja varjokomennon kokeilut (k2)
+Samulin päätökset 16.11. ("Tehdään ehdottamasi mukaan", Liukkaussäännöt, kierros 2). Puhelinilmoitukset, sivun päätöslaatikko ja varjokomennon oma ehdotus toimivat kuten ennen; vain kohta 3 muuttaa liukkaussääntöjä.
+
+- **Säännöt v18 (kohta 3):** Keimolan (1041) ja Pirkkolan (1034) tienpinnan tila (keli tilasta) ei enää hälytä liukasta eikä tee tiestä märkää. Keimolan mitattu tienpinta ei ankkuroi liukkausindeksiä eikä kerrytä kuuraa (indeksi lasketaan tiekohdan Digitraffic-havainnosta). Mittaukset näkyvät sivulla edelleen. Koko Suomen jälkitarkistus laskee 60 päivää uudelleen v18:lla.
+- **Aamuvertailun totuus (kohta 2):** liukas yö = optinen kitka alle 0,6 kylmällä tiellä vähintään tunnin jollain urakan asemalla (sama kuin koko Suomen vertailussa). Kun Päivystyskirjan kuittaus on viety (viikoittain maanantaisin), kuittaus ratkaisee, myös jälkikäteen. Vanha "olosuhde toteutui" jää rinnalle. Päivystyskirjan "Järjestelmän arvio" käyttää samaa totuutta.
+- **Varjot varjokomennossa (kohdat 1, 3c ja 3d):** näkyvät Varjokomento-osion avattavassa osassa, eivät muuta ehdotusta:
+  - *Klo 22 rajaus:* toimenpide muuttuu seurannaksi, jos riskin alku on yli 5 h päässä tai alin ennustettu tienpinta yli +2 °C. Uusi tarkistus tallennetaan klo 00 ja 02; jos niissä on toimenpide, varjon lopullinen taso on toimenpide.
+  - *Oma tienpintamalli:* sama indeksi Tiesää-arkiston oman tienpintamallin ennusteella (tm/latest.json) Digitraffic + v17 -ennusteen sijaan. v17-korjaus pysyy kelikeskuksessa toistaiseksi.
+  - *Kuura opitusta erotuksesta:* kuurasta johtuva toimenpide jää voimaan vain, jos kuurapistemalli (km1, km/latest.json) näkee kuuraavan tilan (erotus tie − kastepiste ≤ +0,3 °C ja tie ≤ +0,5 °C) tarkastelujaksolla.
+- **Tulokset:** data/komento.json (history[].tosi, history[].k2, nyt k2) ja data/komennot/YYYY-MM-DD.json (slots 18, 22, 00, 02 ja eval.tosi, eval.k2). Varjokomento-osiossa on taulukko "Totuus: kitka ja kuittaus (v18)" kaikista öistä.
+- Ei toteutettu (päätös): tuki20, v16c, kuura ≥ 0,5 ja RoadSurfin kuuramäärä kuuran syyksi.
+- Perutaan: säännöt palauttamalla SLIP_EXCL = {} ja RULES_VERSION = 'v17' (laskenta.html, lohko LIUKKAUSSÄÄNNÖT); varjot ja totuus poistamalla tunnuksen k2 muutokset (collect.mjs, index.html, kirja).
+
 ## 13.11.2026: Märkä tie hälyttää vasta toisesta pakkaslukemasta, räntä tutkakortissa (mr1, ei sääntömuutos)
 Salossa sivu näytti iltapäivällä räntäsateessa "Asemat hälyttävät nyt" -kortin, koska Haukkalan tienpinta kävi yhden mittauksen ajan −0,1 °C:ssa. Seuraavassa mittauksessa tie oli taas +0,2 °C ja kitka hyvä (0,7). Kortti alkoi laueta herkemmin 12.11. kelikorjauksen jälkeen, kun märkä keli saadaan taas tienpinnan tilasta. Liukkausindeksin säännöt (v17) ennallaan.
 

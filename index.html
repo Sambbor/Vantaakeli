@@ -1472,6 +1472,12 @@ function joukkoRivi(C){
 }
 let komOpen = false;
 $('#komento-body').addEventListener('toggle', e=>{ if(e.target.classList && e.target.classList.contains('kmore')) komOpen = e.target.open; }, true);
+// k2 (16.11.2026): aamuvertailun totuus (kitka, kuittaus) ja säätökierroksen 2 varjojen tulokset
+const K2RES = {osui:['p-ok','osui'], oikein:['p-ok','oikein: ei liukasta'], turha:['p-warn','turha'], ohi:['p-bad','ohi']};
+const K2NAME = {nyt:'Varjokomento (nykyiset säännöt)', p1:'Klo 22 rajaus, uusi tarkistus klo 00/02', tm:'Oma tienpintamalli', km:'Kuura opitusta erotuksesta'};
+function k2TosiTxt(T){ if(!T || T.liukas == null) return 'Totuus: <span class="muted">ei kitka-anturia eikä kuittausta</span>';
+  return 'Totuus ('+(T.lahde === 'kuittaus' ? 'kuittaus: '+esc(String(T.kuittaus||'').replace('_',' ')) : 'kitka, alin '+(T.kitkaMin != null ? T.kitkaMin.toFixed(2).replace('.', ',') : '–'))+'): <b>'+(T.liukas ? 'liukas' : 'ei liukasta')+'</b>'; }
+function k2ResTxt(R){ return Object.entries(K2NAME).filter(([k])=>R[k] && R[k].res).map(([k, nm])=>(k === 'nyt' ? 'varjokomento' : nm.toLowerCase())+' <span class="pill '+(K2RES[R[k].res]||['p-na'])[0]+'">'+(K2RES[R[k].res]||['',R[k].res])[1]+'</span>').join(', '); }
 function renderKomento(){
   const sec = $('#komento'), el = $('#komento-body'), K = nightS.k; if(!sec || !el) return;
   if(!K || !K.now){ setSec(sec, false); return; }
@@ -1488,6 +1494,13 @@ function renderKomento(){
   const viSt = Object.values(C.stations||{}).filter(s=>s.vi !== undefined);
   if(viSt.length){ const on = viSt.filter(s=>s.viBy).sort((a,b)=>new Date(a.viBy)-new Date(b.viBy));
     x += '<p class="muted" style="margin:6px 0 0">Varjoindeksi (RoadSurfin tienpinta ja kuura/jää, vertailua varten): '+(on.length ? '≥ 50 '+on.length+' asemalla, aikaisin klo '+fmtT(on[0].viBy)+' ('+esc(on[0].name)+(on[0].viWhy ? ', '+esc(on[0].viWhy) : '')+')' : 'alle 50 kaikilla asemilla')+'</p>'; }
+  // k2 (16.11.2026, säätökierros 2): varjot kohdista 1, 3c ja 3d – eivät muuta ehdotusta eivätkä puhelinilmoituksia
+  if(C.k2){ const lvTxt = v => !v ? '<span class="muted">ei tietoa</span>' : '<span class="pill '+(KLEVEL[v.level]||KLEVEL.ei)[0]+'">'+(KLEVEL[v.level]||KLEVEL.ei)[1]+'</span>'+(v.roads && v.roads.length ? ' <small>'+esc(v.roads.join(', '))+'</small>' : '');
+    const why1 = Object.values(C.stations||{}).filter(s=>s.k2 && s.k2.p1Why).map(s=>esc(s.name.replace(/^Tie \d+,? ?/, ''))+': '+esc(s.k2.p1Why));
+    x += '<p class="muted" style="margin:6px 0 0"><b>Säätökierroksen 2 varjot (v18, vertailua varten):</b><br>'
+      + 'Klo 22 rajaus (kaukainen alku yli 5 h tai tie yli +2 °C → seuranta, uusi tarkistus klo 00 ja 02): '+lvTxt(C.k2.p1)+(why1.length ? ' <small>('+why1.join('; ')+')</small>' : '')+'<br>'
+      + 'Indeksi oman tienpintamallin ennusteella: '+lvTxt(C.k2.tm)+'<br>'
+      + 'Kuura opitusta erotuksesta (km1, raja +0,3 °C): '+lvTxt(C.k2.km)+'</p>'; }
   let jkRow = ''; try{ jkRow = joukkoRivi(C); }catch(e){ console.error(e); }
   const E = K.eval;
   if(E){ const day = new Date(E.night+'T12:00:00').toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric'}), c = E.cnt || {};
@@ -1498,6 +1511,7 @@ function renderKomento(){
         + ' · ehdotus: aiheellinen <b>'+E.cntNeed.aiheellinen+'</b>, ei tarvetta <b>'+E.cntNeed.turha+'</b>, ohi <b>'+E.cntNeed.ohi+'</b>, oikein ei '+E.cntNeed.oikein
         + (E.urakkaNeed ? ' · urakan suolaus: <span class="pill '+(E.urakkaNeed==='aiheellinen' ? 'p-ok' : 'p-warn')+'">'+esc(E.urakkaNeed)+'</span>' : '')
         + (E.cntViNeed ? '<br><small class="muted">Varjoindeksi (RoadSurf) olosuhteen mukaan: aiheellinen '+E.cntViNeed.aiheellinen+', ei tarvetta '+E.cntViNeed.turha+', ohi '+E.cntViNeed.ohi+', oikein ei '+E.cntViNeed.oikein+'</small>' : '')+'</p>' : '')
+      + (E.tosi ? '<p style="margin:0 0 6px">'+k2TosiTxt(E.tosi)+(E.k2 ? ' · '+k2ResTxt(E.k2) : '')+(E.urakkaTosi ? ' · urakka: <span class="pill '+(K2RES[E.urakkaTosi]||['p-na'])[0]+'">'+(K2RES[E.urakkaTosi]||['',E.urakkaTosi])[1]+'</span>' : '')+'</p>' : '')
       + (E.cntVi ? '<p class="muted" style="margin:0 0 6px">Varjoindeksi (RoadSurf): osui '+(E.cntVi.osui||0)+', myöhässä '+(E.cntVi.myohassa||0)+', ohi '+(E.cntVi.ohi||0)+', turha '+(E.cntVi.turha||0)+', suolattiin '+(E.cntVi.suolattiin||0)+', oikein ei '+(E.cntVi.oikein||0)+' – sivun indeksi: osui '+(c.osui||0)+', myöhässä '+(c.myohassa||0)+', ohi '+(c.ohi||0)+', turha '+(c.turha||0)+'</p>' : '')
       + '<details'+(innerWidth < 700 ? '' : ' open')+'><summary style="cursor:pointer;font-weight:600;margin:4px 0">Asemittain ('+(E.stations||[]).length+')</summary><div class="scroll"><table><thead><tr><th>Asema</th><th>Ehdotus</th><th>Liukasta mitattiin</th>'+(E.cntNeed ? '<th>Olosuhde toteutui</th>' : '')+'<th>Yön alin tie</th><th>Suolattu lähellä</th><th>Tulos</th>'+(E.cntVi ? '<th>Varjoindeksi</th>' : '')+'</tr></thead><tbody>'
       + (E.stations||[]).map(s=>{ const r = s.resNeed ? KNEED[s.resNeed] : KRES[s.res] || ['p-na', s.res]; return '<tr><td class="name">'+esc(s.name)+'</td><td>'+(s.level==='toimenpide' ? esc(s.action)+(s.by ? ' – ennen klo '+fmtT(s.by) : '') : esc((KLEVEL[s.level]||KLEVEL.ei)[1]))+(s.agree ? ' <small class="muted">'+esc(s.agree)+' mallia</small>' : '')+'</td>'
@@ -1505,6 +1519,12 @@ function renderKomento(){
         + (E.cntVi ? '<td>'+(s.resVi ? '<span class="pill '+(KRES[s.resVi]||['p-na'])[0]+'">'+(KRES[s.resVi]||['',s.resVi])[1]+'</span>'+(s.vi!=null ? ' <small class="muted">'+s.vi+'</small>' : '') : '–')+'</td>' : '')+'</tr>'; }).join('') + '</tbody></table></div></details>';
   }
   const H = K.history || [];
+  if(H.some(n=>n.k2)){ const tot = {}; for(const n of H) for(const [k, v] of Object.entries(n.k2||{})) if(v.res){ tot[k] = tot[k] || {}; tot[k][v.res] = (tot[k][v.res]||0) + 1; }
+    const nT = H.filter(n=>n.tosi && n.tosi.liukas != null).length, nK = H.filter(n=>n.tosi && n.tosi.lahde === 'kuittaus').length, nL = H.filter(n=>n.tosi && n.tosi.liukas).length;
+    x += '<h3 style="margin:14px 0 4px;font-size:17px">Totuus: kitka ja kuittaus (v18)</h3><p class="muted" style="margin:0 0 6px">Liukas yö = optinen kitka alle 0,6 kylmällä tiellä vähintään 1 h jollain asemalla; Päivystyskirjan kuittaus ratkaisee, kun se on viety (viikoittain). '
+      + nT+' yötä, joista kuitattu '+nK+', liukkaita '+nL+'.</p><div class="scroll"><table><thead><tr><th>Urakan päätös</th><th class="num">Osui</th><th class="num">Ohi</th><th class="num">Turha</th><th class="num">Oikein ei</th></tr></thead><tbody>'
+      + Object.entries(K2NAME).filter(([k])=>tot[k]).map(([k, nm])=>'<tr><td>'+nm+'</td>'+['osui','ohi','turha','oikein'].map(r=>'<td class="num">'+(tot[k][r]||0)+'</td>').join('')+'</tr>').join('')
+      + '</tbody></table></div>'; }
   if(H.length){ const sum = H.reduce((a, n)=>{ for(const k in n.cnt||{}) a[k] = (a[k]||0) + n.cnt[k]; for(const k in n.cntNeed||{}) a['n_'+k] = (a['n_'+k]||0) + n.cntNeed[k]; a.agree += n.agree ? 1 : 0; return a; }, {agree:0});
     x += '<details style="margin-top:10px"><summary style="cursor:pointer;font-weight:600">Kaikki yöt ('+H.length+') · samaa mieltä urakan kanssa '+sum.agree+'/'+H.length+' · asemittain: osui '+(sum.osui||0)+', myöhässä '+(sum.myohassa||0)+', ohi '+(sum.ohi||0)+', turha '+(sum.turha||0)+(H.some(n=>n.cntNeed) ? ' · olosuhteen mukaan: aiheellinen '+(sum.n_aiheellinen||0)+', ei tarvetta '+(sum.n_turha||0)+', ohi '+(sum.n_ohi||0) : '')+'</summary>'
       + '<div class="scroll"><table><thead><tr><th>Yö</th><th>Ehdotus</th><th>Urakka</th><th>Liukkaita asemia</th><th>Olosuhde toteutui</th><th>Osui / myöhässä / ohi / turha / suolattiin / oikein</th><th>Olosuhteen mukaan: aiheellinen / ei tarvetta / ohi / oikein</th></tr></thead><tbody>'
