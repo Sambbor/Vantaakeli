@@ -2,6 +2,22 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 17.11.2026: Keli- ja varoitustieto palasi Digitrafficiin (kl2, ei sääntömuutos)
+Digitraffic alkoi 16.11. noin klo 11.30–12 lähettää taas vanhaa keli- ja varoitustietoa (KELI_1, KELI_2, VAROITUS_1, VAROITUS_2), joka oli poissa 6.11. alkaen. Kelikeskus käyttää vanhaa tietoa aina, kun sitä tulee, joten vaihto tapahtui itsestään: keli erottelee taas kuuran, lumen ja jään, ja kostea tie tunnistetaan.
+
+- **Asemat-taulukon selitys** varatiedosta (tienpinnan tila, optinen varoitus) näkyy vain, kun jokin asema käyttää varatietoa, ja kertoo monellako.
+- **Varatieto ja Ydintiedot-vahti jäävät käyttöön**, jos tieto katkeaa uudelleen. Keimolan ja Pirkkolan rajaus (v18) ja märän tien hälytys toisesta pakkaslukemasta ovat ennallaan.
+- **Huom. vertailuihin:** kelitieto ei ole yhtenäinen. 6.–13.11. keruussa ei ollut keliä ja 13.–16.11. keli tuli tienpinnan tilasta (kuura, lumi ja jää yhtenä luokkana), joten näiden päivien mitattu liukkaus ei vertaudu muihin.
+
+## 16.11.2026: Sivu yhdestä lähteestä ja sääntötesti (sj1, ei sääntömuutos)
+Kelisivusta oli kaksi käsin ylläpidettyä kopiota: laskentasivu (yksityinen) ja tämä julkinen sivu. Ne olivat ajautuneet erilleen. Säännöt (v18), ehdotukset ja puhelinilmoitukset eivät muuttuneet: sama laskenta antoi vanhalla ja uudella rakenteella saman tuloksen.
+
+- **Julkinen sivu tehdään laskentasivusta.** Keruu kokoaa `index.html`:n joka ajolla (30 min välein): laskenta ja kommentit jäävät pois, ja koonti pysähtyy, jos tulokseen jäisi sääntöjä. Tiedostoa `index.html` ei enää muokata käsin. Jos koonti epäonnistuu, edellinen sivu jää voimaan.
+- **Julkiselle sivulle tuli samalla kolme asiaa, jotka olivat vain laskentasivulla:** kelin varatieto tienpinnan tilasta ja varoitus optisesta anturista (12.11. kelikorjaus; julkisella sivulla keli näkyi vain, kun Digitraffic lähetti vanhan kelitiedon), Asemat-taulukon merkintöjen selitys ja lähdepalkin Ydintiedot-rivi.
+- **Säännöt omassa tiedostossaan** (yksityinen säilö, `saannot.js`). Sivu, keruu ja koko Suomen jälkitarkistus lukevat saman tiedoston.
+- **Sääntötesti:** kuuden arkistoidun päivän (17.10., 3.11., 6.11., 8.11., 13.11., 15.11.) laskennat Vantaan asemille ajetaan uudelleen aina, kun yksityisen säilön koodia muutetaan. Testi kertoo, montako hälytystä tuli lisää tai jäi pois ja millä asemilla.
+- Perutaan: palautetaan `index.html` ja työnkulun `keli-data.yml` vaihe "Julkinen sivu laskentasivusta" tätä merkintää edeltävään tilaan.
+
 ## 16.11.2026: Säätökierros 2 – säännöt v18 ja varjokomennon kokeilut (k2)
 Samulin päätökset 16.11. ("Tehdään ehdottamasi mukaan", Liukkaussäännöt, kierros 2). Puhelinilmoitukset, sivun päätöslaatikko ja varjokomennon oma ehdotus toimivat kuten ennen; vain kohta 3 muuttaa liukkaussääntöjä.
 
