@@ -885,8 +885,11 @@ function renderStations(){
   el.innerHTML = '<div class="st-bar"><div class="st-sum">'+sumTxt+'</div><div class="st-opts"><span class="seg">'+opt('sort','riski','Riski ensin')+opt('sort','tie','Tiejärjestys')+'</span>'
     + '<span class="seg st-vsel">'+opt('view','kortit','Kortit')+opt('view','taulukko','Taulukko')+'</span></div></div>'
     + '<div class="st-table">'+h+'</tbody></table></div><div class="st-cards">'+c+'</div>'
-    + '<p class="muted" style="font-size:.85em;margin:8px 2px 0">Merkinnät: <b>a3</b>, <b>a4</b> = tienpinta mitataan tällä asemalla kaista-anturilla 3 tai 4 (kylmin toimiva anturi; ilman merkintää anturi 1). '
-    + 'Keli tulee 6.11. alkaen tienpinnan tila -anturista, koska Digitraffic lopetti vanhan keli- ja varoitustiedon: <b>Liukas (kuura, lumi tai jää)</b> ei erottele näitä, eikä kosteaa enää tunnisteta (näkyy märkänä). Varoitus tulee optisesta anturista, jos asemalla on sellainen.</p>';
+    + '<p class="muted" style="font-size:.85em;margin:8px 2px 0">Merkinnät: <b>a3</b>, <b>a4</b> = tienpinta mitataan tällä asemalla kaista-anturilla 3 tai 4 (kylmin toimiva anturi; ilman merkintää anturi 1).'
+    + (()=>{ const nK = state.stations.filter(x=>x.values && x.values.KELI_1 && x.values.KELI_1.ksrc === 'tila').length, nW = state.stations.filter(x=>x.values && x.values.VAROITUS_1 && x.values.VAROITUS_1.wsrc === 'optinen').length;
+        return (nK ? ' Keli tulee '+nK+' asemalla tienpinnan tila -anturista, koska vanha kelitieto puuttuu: <b>Liukas (kuura, lumi tai jää)</b> ei erottele näitä, eikä kosteaa tunnisteta (näkyy märkänä).' : '')
+          + (nW ? ' Varoitus tulee '+nW+' asemalla optisesta anturista, koska vanha varoitustieto puuttuu.' : ''); })()
+    + '</p>';
 }
 function stSpark(pts, rows){
   const W = 300, H = 74, RB = 7, now = Date.now(), t0 = now - 24*36e5, t1 = now + 12*36e5;
