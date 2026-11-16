@@ -102,6 +102,12 @@ tr.cl{cursor:pointer} tr.cl:hover td{background:var(--soft)} tr.on td{background
 .bar i{position:absolute;left:0;top:0;bottom:0}
 .bar i.salt{background:var(--salt)} .bar i.plow{background:var(--plow)}
 .tblwrap{max-height:340px;overflow:auto}
+#map .rt{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;stroke-width:11px;opacity:.38}
+#map .rt.dim{opacity:.1} #map .rt.on{opacity:.75;stroke-width:14px}
+#map text.rl{font:700 1px var(--f-body);fill:#fff;stroke:none}
+#map .rlb{stroke:var(--panel);vector-effect:non-scaling-stroke;stroke-width:1.5px}
+.rsw{display:inline-block;width:22px;height:8px;border-radius:4px;vertical-align:middle;margin-right:6px}
+#rt-list td{white-space:normal} #rt-list td.n{white-space:nowrap}
 .status{color:var(--muted);font-size:14px;margin-top:8px}
 .err{color:var(--bad)}
 .muted{color:var(--muted)}
@@ -136,6 +142,8 @@ footer{color:var(--muted);font-size:13px;margin-top:18px}
     <span class="sep"></span>
     <label class="chk" title="Kuinka kauan tehty työ näkyy kartalla täysin värein"><span>Jälki</span>
       <select id="trail"><option value="1">1 h</option><option value="3">3 h</option><option value="6" selected>6 h</option><option value="0">koko jakso</option></select></label>
+    <span class="sep"></span>
+    <label class="chk" title="Toteumista päätellyt talvihoitoreitit"><input type="checkbox" id="routes-on" checked> Reitit</label>
   </div>
   <div class="play">
     <button type="button" id="p-play" aria-pressed="false">▶ Toista</button>
@@ -159,6 +167,7 @@ footer{color:var(--muted);font-size:13px;margin-top:18px}
     </div>
     <div class="side">
       <div class="blk"><h3 id="s-h">Tilanne</h3><div class="tiles" id="tiles"></div></div>
+      <div class="blk" id="rt-blk"><h3>Päätellyt suolausreitit</h3><div class="muted" style="font-size:12.5px;margin-bottom:4px" id="rt-note">Ladataan…</div><div id="rt-list"></div></div>
       <div class="blk"><h3>Koneet liikkeellä</h3><div class="muted" style="font-size:12.5px;margin-bottom:4px">Ajo = yhtäjaksoinen koneen kirjausketju. Klikkaa riviä siirtyäksesi koneen kohdalle.</div><div id="mach"></div></div>
       <div class="blk"><h3>Tiet</h3><div class="muted" style="font-size:12.5px;margin-bottom:4px">Osuus tiestä, jolla on kirjaus jakson alusta valittuun hetkeen. Klikkaa tietä korostaaksesi sen.</div><div class="tblwrap" id="roads"></div></div>
     </div>
@@ -177,6 +186,8 @@ footer{color:var(--muted);font-size:13px;margin-top:18px}
 'use strict';
 const NET_URLS = ['https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/tieverkko-heinola.json', 'tieverkko.json'];
 const DT = 'https://tie.digitraffic.fi';
+const RT_URLS = ['https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/reitit-heinola.json', 'reitit.json'];
+const RT_COL = ['#d1495b','#2a9d8f','#e09f3e','#3d7dd8','#8f5bd6','#6a994e','#c05299','#7a6c5d','#1b998b','#b5651d'];
 const TZ = 'Europe/Helsinki';
 const LAT0 = 61.3, M_LAT = 111320, M_LON = 111320*Math.cos(LAT0*Math.PI/180);
 const CATS = {SALTING:'salt', PLOUGHING_AND_SLUSH_REMOVAL:'plow', PLOUGHING_OF_SLUSH_DITCH:'plow', LOWERING_OF_SNOWBANKS:'plow', REMOVAL_OF_BULGE_ICE:'plow',
@@ -198,7 +209,7 @@ const dist = (a, b) => Math.hypot((a[0]-b[0])*M_LON, (a[1]-b[1])*M_LAT);
 
 /* ---------- tila ---------- */
 const S = {net:null, box:null, recs:[], chains:[], from:0, to:0, live:true, steps:[], i:0, play:null, cats:new Set(['salt','plow','sand']),
-  trail:6, selRoad:null, vb:null, tok:0, loading:false, lastLoad:0};
+  trail:6, selRoad:null, rt:null, rtOn:true, selRt:null, vb:null, tok:0, loading:false, lastLoad:0};
 
 /* ---------- projektio ---------- */
 const X = lon => (lon - S.box.w)*M_LON/1000;
@@ -379,6 +390,9 @@ function render(){
     if(r.e >= T - 10*60e3){ const c = r.chain, h = heads.get(c); if(!h || r.s >= h.s) heads.set(c, {s: r.s, pt: head, r}); }
   }
   let s = baseSvg;
+  if(S.rtOn && S.rt){ const rs = S.rt.reitit;
+    for(const r of rs){ const cl = S.selRt == null ? '' : S.selRt === r.id ? ' on' : ' dim';
+      s += '<path class="rt'+cl+'" stroke="'+RT_COL[(r.id-1) % RT_COL.length]+'" d="'+pathOf(r.viivat.map(v=>v.l))+'"><title>Reitti '+r.id+' · '+r.km+' km</title></path>'; } }
   if(S.selRoad != null) s += '<path class="nt" style="stroke:var(--accent);stroke-width:6px;opacity:.35" d="'+pathOf((S.net.d.roads.find(x=>x.r === S.selRoad)||{l:[]}).l)+'"/>';
   const order = Object.keys(groups).sort((a,b)=>parseFloat(a.split('|')[1]) - parseFloat(b.split('|')[1]));
   for(const k of order){ const [cat, op] = k.split('|'); s += '<path class="wk c-'+cat+'" opacity="'+op+'" d="'+pathOf(groups[k])+'"/>'; }
@@ -386,6 +400,10 @@ function render(){
   for(const [c, h] of heads){ const x = X(h.pt[0]).toFixed(2), y = Y(h.pt[1]).toFixed(2);
     s += '<g class="hd"><circle class="rg f-'+h.r.cat+'" cx="'+x+'" cy="'+y+'" r="'+(R*2).toFixed(3)+'"/><circle class="f-'+h.r.cat+'" cx="'+x+'" cy="'+y+'" r="'+R.toFixed(3)+'"><title>'+esc(c.name)+' · '+esc(h.r.tasks.map(t=>TASK_FI[t]||t).join(', '))+' · kirjaus '+fmtT(h.r.s)+'–'+fmtT(h.r.e)+'</title></circle></g>'; }
   s += labels();
+  if(S.rtOn && S.rt){ const fz = 12*z;
+    for(const r of S.rt.reitit){ if(S.selRt != null && S.selRt !== r.id) continue; const v = r.viivat.slice().sort((a,b)=>b.l.length-a.l.length)[0]; if(!v) continue; const c = v.l[Math.floor(v.l.length/2)];
+      const x = X(c[0]), y = Y(c[1]);
+      s += '<g><circle class="rlb" fill="'+RT_COL[(r.id-1) % RT_COL.length]+'" cx="'+x.toFixed(2)+'" cy="'+y.toFixed(2)+'" r="'+(fz*0.95).toFixed(3)+'"/><text class="rl" style="font-size:'+fz.toFixed(3)+'px" x="'+x.toFixed(2)+'" y="'+(y+fz*0.36).toFixed(2)+'" text-anchor="middle">'+r.id+'</text></g>'; } }
   $('#map').innerHTML = s;
   renderSide(T, vis, heads);
   // aikajanan kursori
@@ -441,6 +459,31 @@ function renderStrip(){
   $('#ticks').innerHTML = ticks.join('');
 }
 
+/* ---------- päätellyt reitit (Tiesää-arkisto, reitit.py) ---------- */
+async function loadRt(){
+  for(const u of RT_URLS){ try{ const r = await fetch(u, {cache:'no-cache'}); if(!r.ok) continue; const d = await r.json(); if(d && d.tyolajit){ S.rtAll = d; break; } }catch(e){} }
+  const d = S.rtAll, v = d && d.tyolajit && d.tyolajit.salt;
+  if(!v || v.tila !== 'ok'){ $('#rt-note').textContent = d ? 'Suolauskertoja on vielä liian vähän reittien päättelyyn.' : 'Reittitietoa ei saatu ladattua.'; return; }
+  S.rt = v; renderRt(); render();
+}
+function renderRt(){
+  const d = S.rtAll, v = S.rt; if(!v) return;
+  const p = d.tyolajit.plow;
+  $('#rt-note').innerHTML = 'Päätelty '+v.kerrat+' suolauskerrasta ('+esc(d.jakso[0].split('-').reverse().join('.'))+'–'+esc(d.jakso[1].split('-').reverse().join('.'))+'): tieosat, jotka sama kone ajaa samalla kierroksella. '
+    + 'Mukana tiet, joilla on suolattu vähintään 3 kertaa. Kierros = tyypillinen aika ensimmäisestä kirjauksesta siihen, että 90 % reitistä on ajettu. Klikkaa reittiä korostaaksesi sen.'
+    + (p && p.tila !== 'ok' ? ' <b>Aurausreitit</b> lasketaan, kun aurauskertoja on vähintään 3 (nyt '+p.kerrat+').' : '')
+    + ' <span class="muted">Laskettu '+esc(d.laskettu)+'.</span>';
+  const roadName = r => r < 100 ? 'vt '+r : r < 1000 ? 'kt/st '+r : r < 70000 ? 'yt '+r : 'kevytväylä';
+  $('#rt-list').innerHTML = '<table><thead><tr><th>Reitti</th><th>Tiet</th><th class="n">Pituus</th><th class="n">Kierros</th></tr></thead><tbody>'
+    + v.reitit.map(r=>{ const tiet = r.tiet.filter(t=>t.km >= 2 && t.tie < 70000).slice(0, 4).map(t=>'tie '+t.tie+' <span class="muted">'+String(t.km).replace('.', ',')+' km</span>').join(', ');
+      return '<tr class="cl'+(S.selRt === r.id ? ' on' : '')+'" data-rt="'+r.id+'"><td class="n"><span class="rsw" style="background:'+RT_COL[(r.id-1) % RT_COL.length]+'"></span>'+r.id+'</td><td>'+tiet+'</td><td class="n">'+String(r.km).replace('.', ',')+' km</td><td class="n">'+(r.kestoH != null ? String(r.kestoH).replace('.', ',')+' h' : '–')+'</td></tr>'; }).join('')
+    + '</tbody></table>';
+}
+function fitTo(pts){ if(!pts.length) return; const xs = pts.map(c=>X(c[0])), ys = pts.map(c=>Y(c[1]));
+  let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys); const pad = 4; x0 -= pad; x1 += pad; y0 -= pad; y1 += pad;
+  const el = $('#mapbox'), ar = el.clientWidth/el.clientHeight || 1; let w = x1 - x0, h = y1 - y0; if(w/h < ar) w = h*ar; else h = w/ar;
+  S.vb = {x: (x0 + x1)/2 - w/2, y: (y0 + y1)/2 - h/2, w, h}; applyVb(); render(); }
+
 /* ---------- kartan zoomaus ---------- */
 function fitVb(){ const w = X(S.box.e), h = Y(S.box.s), el = $('#mapbox'), ar = el.clientWidth/el.clientHeight || 1;
   let vw = w, vh = h; if(vw/vh < ar) vw = vh*ar; else vh = vw/ar;
@@ -493,6 +536,10 @@ function init(){
   $('#strip').addEventListener('click', e=>{ const r = e.currentTarget.getBoundingClientRect(); stop(); go(Math.round((e.clientX - r.left)/r.width*(S.steps.length - 1))); });
   $('#roads').addEventListener('click', e=>{ const tr = e.target.closest('tr[data-r]'); if(!tr) return; const r = Number(tr.dataset.r); S.selRoad = S.selRoad === r ? null : r;
     if(S.selRoad != null){ const rd = S.net.d.roads.find(x=>x.r === r); const pts = rd.l.flat(); const c = pts[Math.floor(pts.length/2)]; centerOn(c[0], c[1]); } else render(); });
+  $('#routes-on').onchange = e=>{ S.rtOn = e.target.checked; $('#rt-blk').hidden = !S.rtOn; render(); };
+  $('#rt-list').addEventListener('click', e=>{ const tr = e.target.closest('tr[data-rt]'); if(!tr) return; const id = Number(tr.dataset.rt);
+    S.selRt = S.selRt === id ? null : id; renderRt();
+    if(S.selRt != null){ const pts = S.rt.reitit.find(r=>r.id === id).viivat.flatMap(v=>v.l); fitTo(pts); } else render(); });
   $('#mach').addEventListener('click', e=>{ const tr = e.target.closest('tr[data-x]'); if(tr) centerOn(Number(tr.dataset.x), Number(tr.dataset.y)); });
   document.addEventListener('keydown', e=>{ if(e.target.matches('input,select')) return; if(e.key === 'ArrowLeft'){ stop(); go(S.i - 1); } else if(e.key === 'ArrowRight'){ stop(); go(S.i + 1); } else if(e.key === ' '){ e.preventDefault(); $('#p-play').click(); } });
   setInterval(()=>{ if(S.live && !S.loading && !S.play && Date.now() - S.lastLoad > 115e3) load(true); }, 20e3);
@@ -505,6 +552,7 @@ function init(){
     S.net.cellRoad = []; for(const a of S.net.idx.values()) for(const q of a) S.net.cellRoad[q[3]] = q[2]; }
   catch(e){ $('#status').innerHTML = '<span class="err">Tieverkkoa ei saatu ladattua ('+esc(e.message)+').</span>'; return; }
   fitVb(); buildBase(); render();
+  loadRt();
   await load();
 })();
 })();
