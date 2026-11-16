@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- Tämä tiedosto tehdään laskentasivusta (collector/julkaise.mjs). Älä muokkaa käsin: muutos katoaa seuraavassa julkaisussa. -->
 <html lang="fi">
 <head>
 <meta charset="utf-8">
@@ -88,7 +89,6 @@ td.name small{display:block;font-weight:400;color:var(--muted)}
 .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);padding:0 4px 8px}
 .legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
 .rule{margin:0 4px 8px;font-size:12.5px;color:var(--muted);max-width:90ch}
-/* ui2 (29.10.2026): selitteet ?-painikkeen taakse */
 .rule,.help{display:none} section.help-on .rule,section.help-on .help{display:block}
 .help-btn{margin-left:8px;width:24px;height:24px;padding:0;border-radius:50%;font:700 13px/1 var(--f-body);color:var(--muted);vertical-align:3px}
 .help-btn[aria-expanded=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -120,7 +120,6 @@ svg.chart text{fill:var(--muted);font:11px var(--f-mono)}
 .err{color:var(--bad)}
 footer{color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);padding-top:12px}
 footer a{color:var(--accent)}
-/* Toimenpidetarve */
 .act-top{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:12px;align-items:start}
 .actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
 .act{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;border-top:5px solid var(--na)}
@@ -147,7 +146,6 @@ footer a{color:var(--accent)}
 .fact.bad .v{color:var(--bad)} .fact.warn .v{color:var(--warn)}
 .status-line:not([hidden]) ~ .summary{display:none}
 body.wall .status-line:not([hidden]) ~ .summary{display:grid} body.wall .sl-facts{display:none} body.wall .status-line{padding-bottom:0}
-/* yj1: yön aikajana */
 .night-line{margin:-4px 0 12px;padding:8px 10px 6px;border-radius:8px;background:var(--panel);border:1px solid var(--line)}
 .night-line .nl-h{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 8px;font-size:12px;color:var(--muted);margin-bottom:4px} .night-line .nl-h b{color:var(--ink);font-weight:600}
 .night-line .nl-row{display:grid;grid-template-columns:repeat(14,1fr);gap:2px}
@@ -182,7 +180,6 @@ body.wall .status-line:not([hidden]) ~ .summary{display:grid} body.wall .sl-fact
 .brief-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .brief-h h3{font-size:18px}
 #brief{margin:0;white-space:pre-wrap;font:12.5px/1.5 var(--f-mono);background:var(--soft);border-radius:6px;padding:10px;max-height:340px;overflow:auto}
-/* Kartta */
 .map-ctrl{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px}
 .map-ctrl input[type=range]{width:180px;max-width:40vw}
 #radar-time{font-family:var(--f-mono);color:var(--muted)}
@@ -192,7 +189,6 @@ body.wall .status-line:not([hidden]) ~ .summary{display:grid} body.wall .sl-fact
 .map-box::before{content:"";display:block;padding-top:var(--map-ratio,75%)}
 #map-svg .rd{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:7}
 #map-svg .rd-other{stroke:var(--line);stroke-width:4}
-/* tv1: urakan muut tiet arviona (ohut, vaalea) */
 #map-svg .rd.net{stroke-width:2.6px;opacity:.6} #map-svg .rd.net.rd-na,#map-svg .rd.net.rd-t-na{stroke:var(--muted);opacity:.35}
 #map-svg .rd-ok{stroke:var(--ok)} #map-svg .rd-warn{stroke:var(--warn)} #map-svg .rd-bad{stroke:var(--bad)} #map-svg .rd-na{stroke:var(--na)}
 #map-svg .place{fill:var(--muted);font:600 15px var(--f-body);text-anchor:middle;paint-order:stroke;stroke:var(--mapbg);stroke-width:4px}
@@ -206,7 +202,6 @@ body.wall .status-line:not([hidden]) ~ .summary{display:grid} body.wall .sl-fact
 .map-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);padding:8px 12px}
 .map-legend i{display:inline-block;width:14px;height:14px;border-radius:50%;border:3px solid;vertical-align:-2px;margin-right:4px}
 .map-legend i.ln{width:18px;height:5px;border:0;border-radius:2px;vertical-align:middle}
-/* Varoitukset ja tiedotteet */
 .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
 .list{list-style:none;margin:0;padding:0}
 .list li{padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px}
@@ -216,7 +211,6 @@ body.wall .status-line:not([hidden]) ~ .summary{display:grid} body.wall .sl-fact
 .spark{display:block}
 .trend-dn{color:var(--cold);font-weight:600} .trend-up{color:var(--warn);font-weight:600}
 #lb-hist span{color:#e6ebf0;font-size:13px;align-self:center}
-/* Tietolähteet */
 .srcbar{display:flex;flex-wrap:wrap;gap:6px;margin:-6px 0 16px}
 .src{font:12.5px var(--f-body);padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);display:inline-flex;gap:6px;align-items:center;cursor:pointer}
 .src i{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
@@ -225,7 +219,6 @@ body.wall .status-line:not([hidden]) ~ .summary{display:grid} body.wall .sl-fact
 .src-tg{color:var(--muted)}
 td.name small.fault{color:var(--warn);font-weight:600}
 #map-svg .mfault circle{stroke:var(--na);stroke-dasharray:3 3;fill:var(--panel)} #map-svg .mfault text{fill:var(--na)}
-/* Tarkka tieennuste kartalla */
 #map-svg .rd-t-w{stroke:var(--ok)} #map-svg .rd-t-c0{stroke:var(--warn)} #map-svg .rd-t-c1{stroke:var(--cold)} #map-svg .rd-t-c2{stroke:var(--deep)} #map-svg .rd-t-na{stroke:var(--na)}
 #map-svg .rd.br{stroke-width:13;stroke-linecap:butt}
 .map-legend .lg-g{display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px 8px} .map-legend .lg-g b{color:var(--ink);font-weight:600;margin-right:2px} .map-legend .lg-g i{margin-right:0}
@@ -233,7 +226,6 @@ td.name small.fault{color:var(--warn);font-weight:600}
 #radar-legend{display:inline-flex;flex-wrap:wrap;gap:4px 12px}
 td.coldest{white-space:normal;min-width:180px;font-size:13px}
 td.coldest b{font-family:var(--f-mono)}
-/* Toteumat */
 #map-svg .wk{fill:none;stroke-width:3;stroke-linecap:round}
 #map-svg circle.wk{stroke:none}
 #map-svg .wk-salt{stroke:var(--salt)} #map-svg circle.wk-salt{fill:var(--salt)}
@@ -245,8 +237,6 @@ td small.wk-task{display:block;font-family:var(--f-body);color:var(--muted);font
 .wkbar.wk-salt{fill:var(--salt)} .wkbar.wk-plow{fill:var(--plow)} .wkbar.wk-sand{fill:var(--sand)} .wkbar.wk-check{fill:var(--muted)}
 td.fresh{color:var(--ok);font-weight:600}
 .sec-tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:13px;color:var(--muted)}
-/* Jälkiselvitys */
-/* Seinänäyttö */
 body.wall .hide-wall{display:none!important}
 body.wall .wrap{max-width:none}
 body.wall .cams{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
@@ -254,7 +244,6 @@ body.wall .act h3{font-size:24px}
 @media (max-width:900px){ .act-top{grid-template-columns:1fr} }
 @media (max-width:600px){ header h1{font-size:24px} .tile .v{font-size:22px} }
 @media (prefers-reduced-motion:no-preference){ .cam img{transition:opacity .3s} }
-/* Välilehdet */
 .tabs{position:sticky;top:0;z-index:6;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;background:var(--bg);border-bottom:1px solid var(--line);margin:0 0 18px;padding-top:4px}
 .tabs::-webkit-scrollbar{display:none}
 .tab{position:relative;flex:none;border:0;border-radius:6px 6px 0 0;background:none;color:var(--muted);font:600 15px var(--f-body);padding:9px 14px 10px;border-bottom:3px solid transparent;margin-bottom:-1px;display:inline-flex;align-items:center;gap:7px}
@@ -265,7 +254,6 @@ body.wall .act h3{font-size:24px}
 .tab .dot{position:absolute;top:6px;right:4px;width:9px;height:9px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 2px var(--bg)}
 .tab .dot.warn{background:var(--warn)}
 body.wall .tabs{display:none}
-/* Kartan zoomaus */
 .map-box{touch-action:pan-y;user-select:none;-webkit-user-select:none}
 .map-box.zoomed{touch-action:none;cursor:grab}
 .map-box.dragging{cursor:grabbing}
@@ -277,7 +265,6 @@ body.wall .tabs{display:none}
 #map-svg .rd{stroke-width:6px} #map-svg .rd.br{stroke-width:11px} #map-svg .rd-other{stroke-width:3.5px} #map-svg .wk{stroke-width:2.5px}
 #map-svg .mst circle{stroke-width:3px} #map-svg .mst{cursor:pointer}
 #map-svg .mst text,#map-svg .place{font-size:inherit}
-/* Puhelin */
 @media (max-width:700px){
   body{padding:0 12px calc(78px + env(safe-area-inset-bottom));font-size:15px}
   header.top{padding:12px 0 10px;margin-bottom:10px;gap:8px}
@@ -332,8 +319,6 @@ body.wall .tabs{display:none}
 .night-l{margin:4px 0 8px;padding-left:18px} .night-l li{margin:3px 0}
 .msum{padding:12px 14px;border-bottom:1px solid var(--line)} .msum h3{margin:0 0 6px;font:700 16px var(--f-display)} .msum ul{margin:0;padding-left:18px} .msum li{margin:3px 0}
 
-/* Liukkausennuste */
-/* ui1 (29.10.2026): alle 50 hillityt sävyt, vasta ≥ 50 vahva väri – riski erottuu yhdellä silmäyksellä */
 :root{--s0:#e9efea;--s1:#e9e2cc;--s2:#ef8d34;--s3:#c0392b;--s1-ink:#6b6352}
 @media (prefers-color-scheme: dark){ :root{--s0:#1c262b;--s1:#3a3628;--s2:#c46a22;--s3:#d0473a;--s1-ink:#b9b09a} }
 .slip-panel{padding:10px 12px}
@@ -373,7 +358,6 @@ body.wall .tabs{display:none}
   .slip-grid .nm{font-size:11.5px}
   .tab{font-size:10px!important}
 }
-/* Asemameteogrammi */
 .mg-bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line);font-size:13px}
 .mg-bar select{font-weight:600;max-width:100%}
 .mg-now{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:6px 14px;padding:10px 12px;border-bottom:1px solid var(--line)}
@@ -386,7 +370,6 @@ body.wall .tabs{display:none}
 .mg-wrap svg text{fill:var(--muted);font:11px var(--f-mono)}
 .mg-lg{padding:8px 12px 10px}
 .mg-lg i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
-/* mt1: asemakohtainen ennustetaulukko */
 .mgt{border-top:1px solid var(--line);padding:10px 12px 12px}
 .mgt h3{font-size:15px;margin:0 0 4px} .mgt .pin{font-size:13px;margin:0 0 8px;white-space:normal}
 .mgt-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:6px}
@@ -416,7 +399,6 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 #map-svg .mcl:hover rect,#map-svg .mcl:focus rect{fill:var(--ink)}
 .st-cards{display:none}
 .stc{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:8px}
-/* ui5: mittaristo */
 #stations-body.v-kortit .st-table{display:none} #stations-body.v-kortit .st-cards{display:grid} #stations-body.v-taulukko .st-cards{display:none}
 .st-cards{grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
 .st-cards .stc{margin:0;border-left:5px solid var(--line);display:flex;flex-direction:column}
@@ -429,24 +411,20 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 .st-sum{font-size:14px} .st-opts{display:flex;gap:8px;flex-wrap:wrap}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden} .seg .st-opt{border:0;border-radius:0;padding:4px 10px;font-size:12.5px;background:var(--panel)}
 .seg .st-opt[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
-/* mg2: mallien yksimielisyys meteogrammin alla */
 .mg-agree{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12.5px;margin:6px 0 2px}
 .mga{padding:2px 8px;border-radius:10px;border:1px solid var(--line);white-space:nowrap} .mga b{font-weight:600}
 .mga.ok{border-color:var(--ok);background:var(--ok-bg)} .mga.warn{border-color:var(--warn);background:var(--warn-bg)} .mga.bad{border-color:var(--bad);background:var(--bad-bg)} .mga.na{color:var(--muted)}
 .mga-h{color:var(--muted)}
-/* kt1: työlista kokoontaitettavana kartan alla */
 .wk-det > summary{cursor:pointer;padding:9px 14px;font-size:13px;list-style:revert}
 .wk-det > summary .status{padding:0;display:inline}
 .wk-det[open] > summary{border-bottom:1px solid var(--line)}
 .wk-s{color:var(--muted)} .wk-s b{color:var(--ink)}
-/* sg1: Seuranta-välilehti */
 .sg-panel{padding:12px 14px} .sg-panel > div > .scroll{margin:0}
 .sg-verif{margin-top:10px} .sg-verif:empty{display:none}
 .sg-det{border-top:1px solid var(--line);margin-top:12px;padding-top:8px} .sg-det > summary{cursor:pointer;font-weight:600;padding:4px 0}
 .sg-det > summary .muted{font-weight:400;font-size:13px}
 .sg-more{margin-top:10px} .sg-more > .sg-det:first-child{border-top:0;margin-top:0;padding-top:0}
 #sc-learned:empty{display:none}
-/* rp1: yön kelaus */
 .rp-keys{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
 .rp-key{font:12.5px var(--f-body);padding:3px 9px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;text-align:left;line-height:1.35}
 .rp-key b{font-family:var(--f-mono);margin-right:2px} .rp-key.fut{opacity:.55} .rp-key.on{outline:2px solid var(--accent);outline-offset:1px}
@@ -496,7 +474,6 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 .rp-w{font-size:13.5px;margin:8px 0}
 .rp-cam{margin:8px 0 0} .rp-cam img{width:100%;max-width:240px;cursor:zoom-in;border-radius:6px;display:block;background:var(--soft);aspect-ratio:16/9;object-fit:cover} .rp-cam figcaption{font-size:12.5px;color:var(--muted);margin-top:4px} .rp-cam.big img{max-width:520px;cursor:zoom-out}
 @media (max-width:700px){ .rp-ctl{position:sticky;top:0;z-index:4;background:var(--panel);margin:0 -14px;padding:6px 14px 0;border-bottom:1px solid var(--line);box-shadow:0 2px 6px rgba(0,0,0,.08)} .rp-bar .rp-lb{flex:1 1 100%} .rp-ticks span:nth-child(even){display:none} .rp-bar .rp-lb select{flex:1} .rp-grid{grid-template-columns:minmax(0,1fr)} .rp-knew tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)} .rp-knew th{grid-column:1/-1;border-top:1px solid var(--line)} .rp-knew td{border-top:0} #rp-time{font-size:17px} }
-/* os1: Osuiko sivu? */
 .os-sum{font-size:14px;margin:0 0 10px;line-height:1.5}
 .os-strip{display:flex;gap:4px;overflow-x:auto;padding:2px 0 6px;scrollbar-width:thin}
 .os-n{flex:0 0 auto;min-width:52px;padding:4px 6px;border-radius:6px;border:1px solid var(--line);text-align:center;background:var(--panel)}
@@ -581,7 +558,6 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
     </div>
     <div class="panel slip-first" id="slip-first"></div>
   </section>
-
 
   <section id="map" data-tab="kartta">
     <div class="sec-h"><h2>Tilannekartta</h2><span class="note">Asemat: tienpinta nyt · tiet: tarkka tiesääennuste lyhyinä pätkinä (sillat paksummalla) · tutka: Ilmatieteen laitos</span></div>
@@ -690,6 +666,13 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
   <div class="row"><button type="button" id="lb-close">Sulje (Esc)</button></div>
 </div>
 
+<script>
+const hourHel = t => Number(new Date(t).toLocaleString('fi-FI', {hour:'2-digit', hour12:false, timeZone:'Europe/Helsinki'})) % 24;
+const isNight = t => { const h = hourHel(t); return h >= 18 || h < 8; };
+const WARN_RANK = {0:0, 4:1, 1:2, 3:3, 2:4};
+const TILA_TO_KELI = {1:1, 2:3, 3:3, 10:3, 11:7};
+const FROST_SLIP = 4;
+</script>
 <script>
 (() => {
 'use strict';
@@ -830,8 +813,6 @@ async function loadFMI(){
   return [...byT.values()].sort((a,b)=>a.t<b.t?-1:1).map(r => ({...r, risk: isRisk(r)}));
 }
 
-
-
 function renderStations(){
   const el = $('#stations-body');
   if(!state.stations.length){ el.innerHTML='<div class="status">Ei asemia.</div>'; return; }
@@ -903,7 +884,9 @@ function renderStations(){
   el.className = 'panel scroll v-'+stView;
   el.innerHTML = '<div class="st-bar"><div class="st-sum">'+sumTxt+'</div><div class="st-opts"><span class="seg">'+opt('sort','riski','Riski ensin')+opt('sort','tie','Tiejärjestys')+'</span>'
     + '<span class="seg st-vsel">'+opt('view','kortit','Kortit')+opt('view','taulukko','Taulukko')+'</span></div></div>'
-    + '<div class="st-table">'+h+'</tbody></table></div><div class="st-cards">'+c+'</div>';
+    + '<div class="st-table">'+h+'</tbody></table></div><div class="st-cards">'+c+'</div>'
+    + '<p class="muted" style="font-size:.85em;margin:8px 2px 0">Merkinnät: <b>a3</b>, <b>a4</b> = tienpinta mitataan tällä asemalla kaista-anturilla 3 tai 4 (kylmin toimiva anturi; ilman merkintää anturi 1). '
+    + 'Keli tulee 6.11. alkaen tienpinnan tila -anturista, koska Digitraffic lopetti vanhan keli- ja varoitustiedon: <b>Liukas (kuura, lumi tai jää)</b> ei erottele näitä, eikä kosteaa enää tunnisteta (näkyy märkänä). Varoitus tulee optisesta anturista, jos asemalla on sellainen.</p>';
 }
 function stSpark(pts, rows){
   const W = 300, H = 74, RB = 7, now = Date.now(), t0 = now - 24*36e5, t1 = now + 12*36e5;
@@ -928,7 +911,6 @@ function stSpark(pts, rows){
 }
 let stSort = (()=>{ try{ return localStorage.getItem(U.key+'-stsort') || 'riski'; }catch(e){ return 'riski'; } })();
 let stView = (()=>{ try{ return localStorage.getItem(U.key+'-stview') || 'kortit'; }catch(e){ return 'kortit'; } })();
-
 
 const mg = {id:null, cache:{}, busy:false};
 function wxStrip(rows, x, y0, minGapPx){
@@ -1077,7 +1059,10 @@ function renderMg(){
   const pastWx = []; for(let t = Math.ceil(t0/(3*36e5))*3*36e5; t < now - 36e5; t += 3*36e5) pastWx.push({t, wd:near(wdir,t,20*60e3), ws:near(wsp,t,20*60e3), gust:near(gst,t,20*60e3), cloud:null});
   const futWx = fc.filter(r=>hourOf(r.t) % 3 === 0).map(r=>({t:new Date(r.t).getTime(), wd:r.WindDirection, ws:r.WindSpeedMS, gust:r.HourlyMaximumGust, cloud:r.TotalCloudCover}));
   s += wxStrip(pastWx.concat(futWx), x, 0, narrow ? 26 : 20);
-  const keliS = [lane,1,2,3,4].map(n=>S['KELI_'+n]).find(a=>a && a.some(p=>p[1] > 0)) || S['KELI_'+lane] || S.KELI_1 || null;
+  let keliS = [lane,1,2,3,4].map(n=>S['KELI_'+n]).find(a=>a && a.some(p=>p[1] > 0)) || null, keliSrc = 'keli';
+  if(!keliS){ const ts = [lane,1,2,3,4].map(n=>S['TIENPINNAN_TILA_'+n]).find(a=>a && a.some(p=>TILA_TO_KELI[p[1]] != null));
+    if(ts){ keliS = ts.filter(p=>TILA_TO_KELI[p[1]] != null).map(p=>[p[0], TILA_TO_KELI[p[1]]]); keliSrc = 'tila'; } }
+  if(!keliS) keliS = S['KELI_'+lane] || S.KELI_1 || null;
   const KCOL = k => [5,6,7,9].includes(k) ? 'var(--s3)' : [2,3,4,8].includes(k) ? 'var(--rain)' : k === 1 ? 'var(--s0)' : 'var(--line)';
   const slipS = stationSlipSeries(st), slipRows = slipS ? slipS.rows : [];
   s += '<rect x="'+L+'" y="'+bandY+'" width="'+iw+'" height="'+BAND+'" fill="var(--soft)" opacity=".5"/>';
@@ -1085,7 +1070,7 @@ function renderMg(){
   for(let i=0;i<kp.length;){ let j = i;
     while(j+1 < kp.length && kp[j+1][1] === kp[i][1] && kp[j+1][0] - kp[j][0] <= 90*60e3) j++;
     const a = kp[i][0], b = j+1 < kp.length ? (kp[j+1][0] - kp[j][0] <= 90*60e3 ? kp[j+1][0] : kp[j][0] + 30*60e3) : now;
-    s += '<rect x="'+x(a).toFixed(1)+'" y="'+bandY+'" width="'+Math.max(0.5, x(b)-x(a)).toFixed(1)+'" height="'+BAND+'" fill="'+KCOL(kp[i][1])+'" opacity=".9"><title>'+fmtT(a)+'–'+fmtT(b)+' · '+esc(KELI_FI[kp[i][1]]||kp[i][1])+'</title></rect>';
+    s += '<rect x="'+x(a).toFixed(1)+'" y="'+bandY+'" width="'+Math.max(0.5, x(b)-x(a)).toFixed(1)+'" height="'+BAND+'" fill="'+KCOL(kp[i][1])+'" opacity=".9"><title>'+fmtT(a)+'–'+fmtT(b)+' · '+esc(keliFi(kp[i][1], keliSrc)||kp[i][1])+'</title></rect>';
     i = j + 1; }
   const SCOL = {s0:'var(--s0)', s1:'var(--s1)', s2:'var(--s2)', s3:'var(--s3)'};
   for(const r of slipRows){ if(r.idx == null) continue; const a = Math.max(now, r.t), b = r.t + 36e5; if(b <= now || a >= t1) continue;
@@ -1141,7 +1126,7 @@ function renderMg(){
     const t = t0 + (px_ - L)/iw*(t1 - t0); curL.setAttribute('x1', px_); curL.setAttribute('x2', px_); curL.setAttribute('opacity', '.8');
     let h;
     if(t <= now){ const g = (a) => near(a, t, 12*60e3); const kk = near(keliS, t, 20*60e3);
-      h = '<b>'+esc(fmtDT(t))+' · mitattu</b>'+(kk!=null ? ' · '+esc(KELI_FI[kk]||kk) : '')+'<br>Tie '+n1(g(road))+' °C · ilma '+n1(g(air))+' · kastep. '+n1(g(dew))
+      h = '<b>'+esc(fmtDT(t))+' · mitattu</b>'+(kk!=null ? ' · '+esc(keliFi(kk, keliSrc)||kk) : '')+'<br>Tie '+n1(g(road))+' °C · ilma '+n1(g(air))+' · kastep. '+n1(g(dew))
         + (fz.length ? '<br>Jäätymispiste '+n1(g(frz))+' °C' : '') + '<br>Vesi '+n1(g(water))+' · lumi '+n1(g(snow))+' · jää '+n1(g(ice))+' mm'
         + (fk.length ? ' · kitka '+n1(g(fr)) : '') + (g(wsp)!=null ? '<br>Tuuli '+n1(g(wsp))+' m/s' : '');
     } else { let d = null; for(const e of fc){ const tt = new Date(e.t).getTime(); if(!d || Math.abs(tt-t) < Math.abs(new Date(d.t).getTime()-t)) d = e; }
@@ -1161,17 +1146,12 @@ function renderMg(){
 }
 { let mw = 0; new ResizeObserver(()=>{ const w = $('#mg-wrap').clientWidth; if(w && Math.abs(w - mw) > 30){ mw = w; if(mg.id && mg.cache[mg.id]) renderMg(); } }).observe($('#mg-wrap')); }
 
-
 let POH = null;
 async function loadPohdinta(){
   try{ const j = await fetch(U.data+'pohdinta.json?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null); if(j && j.v){ POH = j; if(j.rules) RULES_VERSION = j.rules; } }catch(e){}
   return POH;
 }
-const FROST_SLIP = 4;
 const pohAge = () => POH ? Math.round((Date.now() - new Date(POH.t).getTime())/6e4) : null;
-const hourHel = t => Number(new Date(t).toLocaleString('fi-FI', {hour:'2-digit', hour12:false, timeZone:'Europe/Helsinki'})) % 24;
-const isNight = t => { const h = hourHel(t); return h >= 18 || h < 8; };
-const WARN_RANK = {0:0, 4:1, 1:2, 3:3, 2:4};
 let RULES_VERSION = '';
 function isRisk(r){ return !!r.risk; }
 function attachRoad(){
@@ -1186,7 +1166,7 @@ function stationFrostAcc(st){ return POH && POH.frost ? (POH.frost[st.id] || 0) 
 function computeActions(){
   state.snow12 = POH ? POH.snow12 : null; state.snow24 = POH ? POH.snow24 : null;
   if(POH && POH.actions && POH.actions.length){ const age = pohAge();
-    return age != null && age > (isNight(Date.now()) ? 60 : 120) ?   // sv2: yöllä varoitus jo tunnin vanhasta laskennasta
+    return age != null && age > (isNight(Date.now()) ? 60 : 120) ?
        [{sev:'na', title:'Pohdinta vanhentunut', when:'laskettu '+fmtDT(POH.t)+' ('+ageTxt(age)+' sitten)', lines:['Alla olevat kortit ovat vanhasta laskennasta. Tarkista asemat ja kamerat itse.']}].concat(POH.actions) : POH.actions; }
   return [{sev:'na', title:'Pohdinta puuttuu', when:'tarkista asemat ja kamerat itse', lines:['Laskennan tulosta ei saatu ladattua. Päivitä sivu hetken päästä.']}];
 }
@@ -1412,8 +1392,6 @@ function renderSlipModel(){
   el.innerHTML = h + '<p class="muted" style="margin-top:8px">Virhe = aseman mittaama tienpinta miinus 6 tuntia aiemmin annettu tiesääennuste (positiivinen = ennuste oli liian kylmä). Kylmät yöt = yöt, joina 6 h ennuste oli enintään +3 °C. Liukas havainto = keli kuura, lumi, jää tai sohjo, aseman varoitus häly (Kuura-varoitus kertoo vain kuuraavasta tilanteesta), tai tienpinnan ollessa enintään +1 °C kitka alle 0,45, jäätä vähintään 0,1 mm tai lunta tiellä. Keruu tallentaa 30 min välein asemat ja kerran tunnissa kaikkien urakan tiekohtien ennusteet.</p>';
 }
 
-
-
 const nightS = {t:0, d:null};
 async function loadNight(){
   if(nightS.t && Date.now() - nightS.t < 10*60e3){ renderNight(); renderKomento(); return; }
@@ -1432,8 +1410,6 @@ const KLEVEL = {toimenpide:['p-bad','Toimenpide'], seuranta:['p-warn','Seuranta'
 const KNEED = {aiheellinen:['p-ok','aiheellinen'], turha:['p-warn','ei tarvetta'], ohi:['p-bad','ohi'], oikein:['p-ok','oikein: ei tarvetta']};
 const needTxt = s => s.need ? '<b>'+esc(s.need)+'</b>'+(s.needT ? ' klo '+fmtT(s.needT) : '') : s.near ? esc(s.near)+' <small class="muted">(lähellä)</small>' : 'ei'+(s.frMax ? ' <small class="muted">· kuurakertymä '+n1(s.frMax)+' °C·h</small>' : '');
 const KRES = {osui:['p-ok','osui ajoissa'], myohassa:['p-warn','myöhässä / jo liukas'], ohi:['p-bad','ohi'], turha:['p-na','turha'], suolattiin:['p-na','ei liukasta – suolattiin'], oikein:['p-ok','oikein: ei tarvetta']};
-// jk1 (6.11.2026, Samuli: kollektiivinen päivystäjä): mitä koko Suomen urakat tekivät, kun kelikeskuksen indeksi ja tienpinta
-// päätöshetkellä olivat samat kuin nyt Vantaalla (Tiesää-arkisto data/joukko.json, suomi.py su5). Varjo: ei vaikuta mihinkään.
 const JK_IDX = [[0, 30, 'alle 30'], [30, 50, '30–49'], [50, 90, '50–89'], [90, 101, '90–100']];
 const JK_TR = [[-99, -2, 'alle −2'], [-2, 0, '−2…0'], [0, 2, '0…+2'], [2, 4, '+2…+4'], [4, 99, 'yli +4']];
 const jkLuokka = (v, B) => (B.find(([a, b]) => v != null && v >= a && v < b) || [])[2];
@@ -1444,11 +1420,9 @@ function joukkoArvio(J, slot, idx, tr){
   if(!c || c.n < J.min){ key = i + '|*'; c = T[key]; }
   return c ? Object.assign({solu: key}, c) : null;
 }
-const JK_OMA = 'PR00054053';   // Vantaa 24-29 (Väyläviraston urakkakoodi)
+const JK_OMA = 'PR00054053';
 function joukkoRivi(C){
   const J = nightS.jk; if(!J) return '';
-  // jk2 (7.11.2026): illan arvio Tiesää-arkiston samasta laskennasta kuin taulukko (klo 18.23 / 22.23, data/joukko-ilta.json).
-  // Kelikeskuksen oma indeksi voi poiketa (opittu korjaus, RoadSurf, MET); varjokomennon lukuja käytetään vain, jos illan arviota ei ole.
   const I = nightS.jki, nightKey = C.night || (K => K && K.night)(nightS.k);
   const IO = I && I.urakat && I.urakat[JK_OMA] && (!nightKey || I.yo === nightKey) && Date.now() - Date.parse(I.t) < 14 * 36e5 ? I.urakat[JK_OMA] : null;
   if(IO && IO.solu){
@@ -1472,7 +1446,6 @@ function joukkoRivi(C){
 }
 let komOpen = false;
 $('#komento-body').addEventListener('toggle', e=>{ if(e.target.classList && e.target.classList.contains('kmore')) komOpen = e.target.open; }, true);
-// k2 (16.11.2026): aamuvertailun totuus (kitka, kuittaus) ja säätökierroksen 2 varjojen tulokset
 const K2RES = {osui:['p-ok','osui'], oikein:['p-ok','oikein: ei liukasta'], turha:['p-warn','turha'], ohi:['p-bad','ohi']};
 const K2NAME = {nyt:'Varjokomento (nykyiset säännöt)', p1:'Klo 22 rajaus, uusi tarkistus klo 00/02', tm:'Oma tienpintamalli', km:'Kuura opitusta erotuksesta'};
 function k2TosiTxt(T){ if(!T || T.liukas == null) return 'Totuus: <span class="muted">ei kitka-anturia eikä kuittausta</span>';
@@ -1494,7 +1467,6 @@ function renderKomento(){
   const viSt = Object.values(C.stations||{}).filter(s=>s.vi !== undefined);
   if(viSt.length){ const on = viSt.filter(s=>s.viBy).sort((a,b)=>new Date(a.viBy)-new Date(b.viBy));
     x += '<p class="muted" style="margin:6px 0 0">Varjoindeksi (RoadSurfin tienpinta ja kuura/jää, vertailua varten): '+(on.length ? '≥ 50 '+on.length+' asemalla, aikaisin klo '+fmtT(on[0].viBy)+' ('+esc(on[0].name)+(on[0].viWhy ? ', '+esc(on[0].viWhy) : '')+')' : 'alle 50 kaikilla asemilla')+'</p>'; }
-  // k2 (16.11.2026, säätökierros 2): varjot kohdista 1, 3c ja 3d – eivät muuta ehdotusta eivätkä puhelinilmoituksia
   if(C.k2){ const lvTxt = v => !v ? '<span class="muted">ei tietoa</span>' : '<span class="pill '+(KLEVEL[v.level]||KLEVEL.ei)[0]+'">'+(KLEVEL[v.level]||KLEVEL.ei)[1]+'</span>'+(v.roads && v.roads.length ? ' <small>'+esc(v.roads.join(', '))+'</small>' : '');
     const why1 = Object.values(C.stations||{}).filter(s=>s.k2 && s.k2.p1Why).map(s=>esc(s.name.replace(/^Tie \d+,? ?/, ''))+': '+esc(s.k2.p1Why));
     x += '<p class="muted" style="margin:6px 0 0"><b>Säätökierroksen 2 varjot (v18, vertailua varten):</b><br>'
@@ -1515,7 +1487,7 @@ function renderKomento(){
       + (E.cntVi ? '<p class="muted" style="margin:0 0 6px">Varjoindeksi (RoadSurf): osui '+(E.cntVi.osui||0)+', myöhässä '+(E.cntVi.myohassa||0)+', ohi '+(E.cntVi.ohi||0)+', turha '+(E.cntVi.turha||0)+', suolattiin '+(E.cntVi.suolattiin||0)+', oikein ei '+(E.cntVi.oikein||0)+' – sivun indeksi: osui '+(c.osui||0)+', myöhässä '+(c.myohassa||0)+', ohi '+(c.ohi||0)+', turha '+(c.turha||0)+'</p>' : '')
       + '<details'+(innerWidth < 700 ? '' : ' open')+'><summary style="cursor:pointer;font-weight:600;margin:4px 0">Asemittain ('+(E.stations||[]).length+')</summary><div class="scroll"><table><thead><tr><th>Asema</th><th>Ehdotus</th><th>Liukasta mitattiin</th>'+(E.cntNeed ? '<th>Olosuhde toteutui</th>' : '')+'<th>Yön alin tie</th><th>Suolattu lähellä</th><th>Tulos</th>'+(E.cntVi ? '<th>Varjoindeksi</th>' : '')+'</tr></thead><tbody>'
       + (E.stations||[]).map(s=>{ const r = s.resNeed ? KNEED[s.resNeed] : KRES[s.res] || ['p-na', s.res]; return '<tr><td class="name">'+esc(s.name)+'</td><td>'+(s.level==='toimenpide' ? esc(s.action)+(s.by ? ' – ennen klo '+fmtT(s.by) : '') : esc((KLEVEL[s.level]||KLEVEL.ei)[1]))+(s.agree ? ' <small class="muted">'+esc(s.agree)+' mallia</small>' : '')+'</td>'
-        + '<td>'+(s.slipFirst ? 'klo '+fmtT(s.slipFirst)+(s.keli!=null && KELI_FI[s.keli] ? ' ('+esc(KELI_FI[s.keli])+')' : '') : 'ei')+'</td>'+(E.cntNeed ? '<td>'+needTxt(s)+'</td>' : '')+'<td class="num">'+(s.trMin!=null ? n1(s.trMin)+' °C' : '–')+'</td><td>'+(s.salted ? 'kyllä' : 'ei')+'</td><td><span class="pill '+r[0]+'">'+r[1]+'</span></td>'
+        + '<td>'+(s.slipFirst ? 'klo '+fmtT(s.slipFirst)+(s.keli!=null && keliFi(s.keli, s.ksrc) ? ' ('+esc(keliFi(s.keli, s.ksrc))+')' : '') : 'ei')+'</td>'+(E.cntNeed ? '<td>'+needTxt(s)+'</td>' : '')+'<td class="num">'+(s.trMin!=null ? n1(s.trMin)+' °C' : '–')+'</td><td>'+(s.salted ? 'kyllä' : 'ei')+'</td><td><span class="pill '+r[0]+'">'+r[1]+'</span></td>'
         + (E.cntVi ? '<td>'+(s.resVi ? '<span class="pill '+(KRES[s.resVi]||['p-na'])[0]+'">'+(KRES[s.resVi]||['',s.resVi])[1]+'</span>'+(s.vi!=null ? ' <small class="muted">'+s.vi+'</small>' : '') : '–')+'</td>' : '')+'</tr>'; }).join('') + '</tbody></table></div></details>';
   }
   const H = K.history || [];
@@ -1569,7 +1541,7 @@ function renderNight(){
     + (nb ? '<li>'+nb.head+'</li>' : '')
     + '</ul>';
   if(slip.length) h += '<details class="nb-d" data-k="slip"'+(nightOpen.slip ? ' open' : '')+'><summary>Liukkaat asemat ('+slip.length+')</summary><div class="scroll"><table><thead><tr><th>Asema</th><th>Liukasta alkaen</th><th>Keli</th><th>Alin tie</th><th>Oma ennuste</th></tr></thead><tbody>'
-    + slip.map(s=>'<tr><td class="name">'+esc(s.name)+'</td><td>'+fmtT(s.slipFirst)+'</td><td>'+esc(KELI_FI[s.keli] || '–')+'</td><td class="num">'+n1(s.trMin)+' °C</td><td>'
+    + slip.map(s=>'<tr><td class="name">'+esc(s.name)+'</td><td>'+fmtT(s.slipFirst)+'</td><td>'+esc(keliFi(s.keli, s.ksrc) || '–')+'</td><td class="num">'+n1(s.trMin)+' °C</td><td>'
       + (s.lead != null ? '<span class="pill p-ok">varoitti '+s.lead+' h ennen</span>' : '<span class="pill p-bad">ei varoittanut</span>'+(s.dtWarned ? ' <small class="muted">Digitraffic varoitti</small>' : ''))+'</td></tr>').join('')
     + '</tbody></table></div></details>';
   if(nb) h += nb.html;
@@ -1759,7 +1731,6 @@ function snowOf(r){
   return P * frac * ratio;
 }
 
-
 const whyOpen = new Map();
 const whyIsOpen = a => document.body.classList.contains('wall') || (whyOpen.has(a.title) ? whyOpen.get(a.title) : a.sev === 'bad' || a.title === 'Asemat hälyttävät nyt');
 const whyHtml = (a, cls) => a.lines && a.lines.length ? '<details class="act-why-d'+(cls ? ' '+cls : '')+'" data-t="'+esc(a.title)+'"'+(whyIsOpen(a) ? ' open' : '')+'><summary>Miksi?</summary><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></details>' : '';
@@ -1909,7 +1880,7 @@ function setSec(el, on){ if(!el) return; el.dataset.off = on ? '' : '1';
   let tabOk = true; try{ tabOk = document.body.classList.contains('wall') || el.dataset.tab === curTab; }catch(e){}
   el.hidden = !on || !tabOk; }
 const TAB_IDS = [...document.querySelectorAll('#tabs .tab')].map(b=>b.dataset.tab);
-const TAB_ALIAS = {tyot:'kartta', ennuste:'asemat', kokeilut:'tilanne', seuranta:'tilanne'};   // se1: Seuranta Päivystyskirjassa
+const TAB_ALIAS = {tyot:'kartta', ennuste:'asemat', kokeilut:'tilanne', seuranta:'tilanne'};
 let curTab = (location.hash||'').slice(1); curTab = TAB_ALIAS[curTab] || curTab; if(!TAB_IDS.includes(curTab)){ try{ const v = localStorage.getItem(U.key+'-tab') || ''; curTab = TAB_ALIAS[v] || v; }catch(e){} } if(!TAB_IDS.includes(curTab)) curTab = 'tilanne';
 if(TAB_ALIAS[(location.hash||'').slice(1)]) history.replaceState(null, '', '#'+curTab);
 function applyTabs(){
@@ -1922,7 +1893,7 @@ function applyTabs(){
     if((curTab === 'asemat' || wall) && state.stations.length && Date.now()-histFetched >= 15*60e3) loadHistory().then(()=>{ renderStations(); if(state.lastCtx) updateSources(state.lastCtx); });
   }, 0);
   if(curTab === 'asemat' && !wall && state.stations.length) ensureMg();
-  if(curTab === 'liukkaus' || curTab === 'selvitys') setTimeout(()=>loadObsData(), 0);
+  if((curTab === 'liukkaus' || curTab === 'selvitys') && state.stations.length) setTimeout(()=>loadObsData(), 0);
   if(curTab === 'selvitys' && !wall) setTimeout(()=>rpInit(), 0);
 }
 function showTab(t, keepScroll){
@@ -1935,7 +1906,7 @@ $('#tabs').addEventListener('click', e=>{ const b = e.target.closest('.tab'); if
 $('#tabs').addEventListener('keydown', e=>{ if(e.key!=='ArrowRight' && e.key!=='ArrowLeft') return; const i = TAB_IDS.indexOf(curTab) + (e.key==='ArrowRight'?1:-1); const t = TAB_IDS[(i+TAB_IDS.length)%TAB_IDS.length]; showTab(t); $('#tab-'+t).focus(); });
 window.addEventListener('hashchange', ()=>{ let t = location.hash.slice(1); t = TAB_ALIAS[t] || t; if(TAB_IDS.includes(t)) showTab(t); });
 function tabDot(t, level){ const b = $('#tab-'+t); if(!b) return; let d = b.querySelector('.dot'); if(!level){ if(d) d.remove(); return; } if(!d){ d = document.createElement('i'); d.className = 'dot'; b.appendChild(d); } d.className = 'dot'+(level==='warn'?' warn':''); d.title = level==='bad' ? 'Kiireellinen toimenpide' : 'Valmistaudu'; }
-const applyWall = () => { document.body.classList.toggle('wall', settings.wall); if(settings.wall) document.querySelectorAll('.act-why-d').forEach(d=>{ d.open = true; }); applyTabs(); $('#wallbtn').setAttribute('aria-pressed', settings.wall); $('#wallbtn').textContent = settings.wall ? 'Normaalinäkymä' : 'Seinänäyttö'; };
+const applyWall = () => { document.body.classList.toggle('wall', settings.wall); if(settings.wall) document.querySelectorAll('.act-why-d').forEach(d=>{ d.open = true; }); /* tl1: seinällä perusteet auki */ applyTabs(); $('#wallbtn').setAttribute('aria-pressed', settings.wall); $('#wallbtn').textContent = settings.wall ? 'Normaalinäkymä' : 'Seinänäyttö'; };
 $('#wallbtn').addEventListener('click', ()=>{ settings.wall = !settings.wall; saveSettings(); applyWall(); });
 applyWall();
 
@@ -2765,7 +2736,7 @@ function rpMap(T, S, doneW){
   for(const [nm,lon,lat] of PLACES) if(inMap([lon,lat])) s += '<text class="place" x="'+px(lon).toFixed(1)+'" y="'+py(lat).toFixed(1)+'">'+esc(nm)+'</text>';
   for(const st of state.stations){ if(!st.lon) continue; const o = rpAt(String(st.id), T), x = px(st.lon), y = py(st.lat), sl = rpSlip(o);
     s += '<g class="mst t-'+tempCls(o ? o.tr : null)+(sl?' mwarn':'')+(String(st.id) === rp.sel ? ' rp-sel' : '')+'" data-st="'+st.id+'" tabindex="0" role="button"><circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+R.toFixed(1)+'"/>'
-      + '<text style="font-size:'+(R*0.78).toFixed(1)+'px" x="'+x.toFixed(1)+'" y="'+(y+R*0.28).toFixed(1)+'">'+(o && o.tr != null ? n1(o.tr) : '–')+'</text><title>'+esc(st.name)+(o ? '\nTie '+n1(o.tr)+' °C · '+esc(KELI_FI[o.keli]||'–') : '\nEi mittausta')+'</title></g>'; }
+      + '<text style="font-size:'+(R*0.78).toFixed(1)+'px" x="'+x.toFixed(1)+'" y="'+(y+R*0.28).toFixed(1)+'">'+(o && o.tr != null ? n1(o.tr) : '–')+'</text><title>'+esc(st.name)+(o ? '\nTie '+n1(o.tr)+' °C · '+esc(keliFi(o.keli, o.ksrc)||'–') : '\nEi mittausta')+'</title></g>'; }
   $('#rp-map').innerHTML = s;
 }
 function rpSide(T){
@@ -2775,7 +2746,7 @@ function rpSide(T){
   const d = (f, m) => f == null || m == null ? '' : ' <small class="'+(Math.abs(f-m) > 1 ? 'err' : 'muted')+'">('+(f-m > 0 ? '+' : '')+n1(f-m)+' °C mitattuun)</small>';
   const ix = (v, why) => v == null ? '–' : '<span class="rp-ix'+(v >= 50 ? ' hi' : v >= 30 ? ' mid' : '')+'">'+v+'</span>'+(why ? ' <small>'+esc(why)+'</small>' : '');
   let h = '<h3>'+esc(st.name)+' · klo '+fmtT(T)+'</h3>';
-  h += o ? '<div class="rp-meas"><span>Tie <b>'+n1(o.tr)+' °C</b></span><span>Ilma '+n1(o.ta)+'</span><span>Kastepiste '+n1(o.td)+'</span><span>Keli <b>'+esc(KELI_FI[o.keli]||'–')+'</b></span>'+(o.fric != null ? '<span>Kitka '+n2(o.fric)+'</span>' : '')+(rpSlip(o) ? '<span class="pill p-bad">liukas keli</span>' : '')+'</div>'
+  h += o ? '<div class="rp-meas"><span>Tie <b>'+n1(o.tr)+' °C</b></span><span>Ilma '+n1(o.ta)+'</span><span>Kastepiste '+n1(o.td)+'</span><span>Keli <b>'+esc(keliFi(o.keli, o.ksrc)||'–')+'</b></span>'+(o.fric != null ? '<span>Kitka '+n2(o.fric)+'</span>' : '')+(rpSlip(o) ? '<span class="pill p-bad">liukas keli</span>' : '')+'</div>'
     : '<div class="status">Ei mittausta tältä hetkeltä.</div>';
   const knew = '<details class="rp-more" id="rp-knewd"'+(rp.knewOpen ? ' open' : '')+'><summary>Ennusteet tarkemmin – mitä tiesimme etukäteen</summary><div class="rp-knew"><table><tbody>'
     + '<tr><th>2 h ennen <small>klo '+fmtT(T - 2*36e5)+'</small></th><td>indeksi '+ix(b2 && b2.idx2, b2 && b2.why2)+'</td><td>Digitraffic tie '+(b2 && b2.fc2 != null ? n1(b2.fc2)+' °C' : '–')+d(b2 && b2.fc2, o && o.tr)+'</td></tr>'
@@ -2811,7 +2782,7 @@ function rpChart(T){
   const rows = [['keli', yb+8], ['sade', yb+20], ['työt', yb+32]];
   for(const [nm, y] of rows) s += '<text x="30" y="'+(y+6)+'" text-anchor="end">'+nm+'</text>';
   a.forEach((o, i)=>{ const t1 = i < a.length-1 ? Math.min(a[i+1].t, o.t + 60*60e3) : o.t + 30*60e3, xa = X(o.t), xb = Math.max(xa + 1, X(t1));
-    const kb = RP_KB(o.keli); if(kb) s += '<rect class="'+kb+'" x="'+xa.toFixed(1)+'" y="'+rows[0][1]+'" width="'+(xb-xa).toFixed(1)+'" height="8"><title>'+fmtT(o.t)+' '+esc(KELI_FI[o.keli]||'')+'</title></rect>';
+    const kb = RP_KB(o.keli); if(kb) s += '<rect class="'+kb+'" x="'+xa.toFixed(1)+'" y="'+rows[0][1]+'" width="'+(xb-xa).toFixed(1)+'" height="8"><title>'+fmtT(o.t)+' '+esc(keliFi(o.keli, o.ksrc)||'')+'</title></rect>';
     const rn = (o.ri != null && o.ri > 0) || (o.rain != null && o.rain >= 1 && o.rain <= 6);
     if(rn) s += '<rect class="rp-rain" opacity="'+Math.min(1, 0.35 + (o.ri||0)*0.6).toFixed(2)+'" x="'+xa.toFixed(1)+'" y="'+rows[1][1]+'" width="'+(xb-xa).toFixed(1)+'" height="8"><title>'+fmtT(o.t)+' '+(o.rain >= 4 ? 'lunta/räntää' : 'sadetta')+(o.ri != null ? ' '+n1(o.ri)+' mm/h' : '')+'</title></rect>'; });
   if(st && st.lon) for(const r of (rp.routes||[])){ if(!rpInU(r)) continue; const rs = Date.parse(r.start), re = Date.parse(r.end); if(re < x0 || rs > x1) continue;
@@ -2925,7 +2896,7 @@ function rpKeyList(){
     if(!fm) for(const x of S.rows){ const b6 = rpAt(String(x.s.id), T - 6*36e5); if(b6 && b6.fctr6 != null && x.o.tr <= 2 && b6.fctr6 - x.o.tr > 1){ fm = {T, x, d: b6.fctr6 - x.o.tr}; break; } }
     if(S.min != null && (!cold || S.min < cold.v)) cold = {T, v:S.min, x:S.coldest}; });
   if(f0) add(f0.T, 'Tie alle 0 °C: '+f0.x.s.name+' '+n1(f0.x.o.tr)+' °C', 'cold', f0.x.s.id);
-  if(fs) add(fs.T, 'Liukas keli: '+fs.x.s.name+' ('+(KELI_FI[fs.x.o.keli]||'hälytys').toLowerCase()+')', 'bad', fs.x.s.id);
+  if(fs) add(fs.T, 'Liukas keli: '+fs.x.s.name+' ('+(keliFi(fs.x.o.keli, fs.x.o.ksrc)||'hälytys').toLowerCase()+')', 'bad', fs.x.s.id);
   if(fm) add(fm.T, 'Sivun ennuste yli 1 °C liian lämmin: '+fm.x.s.name+' (+'+n1(fm.d)+' °C)', 'warn', fm.x.s.id);
   if(cold && (!f0 || cold.T !== f0.T)) add(cold.T, 'Kylmin: '+cold.x.s.name+' '+n1(cold.v)+' °C', 'cold', cold.x.s.id);
   const s1 = (rp.routes||[]).filter(r=>r.cats.includes('salt') && Date.parse(r.start) >= n.from && rpInU(r)).sort((x,y)=>Date.parse(x.start)-Date.parse(y.start))[0];
@@ -3112,7 +3083,7 @@ function radarTypeText(rt){
 
 state.src = {};
 const SRC_ORDER = ['stations','roadfc','finefc','cams','fmi','models','works','radar','traffic','keruu'];
-const SRC_TARGET = {stations:'#stations', roadfc:'#map', finefc:'#map', cams:'#cams', fmi:'#stmg', models:'#stmg', works:'#works', radar:'#map', traffic:'#tm-body', keruu:'#komento'}   // se1: Seuranta (#slipmodel) siirretty Päivystyskirjaan;
+const SRC_TARGET = {stations:'#stations', roadfc:'#map', finefc:'#map', cams:'#cams', fmi:'#stmg', models:'#stmg', works:'#works', radar:'#map', traffic:'#tm-body', keruu:'#komento'}
 function setSrc(key, name, status, detail, title){ state.src[key] = {name, status, detail, title}; }
 let srcOpen = false;
 function renderSrc(){
@@ -3151,6 +3122,11 @@ function updateSources(ctx){
   const faulty = state.stations.filter(s=>!stationIssues(s).ok).map(s=>s.name+': '+stationIssues(s).crit.join(', '));
   setSrc('stations','Asemat', !wsData || !ok ? 'bad' : (ok < tot || ageMin(lastMeas) > 20 ? 'warn' : 'ok'),
     ok+'/'+tot+' kunnossa'+(lastMeas ? ' · '+ageTxt(ageMin(lastMeas)) : ''), faulty.length ? 'Tarkista: '+faulty.join(' | ') : 'Kaikki asemat antavat tuoretta tienpintatietoa');
+  { const KF = {TIE_1:'tienpinta', KASTEPISTE:'kastepiste', KELI_1:'keli', KITKA1_LUKU:'kitka'};
+    const n = k => state.stations.filter(s=>s.values && s.values[k] && s.values[k].value != null && (!s.values[k].measuredTime || Date.now() - new Date(s.values[k].measuredTime).getTime() <= 2*36e5)).length;
+    const miss = Object.keys(KF).filter(k=>!n(k)), tila = state.stations.filter(s=>s.values && s.values.KELI_1 && s.values.KELI_1.ksrc === 'tila').length;
+    if(wsData) setSrc('kentat','Ydintiedot', miss.length ? 'bad' : 'ok', miss.length ? 'puuttuu kaikilta: '+miss.map(k=>KF[k]).join(', ') : 'tienpinta, kastepiste, keli, kitka',
+      Object.keys(KF).map(k=>KF[k]+' '+n(k)+'/'+state.stations.length).join(' · ')+(tila ? ' · keli tienpinnan tilasta '+tila+' asemalla' : '')); }
   const fcAge = fcRes && fcRes.dataUpdatedTime ? ageMin(fcRes.dataUpdatedTime) : null;
   setSrc('roadfc','Tieennuste', !fcRes ? 'bad' : fcAge > 120 ? 'warn' : 'ok', fcRes ? (fcAge!=null ? 'päivitetty '+ageTxt(fcAge)+' sitten' : 'ok') : 'ei saatu', 'Digitraffic, reittiosuudet');
   const nSeg = segsWithFc().length, nSegAll = (state.segs||[]).length;
@@ -3168,6 +3144,8 @@ function updateSources(ctx){
 
 const KELI_FI = {0:'Anturissa on vikaa',1:'Kuiva',2:'Kostea',3:'Märkä',4:'Märkä ja suolattu',5:'Kuura',6:'Lumi',7:'Jää',8:'Todennäköisesti kostea ja suolainen',9:'Sohjoinen'};
 const VAR_FI = {0:'OK',1:'Varo',2:'Häly',3:'Kuura',4:'Sade'};
+const KELI_TILA_FI = {1:'Kuiva', 3:'Märkä', 7:'Liukas (kuura, lumi tai jää)'};
+const keliFi = (k, src) => src === 'tila' && KELI_TILA_FI[k] ? KELI_TILA_FI[k] : KELI_FI[k];
 const warnBad = w => w === 2;
 const warnOn = (w, tr) => w === 1 || w === 3 || warnBad(w) || (w === 4 && tr != null && tr <= 1);
 function normalizeStation(values){
@@ -3180,11 +3158,15 @@ function normalizeStation(values){
   if(values['TIE_'+lane+'_DERIVAATTA']) values.TIE_1_DERIVAATTA = {...values['TIE_'+lane+'_DERIVAATTA'], name:'TIE_1_DERIVAATTA'};
   else if(lane !== 1) delete values.TIE_1_DERIVAATTA;
   const keli = values['KELI_'+lane] && values['KELI_'+lane].value>0 ? values['KELI_'+lane] : [1,2,3,4].map(n=>values['KELI_'+n]).find(v=>v && v.value>0);
-  if(keli) values.KELI_1 = {...keli, name:'KELI_1'};
+  if(keli) values.KELI_1 = {...keli, name:'KELI_1', ksrc:'keli'};
+  else { const t = [values['TIENPINNAN_TILA_'+lane], ...[1,2,3,4].map(n=>values['TIENPINNAN_TILA_'+n])].find(v=>v && fresh(v) && TILA_TO_KELI[v.value] != null);
+    if(t){ const k = TILA_TO_KELI[t.value]; values.KELI_1 = {...t, name:'KELI_1', value:k, tila:t.value, ksrc:'tila', sensorValueDescriptionFi:KELI_TILA_FI[k]}; } }
   const kit = ['KITKA1_LUKU','KITKA2_LUKU','KITKA1','KITKA2'].map(k=>values[k]).filter(v=>v && v.value!=null && fresh(v));
   if(kit.length) values.KITKA1_LUKU = {...kit.reduce((a,v)=>v.value<a.value?v:a), name:'KITKA1_LUKU'};
   const war = [1,2,3,4].map(n=>values['VAROITUS_'+n]).filter(v=>v && fresh(v));
   if(war.length) values.VAROITUS_1 = {...war.reduce((a,v)=>(WARN_RANK[v.value]??0)>(WARN_RANK[a.value]??0)?v:a), name:'VAROITUS_1'};
+  else { const ow = [1,2].map(n=>values['OPTISEN_ANTURIN_VAROITUS'+n]).filter(v=>v && v.value!=null && fresh(v));
+    if(ow.length) values.VAROITUS_1 = {...ow.reduce((a,v)=>(WARN_RANK[v.value]??0)>(WARN_RANK[a.value]??0)?v:a), name:'VAROITUS_1', wsrc:'optinen'}; }
   if(values.KELI_1 && !values.KELI_1.sensorValueDescriptionFi && KELI_FI[values.KELI_1.value]) values.KELI_1 = {...values.KELI_1, sensorValueDescriptionFi: KELI_FI[values.KELI_1.value]};
   if(values.VAROITUS_1 && !values.VAROITUS_1.sensorValueDescriptionFi && VAR_FI[values.VAROITUS_1.value]) values.VAROITUS_1 = {...values.VAROITUS_1, sensorValueDescriptionFi: VAR_FI[values.VAROITUS_1.value]};
   const r1 = x => Math.round(x*10)/10;

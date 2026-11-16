@@ -100,6 +100,14 @@ jobs:
         env:
           URAKKA: salo
           CHROME_CHANNEL: chrome
+      # sj1 (16.11.2026): julkinen sivu (index.html) tehdään laskentasivusta. Sivua ylläpidetään vain yksityisen säilön tiedostossa
+      # laskenta.html; koonti poistaa laskennan ja kommentit ja pysähtyy, jos tulokseen jäisi sääntöjä. Jos koonti epäonnistuu,
+      # säilön edellinen index.html julkaistaan sellaisenaan. Tiedostoa index.html ei muokata käsin.
+      - name: Julkinen sivu laskentasivusta
+        continue-on-error: true
+        run: |
+          [ -f .laskenta/collector/julkaise.mjs ] || { echo 'koontia ei vielä laskentasäilössä, index.html ennallaan'; exit 0; }
+          node .laskenta/collector/julkaise.mjs .laskenta/laskenta.html index.html || { git checkout -- index.html; echo '::warning::Julkisen sivun koonti epäonnistui, julkaistaan edellinen index.html'; }
       # lv2 (22.10.2026): sivun lähdepalkin tila (pohdinta.json → src) myös säilöön, koska aamuanalyysi ei pääse julkiselle sivulle.
       # data/lahteet.json = viimeisin tila, data/lahteet-YYYY-MM.csv = rivi jokaisesta ajosta (myös yöllä ohimenevät viat näkyvät).
       - name: Lähteiden tila säilöön (aamuanalyysin vikavahti)
@@ -170,10 +178,11 @@ jobs:
           git config user.name "keli-bot"
           git config user.email "keli-bot@users.noreply.github.com"
           git rm -q --cached --ignore-unmatch data/pohdinta.json salo/data/pohdinta.json data/osuma.json salo/data/osuma.json
+          git diff --quiet -- index.html || git commit -q -m "Kelisivu laskentasivusta $(date -u +%Y-%m-%dT%H:%MZ)" -- index.html
           git add data
           git add salo/data 2>/dev/null || true
-          git diff --cached --quiet && exit 0
-          git commit -m "Keliaineisto $(date -u +%Y-%m-%dT%H:%MZ)"
+          git diff --cached --quiet || git commit -m "Keliaineisto $(date -u +%Y-%m-%dT%H:%MZ)"
+          [ "$(git rev-list --count @{u}..HEAD)" = "0" ] && exit 0
           for i in 1 2 3 4; do git pull --rebase --autostash && git push && exit 0; sleep $((i*5)); done
           exit 1
       - name: Kokoa julkaisu (säilön tiedostot + pohdinta; ei laskentakoodia)
