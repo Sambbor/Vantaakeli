@@ -61,6 +61,7 @@ jobs:
           sparse-checkout: |
             collector
             laskenta.html
+            om
       - uses: actions/setup-node@v5
         with:
           node-version: 22
