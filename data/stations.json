@@ -1,5 +1,5 @@
 {
- "t": 1794415652364,
+ "t": 1795022250514,
  "v": "st2",
  "stations": [
   {
@@ -50,6 +50,20 @@
    "road": 50,
    "lon": 25.078063,
    "lat": 60.276891
+  },
+  {
+   "id": 1071,
+   "name": "Tie 103 Helsinki, Vuosaari eteläinen",
+   "road": 103,
+   "lon": 25.166245,
+   "lat": 60.226774
+  },
+  {
+   "id": 1073,
+   "name": "Tie 103 Helsinki, Vuosaari pohjoinen",
+   "road": 103,
+   "lon": 25.156938,
+   "lat": 60.239776
   },
   {
    "id": 1084,
