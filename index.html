@@ -1408,7 +1408,7 @@ async function loadNight(){
   nightS.jki = await fetch('https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/joukko-ilta.json?'+Math.floor(Date.now()/3e5), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   renderNight(); renderKomento();
   try{ renderNightLine(); }catch(e){ console.error(e); }
-  try{ if(state.actions) renderStatusLine(state.actions); }catch(e){ console.error(e); }
+  try{ if(state.actions) renderActions(); }catch(e){ console.error(e); }
 }
 const KLEVEL = {toimenpide:['p-bad','Toimenpide'], seuranta:['p-warn','Seuranta'], ei:['p-ok','Ei toimenpiteitä']};
 const KNEED = {aiheellinen:['p-ok','aiheellinen'], turha:['p-warn','ei tarvetta'], ohi:['p-bad','ohi'], oikein:['p-ok','oikein: ei tarvetta']};
@@ -1753,7 +1753,7 @@ const whyIsOpen = a => document.body.classList.contains('wall') || (whyOpen.has(
 const whyHtml = (a, cls) => a.lines && a.lines.length ? '<details class="act-why-d'+(cls ? ' '+cls : '')+'" data-t="'+esc(a.title)+'"'+(whyIsOpen(a) ? ' open' : '')+'><summary>Miksi?</summary><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></details>' : '';
 document.addEventListener('toggle', e=>{ const d = e.target; if(!d.classList || !d.classList.contains('act-why-d') || document.body.classList.contains('wall')) return; whyOpen.set(d.dataset.t, d.open); }, true);
 function renderActions(){
-  const acts = state.actions = computeActions();
+  const acts = state.actions = dtEroKorttiin(computeActions());
   try{ renderSaltStrip(); }catch(e){ console.error(e); }
   if(acts.length && acts.every(a=>a.sev === 'ok')) $('#actions-body').innerHTML = '<div class="act-calm"><span class="calm-ic" aria-hidden="true">✓</span><span>'+acts.map(a=>a.lines.join(' ')).join(' ')+'</span></div>';
   else { const rest = acts.slice(1);
@@ -1774,6 +1774,32 @@ function pageDecision(acts){
   const by = act.map(a=>a.by).filter(v=>v != null).sort((x,y)=>x-y)[0];
   const na = !sl.length && (acts||[]).some(a=>a.sev === 'na');
   return {level: act.length ? 'toimenpide' : watch.length ? 'seuranta' : na ? 'na' : 'ei', by: by != null ? new Date(by).toISOString() : null, titles: (act.length ? act : watch).map(a=>a.title)};
+}
+const DT_ERO_WHY = 'tiesääennuste (Digitraffic)', DT_ERO_RAJA = 1.0;
+function dtEroRivi(C){
+  if(!C || !C.stations) return null;
+  const sg = v => (v > 0 ? '+' : '')+n1(v), rng = a => { const lo = Math.min(...a), hi = Math.max(...a); return lo === hi ? sg(lo)+' °C' : sg(lo)+'…'+sg(hi)+' °C'; };
+  const dtSt = Object.values(C.stations).filter(s=>(s.level === 'toimenpide' || s.level === 'seuranta') && (s.why === DT_ERO_WHY || /Digitrafficin/.test(s.action||'')));
+  const byRoad = {}; for(const s of dtSt) (byRoad[s.road] = byRoad[s.road] || []).push(s);
+  const ok = [], tm = [], rs = [];
+  for(const [road, a] of Object.entries(byRoad)){
+    const pass = a.every(s=>{ const v = [s.k2 && s.k2.tmMin, s.rsMin].filter(x=>x != null); return v.length && v.every(x=>x > DT_ERO_RAJA); });
+    if(!pass) continue;
+    ok.push(Number(road)); for(const s of a){ if(s.k2 && s.k2.tmMin != null) tm.push(s.k2.tmMin); if(s.rsMin != null) rs.push(s.rsMin); }
+  }
+  if(!ok.length) return null;
+  ok.sort((x, y)=>x - y);
+  const muut = [tm.length ? 'oma tienpintamalli alin '+rng(tm) : null, rs.length ? 'RoadSurf '+rng(rs) : null].filter(Boolean).join(', ');
+  return {roads: ok, text: 'Vain Digitraffic ennustaa jäätä '+(ok.length > 1 ? 'teillä ' : 'tiellä ')+ok.join(', ')+': '+muut+'. Lauhoina öinä Digitraffic on usein liian kylmä, kylminä öinä se on löytänyt jäätymisen muita paremmin. Tarkista asemien tienpinta ennen lähtöä.'};
+}
+function dtEroKorttiin(acts){
+  const K = typeof nightS !== 'undefined' && nightS.k, C = K && K.now;
+  if(!C || !C.t || Date.now() - Date.parse(C.t) > 90*60e3) return acts;
+  let R = null; try{ R = dtEroRivi(C); }catch(e){ console.error(e); }
+  if(!R) return acts;
+  const i = [acts.findIndex(a=>a.src === 'dt'), acts.findIndex(a=>a.src === 'liukkaus')].find(x=>x >= 0);
+  if(i == null){ state.actNotes = (state.actNotes || []).concat([R.text]); return acts; }
+  return acts.map((a, k)=>k === i ? {...a, lines: [a.lines[0], R.text].concat(a.lines.slice(1))} : a);
 }
 const PD_LV = {toimenpide:'toimenpide', seuranta:'seuranta', ei:'ei toimenpiteitä', na:'ei arviota (tiedot puuttuivat)'};
 function pdDiff(acts){
