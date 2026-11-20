@@ -2,6 +2,15 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 20.11.2026: Sivu kertoo, kun vain Digitraffic ennustaa jäätä (dt-ero, ei sääntömuutos)
+Samulin päätös 20.11. Vantaan asemilla 2.–20.11. Digitrafficin tienpintaennuste on öisin noin 0,8 °C muita kylmempi, ja lauhoina öinä se tekee turhia hälytyksiä (esim. 20.11.). Kylminä öinä se on kuitenkin löytänyt jäätymisen muita paremmin (96 % jäätymistunneista, oma tienpintamalli 65–74 %). Siksi hälytystasoa ei muuteta, vaan erimielisyys näytetään.
+
+- **Milloin rivi tulee:** varjokomennon toimenpiteen tai seurannan syy on Digitrafficin ennuste (tiesääennuste tai Digitrafficin liukkausvaroitus), ja tien kaikilla toimenpiteen asemilla oma tienpintamalli ja RoadSurf ennustavat alimmaksi tienpinnaksi yli +1,0 °C samalla aikavälillä (nyt → aamu). Jos asemalta on vain toinen ennuste, käytetään sitä. Jos kumpaakaan ei ole, tie ei tule riville.
+- **Missä:** Tilanne-välilehden toimenpidekortissa, jonka syy on Digitraffic (liukkaudentorjunnan kortti, tai "Jäätävä sade", kun se tulee Digitrafficin merkinnästä). Jos sellaista korttia ei ole, rivi näkyy tekstinä korttien alla.
+- **Esimerkki 20.11. klo 18.17 (Suomen aikaa) tilanteesta:** "Vain Digitraffic ennustaa jäätä teillä 7, 45: oma tienpintamalli alin +1,5…+2,1 °C, RoadSurf +1,4…+2,4 °C." Tiet 3, 4, 50 ja 148 eivät tulleet riville, koska jollain niiden asemalla toinen ennuste oli enintään +1,0 °C (esim. Vantaankoski RoadSurf +0,9 °C).
+- **Ei muuttunut:** toimenpidetaso, liukkausindeksi, varjokomento, puhelinilmoitukset ja jälkitarkistus. Sääntötesti: 0 muutosta (säännöt v19).
+- **Perutaan:** laskenta.html: renderActions-rivillä `dtEroKorttiin(computeActions())` takaisin `computeActions()` ja lohko `// ===== dt-ero` … `// ===== /dt-ero` pois (tunnus dt-ero); `src`-merkinnät korteissa voivat jäädä.
+
 ## 20.11.2026: Jäätävä sade vasta, kun tienpinta on alle −1,0 °C (js1, säännöt v19)
 Samulin päätös 20.11. Jäätävästä sateesta varoitetaan vain, kun tienpinta on alle −1,0 °C. Ennen raja oli liukkausindeksissä +0,5 °C ja toimenpidekortissa 0 °C, ja Digitrafficin jäätävän sateen merkintä teki kortin tienpinnasta riippumatta.
 
