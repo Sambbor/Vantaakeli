@@ -1168,7 +1168,7 @@ function areaFrost(){}
 function attachRoadExt(){}
 function stationFrostAcc(st){ return POH && POH.frost ? (POH.frost[st.id] || 0) : 0; }
 function computeActions(){
-  state.snow12 = POH ? POH.snow12 : null; state.snow24 = POH ? POH.snow24 : null;
+  state.snow12 = POH ? POH.snow12 : null; state.snow24 = POH ? POH.snow24 : null; state.actNotes = (POH && POH.actNotes) || [];
   if(POH && POH.actions && POH.actions.length){ const age = pohAge();
     return age != null && age > (isNight(Date.now()) ? 60 : 120) ?
        [{sev:'na', title:'Pohdinta vanhentunut', when:'laskettu '+fmtDT(POH.t)+' ('+ageTxt(age)+' sitten)', lines:['Alla olevat kortit ovat vanhasta laskennasta. Tarkista asemat ja kamerat itse.']}].concat(POH.actions) : POH.actions; }
@@ -1760,6 +1760,7 @@ function renderActions(){
     $('#actions-body').innerHTML = rest.length ? rest.map(a=>'<article class="act a-'+a.sev+'" data-t="'+esc(a.title)+'"><div class="act-hd"><div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
       + '<div class="act-when">'+(a.where ? '<span class="act-where">'+esc(a.where)+'</span> · ' : '')+a.when+'</div></div>'+whyHtml(a)+'</article>').join('')
       : '<p class="muted" style="margin:0">Ei muita ehdotuksia – ylin ehdotus perusteluineen on päätöslaatikossa.</p>'; }
+  if((state.actNotes||[]).length) $('#actions-body').insertAdjacentHTML('beforeend', state.actNotes.map(t=>'<p class="muted" style="margin:8px 2px 0;font-size:.9em">'+t+'</p>').join(''));
   try{ renderStatusLine(acts); }catch(e){ console.error(e); }
   try{ renderNightLine(); }catch(e){ console.error(e); }
   const top = acts[0] ? SEV[acts[0].sev][1] : 0;
