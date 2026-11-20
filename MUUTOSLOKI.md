@@ -2,13 +2,14 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
-## 20.11.2026: Tie alin 12 h korjatusta ennusteesta, pois käytöstä -asemat ja pienet korjaukset (rt1, po1, db1, ei sääntömuutos)
+## 20.11.2026: Tie alin 12 h ja meteogrammi korjatusta ennusteesta, pois käytöstä -asemat ja pienet korjaukset (rt1, rt2, po1, db1, ei sääntömuutos)
 Samulin päätökset 20.11. sivun debuggauksen jälkeen. Säännöt (v18), ehdotukset ja puhelinilmoitukset eivät muuttuneet: sääntötestin kaikki 1 512 laskentaa ennallaan.
 
 - **Tie alin 12 h (rt1):** Tilanteen ruutu ja kelikatsauksen "TIE 12 h" näyttävät nyt saman tienpinnan kuin liukkausindeksi ja asemien ennustetaulukko, eli asemiin kiinnitetyn ennusteen opitulla korjauksella. Ennen ruutu näytti korjaamattoman luvun, joten sama tunti saattoi olla ruudussa 0,4 °C ja taulukossa 0,8 °C. Toimenpidekorttien säännöt käyttävät edelleen korjaamatonta ennustetta.
+- **Meteogrammi (rt2):** Tiesääasemat-välilehden meteogrammin "Tienpinnan ennuste 12 h" -viiva kulkee nyt samoja lukuja pitkin kuin liukkausindeksi ja ennustetaulukko. Ennen viiva kulki mittauksesta suoraan Digitrafficin raakoihin ennustepisteisiin. Raa'at pisteet näkyvät edelleen onttoina pisteinä, ja 12–48 h arvio malleista jatkuu korjatun viivan lopusta.
 - **Pois käytöstä -asemat (po1):** asema, jolta ei ole tullut dataa yli 7 vuorokauteen, näkyy harmaana "pois käytöstä" eikä sitä lasketa viaksi lähdepalkissa, Tiesääasemat-osiossa eikä kelikatsauksessa. Nyt tämä koskee Vuosaaren asemia (tie 103, pohjoinen ja eteläinen): niiltä ei ole tullut yhtään mittausta keruun alun (1.9.) jälkeen, ja Vuosaaren maantietunneli on suljettu. Lähdepalkissa lukee nyt "Asemat 12/12 kunnossa · 2 pois käytöstä", kun ennen se oli aina oranssi "12/14", jolloin uusi vika ei näkynyt. Keruu kirjaa jokaisen aseman viimeisimmän mittauksen (data/index.json, seen). Asema palaa käyttöön heti, kun siltä tulee taas dataa.
 - **Pienet korjaukset (db1):** Salon sivu ei enää hae tiedostoja, joita Salolle ei tehdä (RoadSurf ja sivun päätös, turhat 404-virheet). Toimenpidekortin kamerakuvarivin luettelomerkki poistettiin kuvatekstin vierestä. Liukkausennusteen selite kertoo, että raidoitus koskee myös asemia ilman tieennustetta. Ennustetaulukon sade alle 0,05 mm/h näkyy aina "0".
-- Perutaan: palautetaan laskentasäilön `laskenta.html` ja `collector/collect.mjs` tätä merkintää edeltävään tilaan (tunnukset rt1, po1, db1). Kenttä `seen` voi jäädä data/index.json-tiedostoon.
+- Perutaan: palautetaan laskentasäilön `laskenta.html` ja `collector/collect.mjs` tätä merkintää edeltävään tilaan (tunnukset rt1, rt2, po1, db1). Kenttä `seen` voi jäädä data/index.json-tiedostoon.
 
 ## 17.11.2026: Keli- ja varoitustieto palasi Digitrafficiin (kl2, ei sääntömuutos)
 Digitraffic alkoi 16.11. noin klo 11.30–12 lähettää taas vanhaa keli- ja varoitustietoa (KELI_1, KELI_2, VAROITUS_1, VAROITUS_2), joka oli poissa 6.11. alkaen. Kelikeskus käyttää vanhaa tietoa aina, kun sitä tulee, joten vaihto tapahtui itsestään: keli erottelee taas kuuran, lumen ja jään, ja kostea tie tunnistetaan.
