@@ -2,6 +2,16 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 22.11.2026: Lumisateen vaikutus liukkausindeksiin tienpinnan mukaan (ls1, säännöt v20)
+Samulin päätös 22.11. Ennen lumisade antoi täyden indeksin aina, kun tienpinta oli enintään +2 °C. Esimerkiksi 22.11. klo 23 tie oli noin 0 °C, märkä ja suolattu ja kitka 0,7–0,8, mutta indeksi oli 80–100. Tiesää-arkiston mukaan (1.10.–21.11., 14 625 lumi- tai räntätuntia 300 asemalta, ilma 0…+1 °C) tie oli liukas 2 tunnin sisällä tienpinnan yli +0,5 °C ollessa 6–12 %:ssa, 0…+0,5 °C noin 20 %:ssa, −0,5…0 °C noin 50 %:ssa ja alle −1 °C 60–90 %:ssa tunneista.
+
+- **Uusi paino** lumisadeosalle saman tunnin tienpinnan mukaan: enintään −1 °C 1 (ennallaan), −1…0 °C 0,7, 0…+1 °C 0,3, yli +1 °C 0,1. Kaava muuten ennallaan (0,4 + lumisade / 0,6, enintään 1, kerrottuna painolla), syyn nimi ennallaan ("lumi / sohjo" tie yli +0,5 °C, muuten "lumisade").
+- **Ei muuttunut:** mitattu liukkaus ja "Asemat hälyttävät nyt", jäätävä sade, märkä tie jäätyy, kuura, Digitrafficin lumi/sohjo, RoadSurfin lumivarasto, suolan käsittely (suola ei rajaa lumisadetta), lumikertymä, Lumityövalmius, 2 cm:n aurausraja ja Auraus-kortti.
+- **Vaikutus Vantaalla** (sääntötesti, 6 arkistopäivää, 12 asemaa): 151 lumisadehälytystuntia jäi pois, kaikki 13.11. (eniten Jakomäki 25, Porttipuisto 24, Suutarila 21 + 21). Yhdelläkään niistä kitka ei näyttänyt liukasta. Uusia hälytyksiä ei tullut.
+- **Vaikutus koko maassa** (12.10.–20.11., kitkatotuus, +6 h): turhat hälytykset 37 550 → 35 159 (−6 %), osumat 6 909 → 6 782 (−2 %). Lumisade syynä: ennen 1 952 osumaa ja 3 304 turhaa (lisäksi "lumi / sohjo" 106 ja 2 174), nyt 1 249 ja 947. Uusimaa: osumat 19 → 16, turhat 2 940 → 2 873.
+- **Yö 22.–23.11. uusilla säännöillä** (jälkikäteen laskettuna, klo 23): lumisadeosa +2 h 24–63 (tie +0,1…−0,5 °C), +6 h 67–98 (tie −0,7…−1,3 °C). Indeksi jää silti monella asemalla 70:een tai yli, koska märkä tie jäätyy, Digitrafficin ennuste tai kuura nostaa sitä.
+- **Perutaan:** saannot.js: `snowW = tr => tr <= 2 ? 1 : 0.6` ja `RULES_VERSION = 'v19'`; laskenta.html: indeksin selitysteksti (tunnus v20/ls1). Lopuksi `node testit/saannot.test.mjs --paivita`.
+
 ## 22.11.2026: Yön kelaus kattaa koko vuorokauden klo 08–08 (rp6, ei sääntömuutos)
 Samulin päätös 22.11. Jälkiselvityksen Yön kelaus näyttää nyt koko vuorokauden klo 08 – seuraava klo 08 (Suomen aikaa, kesäaika huomioiden). Yö klo 18–08 on aikajanan loppuosa kuten ennen.
 
