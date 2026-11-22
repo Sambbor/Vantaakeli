@@ -635,13 +635,13 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
 
   <!-- rp1 (31.10.2026, Samuli): yön kelaus -->
   <section id="replay" class="hide-wall" data-tab="selvitys">
-    <div class="sec-h"><h2>Yön kelaus</h2><span class="note">Yksi aikajana klo 18–08: asemien mittaukset, tehdyt työt, kamerakuvat ja mitä sivu ennusti 2 h ja 6 h etukäteen</span></div>
+    <div class="sec-h"><h2>Yön kelaus</h2><span class="note">Koko vuorokausi klo 08–08 (yö klo 18–08 loppuosana): asemien mittaukset, tehdyt työt, kamerakuvat ja mitä sivu ennusti 2 h ja 6 h etukäteen</span></div>
     <div class="panel rp">
-      <details class="rp-det" id="rp-det"><summary id="rp-sum">Haetaan yön aineistoa…</summary><div id="rp-eval"></div></details>
+      <details class="rp-det" id="rp-det"><summary id="rp-sum">Haetaan vuorokauden aineistoa…</summary><div id="rp-eval"></div></details>
       <div class="rp-ctl">
-      <div class="rp-bar"><label class="rp-lb">Yö <select id="rp-night"></select></label>
+      <div class="rp-bar"><label class="rp-lb">Vuorokausi <select id="rp-night"></select></label>
         <button type="button" id="rp-play" aria-pressed="false">▶ Toista</button><button type="button" id="rp-kprev" aria-label="Edellinen avainhetki" title="Edellinen avainhetki">«</button><button type="button" id="rp-prev" aria-label="Puoli tuntia taaksepäin">‹</button><button type="button" id="rp-next" aria-label="Puoli tuntia eteenpäin">›</button><button type="button" id="rp-knext" aria-label="Seuraava avainhetki" title="Seuraava avainhetki">»</button>
-        <input type="range" id="rp-t" min="0" max="28" step="1" value="0" aria-label="Kellonaika"><b id="rp-time">–</b></div>
+        <input type="range" id="rp-t" min="0" max="48" step="1" value="0" aria-label="Kellonaika"><b id="rp-time">–</b></div>
       <div class="rp-strip" id="rp-strip"></div>
       </div>
       <div class="rp-now" id="rp-now"></div>
@@ -2682,10 +2682,10 @@ function helMs(y, m, d, h){
 function rpNights(){
   const now = Date.now(), out = [], p = Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:TZ, year:'numeric', month:'numeric', day:'numeric'}).formatToParts(new Date(now)).map(x=>[x.type, x.value]));
   for(let k = 0; k < 21; k++){ const dd = new Date(Date.UTC(+p.year, +p.month-1, +p.day - k));
-    const y = dd.getUTCFullYear(), m = dd.getUTCMonth(), d = dd.getUTCDate(), from = helMs(y, m, d, 18), to = helMs(y, m, d+1, 8);
+    const y = dd.getUTCFullYear(), m = dd.getUTCMonth(), d = dd.getUTCDate(), from = helMs(y, m, d, 8), yo = helMs(y, m, d, 18), to = helMs(y, m, d+1, 8);
     if(from > now) continue;
-    const key = y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
-    out.push({key, from, to, label: new Date(from).toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric', timeZone:TZ})+' → '+new Date(to).toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric', timeZone:TZ})+(to > now ? ' (kesken)' : '')}); }
+    const key = y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'), pv = t => new Date(t).toLocaleDateString('fi-FI',{weekday:'short', day:'numeric', month:'numeric', timeZone:TZ});
+    out.push({key, from, yo, to, label: pv(from)+' klo 08 – '+pv(to)+' klo 08'+(to > now ? ' (kesken)' : '')}); }
   return out;
 }
 function rpInit(){
@@ -2699,15 +2699,15 @@ async function rpLoad(){
   const n = rpNights().find(x=>x.key === $('#rp-night').value); if(!n) return;
   const tok = ++rp.tok; rpStop();
   rp.night = n; rp.steps = []; for(let t = n.from; t <= n.to; t += 30*60e3) rp.steps.push(t);
-  rp.obs = null; rp.routes = null; rp.labels = null; rp.routesErr = null; rp.ajot = null; rp.plan = null; rp.sumK = null; $('#rp-sum').textContent = 'Haetaan yön aineistoa…';
-  $('#rp-t').max = rp.steps.length - 1; $('#rp-status').textContent = 'Haetaan yön aineistoa…'; $('#rp-side').innerHTML = ''; $('#rp-map').innerHTML = ''; $('#rp-strip').innerHTML = '';
+  rp.obs = null; rp.routes = null; rp.labels = null; rp.routesErr = null; rp.ajot = null; rp.plan = null; rp.sumK = null; $('#rp-sum').textContent = 'Haetaan vuorokauden aineistoa…';
+  $('#rp-t').max = rp.steps.length - 1; $('#rp-status').textContent = 'Haetaan vuorokauden aineistoa…'; $('#rp-side').innerHTML = ''; $('#rp-map').innerHTML = ''; $('#rp-strip').innerHTML = '';
   const months = monthKeys(n.from - 7*36e5, n.to);
   rp.kom = null; rp.sent = []; rp.keys = null;
   const getJ = u => fetch(u+'?'+Math.floor(Date.now()/6e4), {cache:'no-store'}).then(r=>r.ok ? r.json() : null).catch(()=>null);
   const [obsParts, labParts, routes, kom, K] = await Promise.all([
     Promise.all(months.map(m=>rpCsv(U.data+'obs-'+m+'.csv'))),
     Promise.all(months.map(m=>rpCsv(KUVAT+'data/labels-'+m+'.csv'))),
-    loadTaskNames().then(()=>fetchRoutes(n.from - 6*36e5, Math.min(n.to, Date.now()), [MAP.w, MAP.s, MAP.e, MAP.n])).catch(e=>({err:e.message})),
+    loadTaskNames().then(()=>Promise.all([fetchRoutes(n.from - 6*36e5, n.from, [MAP.w, MAP.s, MAP.e, MAP.n]), fetchRoutes(n.from, Math.min(n.to, Date.now()), [MAP.w, MAP.s, MAP.e, MAP.n])])).then(([a, b])=>a.concat(b)).catch(e=>({err:e.message})),
     getJ(U.data+'komennot/'+n.key+'.json'), getJ(U.data+'komento.json')
   ]);
   if(tok !== rp.tok) return;
@@ -2723,9 +2723,11 @@ async function rpLoad(){
   rp.labels = labParts.flat().map(r=>({...r, it:Date.parse(r.img_t || r.t)})).filter(r=>r.it >= n.from - 2*36e5 && r.it <= n.to + 2*36e5 && r.file);
   if(Array.isArray(routes)) rp.routes = routes.filter(r=>!r.stationary && r.cats.some(c=>c==='salt'||c==='plow'||c==='sand')); else rp.routesErr = (routes && routes.err) || 'ei saatu';
   const nObs = Object.keys(obs).filter(k=>obs[k].some(o=>o.t >= n.from)).length;
-  $('#rp-status').innerHTML = !nObs ? '<span class="err">Tälle yölle ei löytynyt keruun mittauksia.</span>'
+  $('#rp-status').innerHTML = !nObs ? '<span class="err">Tälle vuorokaudelle ei löytynyt keruun mittauksia.</span>'
     : nObs+' asemaa · '+(rp.routes ? rpWorkTxt() : 'toteumia ei saatu ('+esc(rp.routesErr)+')')+' · '+rp.labels.length+' kamerakuvaa kuvapankista'
-      + (n.to > Date.now() ? ' · yö on kesken' : '');
+      + (n.to > Date.now() ? ' · vuorokausi on kesken' : '');
+  for(let k = 0; k < 120 && !state.stations.length; k++) await new Promise(r=>setTimeout(r, 500));
+  if(tok !== rp.tok) return;
   let best = 0, bestV = Infinity, firstSlip = -1;
   rp.steps.forEach((T, i)=>{ const s = rpSnap(T); if(firstSlip < 0 && s.slip.length) firstSlip = i; if(s.min != null && s.min < bestV){ bestV = s.min; best = i; } });
   rp.i = firstSlip >= 0 ? firstSlip : best; rp.sel = null;
@@ -2767,8 +2769,8 @@ function rpStrip(){
     const x0 = Math.max(0, (a.s - rp.night.from)/span*W), x1 = Math.min(W, (a.e - rp.night.from)/span*W);
     s += '<rect class="wkbar wk-'+a.cat+'" x="'+x0.toFixed(1)+'" y="34" width="'+Math.max(2, x1-x0).toFixed(1)+'" height="6"><title>'+esc(a.tasks.map(taskFi).join(', '))+' '+fmtT(a.s)+'–'+fmtT(a.e)+rpRoadsTxt(a)+'</title></rect>'; }
   s += '<rect class="rp-cur" x="'+(rp.i*w).toFixed(1)+'" y="11" width="'+w.toFixed(1)+'" height="20"/>';
-  $('#rp-strip').innerHTML = '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Yön aikajana: ylhäällä avainhetket, keskellä kylmin tienpinta puolen tunnin välein (punainen piste = liukas keli), alla tehdyt työt">'+s+'</svg>'
-    + '<div class="rp-ticks">'+[0, 4, 8, 12, 16, 20, 24, 28].filter(i=>i < N).map(i=>'<span'+(i === N-1 ? ' class="last"' : '')+' style="left:'+((i+(i === N-1 ? 1 : 0.5))/N*100).toFixed(2)+'%">'+fmtT(rp.steps[i])+'</span>').join('')+'</div>';
+  $('#rp-strip').innerHTML = '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" role="img" aria-label="Vuorokauden aikajana: ylhäällä avainhetket, keskellä kylmin tienpinta puolen tunnin välein (punainen piste = liukas keli), alla tehdyt työt">'+s+'</svg>'
+    + '<div class="rp-ticks">'+(st => Array.from({length: Math.floor((N-1)/st)+1}, (_, k)=>k*st))(($('#rp-strip').clientWidth || 800) < 560 ? 6 : 4).filter(i=>i < N).map(i=>'<span'+(i === N-1 ? ' class="last"' : '')+' style="left:'+((i+(i === N-1 ? 1 : 0.5))/N*100).toFixed(2)+'%">'+fmtT(rp.steps[i])+'</span>').join('')+'</div>';
 }
 function rpMap(T, S, doneW){
   const lineD = l => l.map((c,i)=>(i?'L':'M')+px(c[0]).toFixed(1)+' '+py(c[1]).toFixed(1)).join(' ');
@@ -2801,7 +2803,7 @@ function rpSide(T){
   const near = (rp.routes||[]).filter(r=>Date.parse(r.start) <= T && rpInU(r) && r.lines.some(l=>l.some(c=>Math.hypot((c[0]-st.lon)*M_LON, (c[1]-st.lat)*M_LAT) <= 1000)));
   const lastOf = c => near.filter(r=>r.cats.includes(c)).reduce((a,r)=>!a || r.end > a ? r.end : a, null);
   const lw = [['salt','suolaus'],['plow','auraus'],['sand','hiekoitus']].map(([c,nm])=>{ const t = lastOf(c); return t ? nm+' klo '+fmtT(t)+' ('+n1((T-Date.parse(t))/36e5)+' h ennen)' : null; }).filter(Boolean);
-  h += '<p class="rp-w"><b>Työt aseman lähellä (1 km):</b> '+(rp.routes ? (lw.length ? lw.join(' · ') : 'ei suolausta, aurausta eikä hiekoitusta 6 h ennen yötä tai yön aikana') : 'toteumia ei saatu')+'</p>';
+  h += '<p class="rp-w"><b>Työt aseman lähellä (1 km):</b> '+(rp.routes ? (lw.length ? lw.join(' · ') : 'ei suolausta, aurausta eikä hiekoitusta vuorokauden aikana eikä 6 h ennen') : 'toteumia ei saatu')+'</p>';
   const cand = (rp.labels||[]).filter(r=>r.station === rp.sel).map(r=>({...r, dt:Math.abs(r.it - T), rank:r.kind === 'pari' ? 0 : 1})).filter(r=>r.dt <= 3*36e5)
     .sort((a,b)=>(a.dt - b.dt) || (a.rank - b.rank));
   if(cand.length){ const c = cand[0];
@@ -2832,7 +2834,7 @@ function rpChart(T){
   if(st && st.lon) for(const r of (rp.routes||[])){ if(!rpInU(r)) continue; const rs = Date.parse(r.start), re = Date.parse(r.end); if(re < x0 || rs > x1) continue;
     if(!r.lines.some(l=>l.some(c=>Math.hypot((c[0]-st.lon)*M_LON, (c[1]-st.lat)*M_LAT) <= 1000))) continue;
     const xa = X(rs), xb = Math.max(xa + 2, X(re)); s += '<rect class="rp-wk wk-'+rpCat(r)+'" x="'+xa.toFixed(1)+'" y="'+rows[2][1]+'" width="'+(xb-xa).toFixed(1)+'" height="8"><title>'+esc(r.tasks.map(taskFi).join(', '))+' '+fmtT(rs)+'–'+fmtT(re)+'</title></rect>'; }
-  for(const i of [0, 12, 24]) if(rp.steps[i]) s += '<text x="'+X(rp.steps[i]).toFixed(1)+'" y="'+(H-4)+'" text-anchor="middle">'+fmtT(rp.steps[i])+'</text>';
+  for(const i of [0, 12, 24, 36, 48]) if(rp.steps[i]) s += '<text x="'+X(rp.steps[i]).toFixed(1)+'" y="'+(H-4)+'" text-anchor="'+(i === 0 ? 'start' : i === 48 ? 'end' : 'middle')+'">'+fmtT(rp.steps[i])+'</text>';
   const C = rp.kom && rp.kom.slots && (rp.kom.slots['22'] || rp.kom.slots['18']), cs = C && C.stations && C.stations[rp.sel];
   if(cs && cs.level === 'toimenpide' && cs.by){ const xd = X(Date.parse(cs.by)); s += '<line class="rp-dl" x1="'+xd.toFixed(1)+'" x2="'+xd.toFixed(1)+'" y1="4" y2="'+(yb+42)+'"/><text class="rp-dlt" x="'+(xd+3).toFixed(1)+'" y="14">aikaraja</text>'; }
   s += '<path class="rp-ta" d="'+path(a.map(o=>[o.t, o.ta]))+'"/><path class="rp-td" d="'+path(a.map(o=>[o.t, o.td]))+'"/>';
@@ -2840,7 +2842,7 @@ function rpChart(T){
   s += '<path class="rp-tr" d="'+path(a.map(o=>[o.t, o.tr]))+'"/>';
   for(const o of a) if(rpSlip(o) && o.tr != null) s += '<circle class="rp-slip" cx="'+X(o.t).toFixed(1)+'" cy="'+Y(o.tr).toFixed(1)+'" r="3"/>';
   s += '<line class="rp-cursor" x1="'+X(T).toFixed(1)+'" x2="'+X(T).toFixed(1)+'" y1="4" y2="'+(yb+42)+'"/>';
-  return '<div class="rp-chart"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Aseman tienpinta, ilma ja kastepiste yön aikana sekä keli, sade ja tehdyt työt">'+s+'</svg>'
+  return '<div class="rp-chart"><svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Aseman tienpinta, ilma ja kastepiste vuorokauden aikana sekä keli, sade ja tehdyt työt">'+s+'</svg>'
     + '<div class="rp-lg"><i class="l-tr"></i>tie <i class="l-ta"></i>ilma <i class="l-td"></i>kastepiste <i class="l-fc"></i>sivun ennuste 6 h aiemmin <i class="l-sl"></i>liukas keli'+(cs && cs.level === 'toimenpide' && cs.by ? ' <i class="l-dl"></i>ehdotuksen aikaraja' : '')+'</div>'
     + '<div class="rp-lg">keli: <i class="sq kb-dry"></i>kuiva <i class="sq kb-moist"></i>kostea <i class="sq kb-wet"></i>märkä <i class="sq kb-salt"></i>suolainen <i class="sq kb-slip"></i>kuura, lumi, jää tai sohjo</div></div>';
 }
@@ -2893,11 +2895,11 @@ function rpPlan(){
   if(C && rp.routes){
     const ajot = rpAjot(), n = rp.night, catOf = act => /hiekoitus/i.test(act||'') ? ['sand'] : /lumity|auraus/i.test(act||'') ? ['plow','salt'] : ['salt'];
     const firstOn = (road, cats, from) => ajot.filter(a=>cats.includes(a.cat) && a.roads[String(road)] && a.e >= from).sort((x,y)=>x.s-y.s)[0] || null;
-    const rows = (C.roads||[]).filter(r=>r.level === 'toimenpide' && r.by).map(r=>{ const by = Date.parse(r.by), a = firstOn(r.road, catOf(r.action), n.from - 6*36e5);
+    const rows = (C.roads||[]).filter(r=>r.level === 'toimenpide' && r.by).map(r=>{ const by = Date.parse(r.by), a = firstOn(r.road, catOf(r.action), n.yo - 6*36e5);
       const sid = Object.keys(C.stations||{}).find(k=>C.stations[k].name === r.station) || null;
       return {road:r.road, action:String(r.action||'').split(' (')[0], by, a, sid, cat:catOf(r.action)[0]}; });
     const acted = new Set(rows.map(x=>String(x.road)));
-    const other = {}; for(const a of ajot){ if(a.cat !== 'salt' || a.e < n.from || a.s > n.to) continue;
+    const other = {}; for(const a of ajot){ if(a.cat !== 'salt' || a.e < n.yo || a.s > n.to) continue;
       for(const r of Object.keys(a.roads)) if(Number(r) < 10000 && !acted.has(r) && !(r in other)) other[r] = a.s; }
     v = {slot:rp.kom.slots['22'] ? '22' : '18', t:Date.parse(C.t), level:C.level, rows, other:Object.entries(other).sort((x,y)=>x[1]-y[1])};
   }
@@ -2950,9 +2952,9 @@ function rpKeyList(){
 }
 function rpKeys(){
   const notes = []; let h = '';
-  if(!rp.kom) notes.push('sivun ehdotuksia (varjokomento) ei ole tallessa tältä yöltä');
+  if(!rp.kom) notes.push('sivun ehdotuksia (varjokomento) ei ole tallessa tämän vuorokauden yöltä');
   const sentFrom = rp.sent.length ? Math.min(...rp.sent.map(x=>Date.parse(x.t))) : null;
-  if(sentFrom == null || sentFrom > rp.night.from) notes.push('puhelinilmoitukset ovat tallessa vain viimeisiltä öiltä'+(sentFrom ? ' (alkaen '+fmtDT(sentFrom)+')' : ''));
+  if(sentFrom == null || sentFrom > rp.night.from) notes.push('puhelinilmoitukset ovat tallessa vain viimeisiltä vuorokausilta'+(sentFrom ? ' (alkaen '+fmtDT(sentFrom)+')' : ''));
   h += rpPlanHtml();
   const E = rp.kom && rp.kom.eval;
   if(E){ const c = E.cntNeed, p = [];
@@ -2981,6 +2983,8 @@ function rpSumHtml(ns){
   } else if(C) parts.push('<b>Ehdotus:</b> '+(C.level === 'toimenpide' ? esc(C.headline) : C.level === 'seuranta' ? 'seuranta, ei toimenpiderajaa' : 'ei toimenpiteitä'));
   const slipSt = new Set(); let min = null;
   for(const [st, a] of Object.entries(rp.obs||{})) for(const o of a){ if(o.t < n.from || o.t > n.to) continue; if(rpSlip(o)) slipSt.add(st); if(o.tr != null && (min == null || o.tr < min)) min = o.tr; }
+  if(rp.routes){ const aj = rpAjot().filter(a=>a.e >= n.from && a.s <= n.to), wk = ['salt','plow','sand'].map(c=>{ const x = aj.filter(a=>a.cat === c); return x.length ? work[c]+' '+x.length+' ajoa (alkaen '+fmtT(x[0].s)+')' : null; }).filter(Boolean);
+    parts.push(wk.length ? wk.join(', ') : 'ei suolausta, aurausta eikä hiekoitusta urakan teillä'); }
   parts.push(slipSt.size ? '<span class="late">liukas keli '+slipSt.size+' asemalla</span>' : 'ei liukasta keliä');
   if(min != null) parts.push('kylmin tie '+n1(min)+' °C');
   if(ns) parts.push('puhelimeen '+(ns.length ? ns.length+' ilmoitusta' : 'ei ilmoituksia'));
