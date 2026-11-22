@@ -2,6 +2,18 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 22.11.2026: Yön kelaus kattaa koko vuorokauden klo 08–08 (rp6, ei sääntömuutos)
+Samulin päätös 22.11. Jälkiselvityksen Yön kelaus näyttää nyt koko vuorokauden klo 08 – seuraava klo 08 (Suomen aikaa, kesäaika huomioiden). Yö klo 18–08 on aikajanan loppuosa kuten ennen.
+
+- **Valinta:** "Vuorokausi", 21 viimeisintä, esim. "pe 20.11. klo 08 – la 21.11. klo 08". Kesken olevan vuorokauden voi valita.
+- **Aikajana:** 30 minuutin askelin, 49 kohtaa. Kellonajat näkyvät 2 tunnin välein, puhelimella 3 tunnin välein. Toisto, « » ja avainhetket toimivat kuten ennen.
+- **Päivälläkin samat tiedot:** mittaukset, sivun indeksi ja syy, kartta, tehdyt työt, kamerakuvat ja asemakaavio. Tehdyt työt haetaan koko vuorokaudelta ja 6 tuntia sitä ennen.
+- **Yöhön sidotut asiat ennallaan:** sivun ehdotukset (klo 18, 22, 00, 02), aikarajat, aamuvertailu ja "Ehdotus ja toteuma tie kerrallaan" koskevat yötä. Päivällä tehdyt suolaukset näkyvät töinä ja tiivistelmässä ilman ehdotusta.
+- **Tiivistelmä ja yhteenveto** kattavat koko vuorokauden: suolaukset, auraukset ja hiekoitukset urakan teillä (ajojen määrä ja alku), kylmin tie, liukas keli ja puhelinilmoitukset.
+- **Oletuskohta:** ensimmäinen liukas keli, muuten vuorokauden kylmin hetki. Kohta valitaan vasta, kun asemat ovat latautuneet (ennen kelaus saattoi avautua alkuun, jos asemat latautuivat hitaasti).
+- **Huom:** Digitraffic säilyttää tehtyjä töitä vain noin kaksi vuorokautta, joten vanhemmille vuorokausille töitä ei näy (kuten ennenkin).
+- **Perutaan:** laskenta.html, tunnus rp6: rpNights-funktiossa `from` takaisin klo 18 (`helMs(y, m, d, 18)`), toteumahaku yhdeksi hauksi `fetchRoutes(n.from - 6*36e5, …)`, rpPlanissa `n.yo` takaisin `n.from`, tiivistelmän työrivi pois, liukusäätimen `max` 28 ja otsikkotekstit "Yö".
+
 ## 20.11.2026: Sivu kertoo, kun vain Digitraffic ennustaa jäätä (dt-ero, ei sääntömuutos)
 Samulin päätös 20.11. Vantaan asemilla 2.–20.11. Digitrafficin tienpintaennuste on öisin noin 0,8 °C muita kylmempi, ja lauhoina öinä se tekee turhia hälytyksiä (esim. 20.11.). Kylminä öinä se on kuitenkin löytänyt jäätymisen muita paremmin (96 % jäätymistunneista, oma tienpintamalli 65–74 %). Siksi hälytystasoa ei muuteta, vaan erimielisyys näytetään.
 
