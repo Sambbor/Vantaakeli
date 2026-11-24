@@ -1796,7 +1796,9 @@ function dk1Rivi(C){
   if(!C || !C.stations) return null;
   const roads = [...new Set(Object.values(C.stations).filter(s=>s.dk1).map(s=>Number(s.road)))].sort((a, b)=>a - b);
   if(!roads.length) return null;
-  return {roads, text: 'Digitraffic ennustaa liukasta '+(roads.length > 1 ? 'teille '+roads.join(', ')+', jotka ovat nyt kuivia' : 'tielle '+roads[0]+', joka on nyt kuiva')+' (vettä alle 0,1 mm), eikä sadetta ennusteta – tällaisissa tilanteissa tie on liukastunut noin 3–5 %:ssa. Taso rajattu seurantaan; jos sadetta tulee, taso nousee.'};
+  const nm = id => { const x = C.stations[String(id)]; return x ? String(x.name).replace(/^Tie \d+,?\s*/, '').replace(/^[^,]*,\s*/, '') : String(id); };
+  const near = Object.values(C.stations).filter(s=>s.dk1 && s.wFrom).map(s=>'tie '+s.road+': '+nm(s.wFrom.id)+' '+n1(s.wFrom.d/1000)+' km');
+  return {roads, text: 'Digitraffic ennustaa liukasta '+(roads.length > 1 ? 'teille '+roads.join(', ')+', jotka ovat nyt kuivia' : 'tielle '+roads[0]+', joka on nyt kuiva')+' (vettä alle 0,1 mm'+(near.length ? '; lähimmän vesianturin mukaan '+[...new Set(near)].join(', ') : '')+'), eikä sadetta ennusteta – tällaisissa tilanteissa tie on liukastunut noin 3–5 %:ssa. Taso rajattu seurantaan; jos sadetta tulee, taso nousee.'};
 }
 function dtEroKorttiin(acts){
   const K = typeof nightS !== 'undefined' && nightS.k, C = K && K.now;
