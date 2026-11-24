@@ -526,7 +526,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
   <div class="summary" id="summary" data-tab="tilanne"></div>
 
   <section id="actions" data-tab="tilanne">
-    <div class="sec-h"><h2>Toimenpidetarve</h2><span class="note">Päätöstuki seuraavalle 24 tunnille – tarkista aina asemilta ja kameroista</span></div>
+    <div class="sec-h"><h2>Toimenpidetarve</h2><span class="note">Seuraavat 10 h – tarkista asemilta ja kameroista</span></div>
     <div class="salt-strip" id="salt-strip"></div>
     <div class="act-top">
       <div class="actions" id="actions-body"><div class="status">Lasketaan…</div></div>
@@ -568,7 +568,7 @@ ol.rules{margin:6px 0 4px;padding-left:22px} ol.rules li{margin:2px 0} ol.rules 
         <input type="range" id="radar-t" min="0" max="12" step="1" value="12" aria-label="Tutkakuvan aika">
         <span id="radar-time">–</span>
         <label for="radar-mode" class="lg">Tutka</label><select id="radar-mode"><option value="dbz">Sadeintensiteetti</option><option value="type">Sadetyyppi (vesi / lumi)</option></select>
-        <label for="road-mode" class="lg">Tiet</label><select id="road-mode"><option value="cond">Ajokeli 12 h</option><option value="temp">Tienpinta, alin 12 h</option></select>
+        <label for="road-mode" class="lg">Tiet</label><select id="road-mode"><option value="temp">Tienpinta, alin 12 h</option></select>
         <label class="chk"><input type="checkbox" id="works-map"> Toteutuneet työt</label><select id="works-hours" aria-label="Töiden aikaikkuna" title="Toteutuneiden töiden aikaikkuna (kartta ja työlista)"><option value="3">3 h</option><option value="6">6 h</option><option value="12">12 h</option><option value="24">24 h</option></select>
       </div>
       <div class="map-box" id="map-box"><div class="map-zoom"><button type="button" id="mz-in" aria-label="Lähennä">+</button><button type="button" id="mz-out" aria-label="Loitonna">−</button><button type="button" id="mz-reset" aria-label="Koko alue" title="Koko alue">⤢</button></div><span class="map-hint" id="map-hint">Kaksoisnapautus tai +/− lähentää</span><img id="radar-img" alt="" hidden><svg id="map-svg" role="img" aria-label="Urakka-alueen kartta: tiesääasemat, kelikamerat ja reittiosuudet"></svg></div>
@@ -672,6 +672,8 @@ const isNight = t => { const h = hourHel(t); return h >= 18 || h < 8; };
 const WARN_RANK = {0:0, 4:1, 1:2, 3:3, 2:4};
 const TILA_TO_KELI = {1:1, 2:3, 3:3, 10:3, 11:7};
 const FROST_SLIP = 4;
+const SLIP_EXCL = {1041: {keli: true, tr: true}, 1034: {keli: true}};
+const slipExcl = (st, k) => !!(st != null && SLIP_EXCL[st] && SLIP_EXCL[st][k]);
 </script>
 <script>
 (() => {
@@ -732,10 +734,6 @@ const ageMin = d => Math.round((Date.now()-new Date(d))/60000);
 const getJSON = url => fetch(url, HDR).then(r => { if(!r.ok) throw new Error(url+' → HTTP '+r.status); return r.json(); });
 const inBox = c => c[0]>=BBOX.xMin && c[0]<=BBOX.xMax && c[1]>=BBOX.yMin && c[1]<=BBOX.yMax;
 
-const OVERALL = {
-  NORMAL_CONDITION:['Normaali','ok'], POOR_CONDITION:['Huono','warn'],
-  EXTREMELY_POOR_CONDITION:['Erittäin huono','bad'], CONDITION_COULD_NOT_BE_RESOLVED:['Ei tietoa','na']
-};
 const REASON = {
   DRY:'kuiva', MOIST:'kostea', WET:'märkä', WET_AND_SALTY:'märkä, suolattu', MOIST_AND_SALTY:'kostea, suolattu',
   FROST:'kuuraa', SNOW:'lunta', ICE:'jäätä', PARTLY_ICY:'osin jäinen', SLIPPERY:'liukas', VERY_SLIPPERY:'erittäin liukas',
@@ -1168,7 +1166,7 @@ function areaFrost(){}
 function attachRoadExt(){}
 function stationFrostAcc(st){ return POH && POH.frost ? (POH.frost[st.id] || 0) : 0; }
 function computeActions(){
-  state.snow12 = POH ? POH.snow12 : null; state.snow24 = POH ? POH.snow24 : null; state.actNotes = (POH && POH.actNotes) || [];
+  state.snow12 = POH ? POH.snow12 : null; state.snow24 = POH ? POH.snow24 : null; state.actNotes = (POH && POH.actNotes) || []; state.later = (POH && POH.later) || null;
   if(POH && POH.actions && POH.actions.length){ const age = pohAge();
     return age != null && age > (isNight(Date.now()) ? 60 : 120) ?
        [{sev:'na', title:'Pohdinta vanhentunut', when:'laskettu '+fmtDT(POH.t)+' ('+ageTxt(age)+' sitten)', lines:['Alla olevat kortit ovat vanhasta laskennasta. Tarkista asemat ja kamerat itse.']}].concat(POH.actions) : POH.actions; }
@@ -1658,8 +1656,8 @@ function slipByHour(){
     if(!o || (c.idx||0) > o.idx) m.set(h, {t, idx:c.idx||0, why:c.why||'', st:r.st, lead:c.lead}); }
   _slipH = {src: state.slipList, at: Date.now(), m, n: sl.length}; return m;
 }
-function coldRoad12(){
-  const t1 = Date.now() + 12*36e5; let best = null;
+function coldRoad12(H = 12){
+  const t1 = Date.now() + H*36e5; let best = null;
   for(const st of (state.stations||[])){
     if(st.lon == null) continue;
     let r = null; try{ r = stationSlipSeries(st); }catch(e){ r = null; }
@@ -1675,45 +1673,26 @@ function coldRoad12(){
 }
 const stShort = st => st ? (st.road ? 'Tie '+st.road+' ' : '')+String(st.name||'').split(',').pop().trim() : '';
 function renderSummary(){
-  const tiles = [];
-  if(state.fc && state.fc.length){
-    const rank = {EXTREMELY_POOR_CONDITION:3, POOR_CONDITION:2, NORMAL_CONDITION:1, CONDITION_COULD_NOT_BE_RESOLVED:0};
-    let worst = null;
-    for(const s of state.fc) for(const f of s.forecasts){ if(!worst || rank[f.overallRoadCondition] > rank[worst.f.overallRoadCondition]) worst = {s,f}; }
-    if(worst){
-    const [lbl, cls] = OVERALL[worst.f.overallRoadCondition] || ['?','na'];
-    const cnt = state.fc.filter(s=>s.forecasts.some(f=>rank[f.overallRoadCondition]>=2)).length;
-    tiles.push({cls: cls==='na'?'':cls, k:'Ajokeli 12 h (huonoin)', f:'Ajokeli 12 h', s: cnt ? 'ensin '+esc(worst.s.description.split(':')[0])+' '+(worst.f.type==='OBSERVATION'?'nyt':'+'+esc(worst.f.forecastName)) : 'kaikkialla normaali', v:lbl, d: cnt ? cnt+' reittiosuutta, joilla huonoa keliä · ensin '+esc(worst.s.description.split(':')[0])+' '+(worst.f.type==='OBSERVATION'?'nyt':'+'+esc(worst.f.forecastName)) : 'Kaikilla '+state.fc.length+' osuudella normaali'});
-    let minRoad = Infinity, where = 'Tiesääennusteen reittiosuudet';
-    const om = coldRoad12();
-    const cb = om ? null : Object.values(coldestBySec()).sort((a,b)=>a.f.roadTemperature-b.f.roadTemperature)[0];
-    if(om){ minRoad = om.road; where = (om.roadSec ? String(om.roadSec).split(':')[0]+' ' : '')+'klo '+fmtT(om.t)+' · asemiin kiinnitetty ennuste'+(om.corr ? ', opittu korjaus mukana (sama kuin liukkausindeksissä)' : ''); }
-    else if(cb){ minRoad = cb.f.roadTemperature; where = segLabel(cb.s)+(cb.f.type==='OBSERVATION'?' nyt':' klo '+fmtT(cb.f.time)); }
-    else for(const s of state.fc) for(const f of s.forecasts) if(f.roadTemperature!=null) minRoad = Math.min(minRoad, f.roadTemperature);
-    tiles.push(isFinite(minRoad) ? {cls: minRoad<=0?'bad':minRoad<=2?'warn':'ok', k:'Tienpinta, alin ennuste 12 h', f:'Tie alin 12 h', s: esc(where.split(' · ')[0]), v: n1(minRoad)+' °C', d: esc(where)} : {cls:'', k:'Tienpinta, alin ennuste 12 h', f:'Tie alin 12 h', s:'ei ennustetta', v:'–', d:'ei tienpinnan ennustetta'});
-    }
-  }
-  const roads = okStations().map(s=>s.values&&s.values.TIE_1&&s.values.TIE_1.value).filter(v=>v!=null);
-  if(roads.length){
-    const warns = okStations().filter(s=>warnOn(svv(s,'VAROITUS_1'), svv(s,'TIE_1'))).length;
-    const mn = Math.min(...roads), inUse = state.stations.filter(s=>!stationIssues(s).off).length;
-    tiles.push({cls: warns?'bad':(mn<=1?'warn':'ok'), k:'Tienpinta nyt (alin)', f:'Tie nyt (alin)', s: warns ? warns+' asemalla varoitus' : roads.length+'/'+inUse+' asemaa', v: n1(mn)+' °C', d:'alin tienpinta · '+(warns? warns+' asemalla varoitus' : 'ei varoituksia')+' · '+roads.length+'/'+inUse+' asemaa käytettävissä'});
-  }
-  const d24 = state.fmi.slice(0,24);
-  if(d24.length){
-    const minT = Math.min(...d24.map(d=>d.Temperature)); const sumP = d24.reduce((a,d)=>a+(d.Precipitation1h||0),0);
-    const snow = d24.some(d=>isSnowy(Math.round(d.WeatherSymbol3)));
-    const sl = (state.slipList && state.slipList.length) ? state.slipList : state.stations.filter(x=>x.lon).map(x=>{ try{ return stationSlipSeries(x); }catch(e){ return null; } }).filter(Boolean);
-    const hit = [], hrs = new Set(); let mx = 0;
-    for(const r of sl) for(const c of (r.rows||[])){ const t = new Date(c.t).getTime(); if(t > Date.now()+24*36e5) continue; mx = Math.max(mx, c.idx||0);
+  const tiles = [], W = typeof TL_WIN !== 'undefined' ? TL_WIN : 10, tEnd = Date.now() + W*36e5;
+  const om = coldRoad12(W);
+  const meas = okStations().map(s=>({s, v: svv(s,'TIE_1')})).filter(o=>o.v != null && !slipExcl(o.s.id, 'tr')).sort((a,b)=>a.v-b.v)[0];
+  const fcM = om ? {v: om.road, where: (om.roadSec ? String(om.roadSec).split(':')[0]+' ' : '')+'klo '+fmtT(om.t), d: 'ennuste klo '+fmtT(om.t)+(om.corr ? ', asemiin kiinnitetty, opittu korjaus mukana' : '')} : null;
+  const msM = meas ? {v: meas.v, where: stShort(meas.s)+' nyt', d: 'mitattu nyt'} : null;
+  const lo = [fcM, msM].filter(Boolean).sort((a,b)=>a.v-b.v)[0];
+  tiles.push(lo ? {cls: lo.v<=0?'bad':lo.v<=2?'warn':'ok', k:'Tienpinta, alin '+W+' h', f:'Tie alin '+W+' h', s: esc(lo.where), v: n1(lo.v)+' °C', d: esc(lo.where+' · '+lo.d)}
+    : {cls:'', k:'Tienpinta, alin '+W+' h', f:'Tie alin '+W+' h', s:'ei tietoa', v:'–', d:'ei tienpinnan mittausta eikä ennustetta'});
+  const dW = state.fmi.filter(d=>new Date(d.t).getTime() <= tEnd);
+  const sl = (state.slipList && state.slipList.length) ? state.slipList : state.stations.filter(x=>x.lon).map(x=>{ try{ return stationSlipSeries(x); }catch(e){ return null; } }).filter(Boolean);
+  if(sl.length){ const hit = [], hrs = new Set(); let mx = 0;
+    for(const r of sl) for(const c of (r.rows||[])){ const t = new Date(c.t).getTime(); if(t > tEnd) continue; mx = Math.max(mx, c.idx||0);
       if((c.idx||0) >= 50){ hrs.add(t); hit.push({r, c, t}); } }
     hit.sort((a,b)=>a.t-b.t || (b.c.idx||0)-(a.c.idx||0));
     const h0 = hit[0], at0 = h0 ? (h0.c.lead != null && h0.c.lead < 1 ? 'nyt' : 'klo '+fmtT(h0.t)) : '';
-    if(sl.length) tiles.push(h0 ? {cls:'bad', k:'Liukkausriski 24 h', f:'Liukkausriski 24 h', s: stShort(h0.r.st)+' · '+hrs.size+' h', v: at0, d: stShort(h0.r.st)+(h0.c.why ? ' ('+esc(h0.c.why)+')' : '')+' · '+hrs.size+' h, '+new Set(hit.map(o=>o.r.st.id)).size+' asemaa'}
-      : {cls: mx >= 20 ? 'warn' : 'ok', k:'Liukkausriski 24 h', f:'Liukkausriski 24 h', s: 'indeksi enintään '+mx, v: mx >= 20 ? 'Seuraa' : 'Ei', d: 'liukkausindeksi enintään '+mx});
-    const snowCm = d24.reduce((a,d)=>a+snowOf(d),0);
-    tiles.push({cls: snowCm>=SNOW_LIMIT?'bad':snowCm>=0.5?'warn':'', k:'Sade 24 h', f:'Sade 24 h', s: snowCm>=0.1 ? 'lunta ~'+n1(snowCm)+' cm' : snow ? 'räntää/lunta mahd.' : 'ilma alin '+n1(minT)+' °C', v: n1(sumP)+' mm', d: (snowCm>=0.1?'lunta ~'+n1(snowCm)+' cm · ':(snow?'räntää/lunta mahdollista · ':''))+'alin ilma '+n1(minT)+' °C'});
-  }
+    tiles.push(h0 ? {cls:'bad', k:'Liukkausriski '+W+' h', f:'Liukkausriski '+W+' h', s: stShort(h0.r.st)+' · '+hrs.size+' h', v: at0, d: stShort(h0.r.st)+(h0.c.why ? ' ('+esc(h0.c.why)+')' : '')+' · '+hrs.size+' h, '+new Set(hit.map(o=>o.r.st.id)).size+' asemaa'}
+      : {cls: mx >= 30 ? 'warn' : 'ok', k:'Liukkausriski '+W+' h', f:'Liukkausriski '+W+' h', s: 'indeksi enintään '+mx, v: mx >= 30 ? 'Seuraa' : 'Ei', d: 'liukkausindeksi enintään '+mx}); }
+  if(dW.length){ const sumP = dW.reduce((a,d)=>a+(d.Precipitation1h||0),0), snowCm = dW.reduce((a,d)=>a+snowOf(d),0);
+    tiles.push(snowCm >= 0.1 ? {cls: snowCm>=SNOW_LIMIT?'bad':snowCm>=0.5?'warn':'', k:'Sade '+W+' h', f:'Sade '+W+' h', s: 'lunta', v: '~'+n1(snowCm)+' cm', d: 'lunta ~'+n1(snowCm)+' cm (sade '+n1(sumP)+' mm)'}
+      : {cls:'', k:'Sade '+W+' h', f:'Sade '+W+' h', s: sumP >= 0.1 ? 'vettä' : 'poutaa', v: n1(sumP)+' mm', d: 'sade '+n1(sumP)+' mm'}); }
   $('#summary').innerHTML = tiles.map(t=>'<div class="tile '+(t.cls||'')+'"><span class="k">'+t.k+'</span><span class="v">'+t.v+'</span><span class="d">'+t.d+'</span></div>').join('');
   const sf = $('#sl-facts'); if(sf) sf.innerHTML = tiles.map(t=>'<div class="fact '+(t.cls||'')+'" title="'+esc(String(t.d).replace(/<[^>]+>/g,''))+'"><span class="k">'+(t.f||t.k)+'</span><span class="v">'+t.v+'</span>'+(t.s ? '<span class="d">'+t.s+'</span>' : '')+'</div>').join('');
 }
@@ -1727,7 +1706,7 @@ const PLACES = U.places;
 const SETTINGS_KEY = U.key+'-settings';
 const HIST_KEY = U.key+'-hist-v1';
 const SNOW_LIMIT = 2;
-const settings = (()=>{ try{ return Object.assign({wall:false, worksHours:12, worksMap:true, radarMode:'dbz', roadMode:'cond'}, JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}); }catch(e){ return {wall:false, worksHours:12, worksMap:true, radarMode:'dbz', roadMode:'cond'}; } })();
+const settings = (()=>{ try{ return Object.assign({wall:false, worksHours:12, worksMap:true, radarMode:'dbz', roadMode:'temp'}, JSON.parse(localStorage.getItem(SETTINGS_KEY))||{}, {roadMode:'temp'}); }catch(e){ return {wall:false, worksHours:12, worksMap:true, radarMode:'dbz', roadMode:'cond'}; } })();
 const saveSettings = () => { try{ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }catch(e){} };
 const SEV = { bad:['KIIREELLINEN',3], na:['TIEDOT PUUTTUVAT',2.5], warn:['VALMISTAUDU',2], info:['SEURAA',1], ok:['EI TOIMENPIDETARVETTA',0] };
 const sv = (s,k) => s && s.values && s.values[k];
@@ -1752,20 +1731,30 @@ const whyOpen = new Map();
 const whyIsOpen = a => document.body.classList.contains('wall') || (whyOpen.has(a.title) ? whyOpen.get(a.title) : a.sev === 'bad' || a.title === 'Asemat hälyttävät nyt');
 const whyHtml = (a, cls) => a.lines && a.lines.length ? '<details class="act-why-d'+(cls ? ' '+cls : '')+'" data-t="'+esc(a.title)+'"'+(whyIsOpen(a) ? ' open' : '')+'><summary>Miksi?</summary><ul>'+a.lines.map(l=>'<li>'+l+'</li>').join('')+'</ul></details>' : '';
 document.addEventListener('toggle', e=>{ const d = e.target; if(!d.classList || !d.classList.contains('act-why-d') || document.body.classList.contains('wall')) return; whyOpen.set(d.dataset.t, d.open); }, true);
+function topCard(acts){
+  const a = (acts||[]).find(x=>x.slip || x.sev === 'na');
+  return a || {sev:'ok', title:'Ei toimenpidetarvetta', when:'seuraavat '+(typeof TL_WIN !== 'undefined' ? TL_WIN : 10)+' h', lines:[]};
+}
 function renderActions(){
   const acts = state.actions = dtEroKorttiin(computeActions());
   try{ renderSaltStrip(); }catch(e){ console.error(e); }
-  if(acts.length && acts.every(a=>a.sev === 'ok')) $('#actions-body').innerHTML = '<div class="act-calm"><span class="calm-ic" aria-hidden="true">✓</span><span>'+acts.map(a=>a.lines.join(' ')).join(' ')+'</span></div>';
-  else { const rest = acts.slice(1);
-    $('#actions-body').innerHTML = rest.length ? rest.map(a=>'<article class="act a-'+a.sev+'" data-t="'+esc(a.title)+'"><div class="act-hd"><div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
-      + '<div class="act-when">'+(a.where ? '<span class="act-where">'+esc(a.where)+'</span> · ' : '')+a.when+'</div></div>'+whyHtml(a)+'</article>').join('')
-      : '<p class="muted" style="margin:0">Ei muita ehdotuksia – ylin ehdotus perusteluineen on päätöslaatikossa.</p>'; }
-  if((state.actNotes||[]).length) $('#actions-body').insertAdjacentHTML('beforeend', state.actNotes.map(t=>'<p class="muted" style="margin:8px 2px 0;font-size:.9em">'+t+'</p>').join(''));
-  try{ renderStatusLine(acts); }catch(e){ console.error(e); }
+  const T = topCard(acts);
+  const extra = (state.actNotes||[]).concat(phoneLine(acts) || []);
+  const top = extra.length ? {...T, lines: (T.lines||[]).concat(extra)} : T;
+  const rest = acts.filter(a=>a !== T && a.sev !== 'ok');
+  $('#actions-body').innerHTML = rest.map(a=>'<article class="act a-'+a.sev+'" data-t="'+esc(a.title)+'"><div class="act-hd"><div class="act-h"><span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span><h3>'+esc(a.title)+'</h3></div>'
+      + '<div class="act-when">'+(a.where ? '<span class="act-where">'+esc(a.where)+'</span> · ' : '')+a.when+'</div></div>'+whyHtml(a)+'</article>').join('');
+  try{ renderStatusLine(acts, top); }catch(e){ console.error(e); }
   try{ renderNightLine(); }catch(e){ console.error(e); }
-  const top = acts[0] ? SEV[acts[0].sev][1] : 0;
-  document.title = (top>=3 ? '(!) ' : '') + U.gen+' urakan keli';
-  tabDot('tilanne', top>=3 ? 'bad' : top>=2 ? 'warn' : null);
+  const lv = SEV[top.sev][1];
+  document.title = (lv>=3 ? '(!) ' : '') + U.gen+' urakan keli';
+  tabDot('tilanne', lv>=3 ? 'bad' : lv>=2 ? 'warn' : null);
+}
+function phoneLine(acts){
+  const K = typeof nightS !== 'undefined' && nightS.k, N = K && K.notify;
+  if(!N || N.level !== 'toimenpide' || !N.last || !/^(Liukkausriski|Päivitys)/.test(N.last.title||'')) return null;
+  if(pageDecision(acts).level === 'toimenpide') return null;
+  return 'Puhelinilmoitus (varjokomento) klo '+fmtT(N.last.t)+': '+esc(String(N.last.title).replace(/^(Liukkausriski|Päivitys): /, '').toLowerCase());
 }
 
 const PD_SLIP = /^(Liukkaudentorjunta|Kitkantorjunta|Kuura|Mahdollinen liukkaus|Suolaa tiellä|Jäätävä sade|Jäätä|Vesisadetta jäiselle|Asemat hälyttävät|Auraus|Lumisade)/;
@@ -1773,7 +1762,7 @@ function pageDecision(acts){
   const sl = (acts||[]).filter(a=>a.slip), act = sl.filter(a=>a.sev === 'bad' || a.sev === 'warn'), watch = sl.filter(a=>a.sev === 'info');
   const by = act.map(a=>a.by).filter(v=>v != null).sort((x,y)=>x-y)[0];
   const na = !sl.length && (acts||[]).some(a=>a.sev === 'na');
-  return {level: act.length ? 'toimenpide' : watch.length ? 'seuranta' : na ? 'na' : 'ei', by: by != null ? new Date(by).toISOString() : null, titles: (act.length ? act : watch).map(a=>a.title)};
+  return {level: act.length ? 'toimenpide' : watch.length ? 'seuranta' : na ? 'na' : 'ei', by: by != null ? new Date(by).toISOString() : null, titles: (act.length ? act : watch).map(a=>a.title), win: typeof TL_WIN !== 'undefined' ? TL_WIN : 10};
 }
 const DT_ERO_WHY = 'tiesääennuste (Digitraffic)', DT_ERO_RAJA = 1.0;
 function dtEroRivi(C){
@@ -1811,28 +1800,20 @@ function dtEroKorttiin(acts){
   return acts.map((a, k)=>k === i ? {...a, lines: [a.lines[0], R.text].concat(a.lines.slice(1))} : a);
 }
 const PD_LV = {toimenpide:'toimenpide', seuranta:'seuranta', ei:'ei toimenpiteitä', na:'ei arviota (tiedot puuttuivat)'};
-function pdDiff(acts){
-  const K = typeof nightS !== 'undefined' && nightS.k, C = K && K.now; if(!C || !C.t || Date.now() - Date.parse(C.t) > 90*60e3) return '';
-  const D = pageDecision(acts), kBy = (C.roads||[]).filter(r=>r.level === 'toimenpide' && r.by).map(r=>Date.parse(r.by)).sort((a,b)=>a-b)[0];
-  const diff = D.level !== 'na' && D.level !== C.level || (D.level === 'toimenpide' && D.by && kBy != null && Math.abs(Date.parse(D.by) - kBy) > 2*36e5);
-  if(!diff) return '';
-  const hl = String(C.headline||''), parts = hl.split(' – '), short = C.level === 'toimenpide' && parts.length > 1 ? hl.split(':')[0]+' '+parts[parts.length-1].replace(/^valmiina /, '') : parts[0];
-  return '<div class="sl-next sl-kom" title="'+esc(hl+' · sivu: '+PD_LV[D.level]+(D.level === 'toimenpide' && D.by ? ' ennen klo '+fmtT(D.by) : ''))+'">Varjokomento ehdottaa: '+esc(short.charAt(0).toLowerCase()+short.slice(1))+' <button type="button" class="link-btn hide-wall" data-go="komento">Näytä</button></div>';
-}
-function renderStatusLine(acts){
+function renderStatusLine(acts, top){
   const el = $('#status-line'); if(!el) return;
-  const a = acts[0]; if(!a){ setSec(el, false); return; }
+  const a = top || topCard(acts);
   const plain = x => String(x||'').replace(/<[^>]+>/g, '');
-  const rest = acts.slice(1).filter(x=>x.sev !== 'ok'), nxt = rest[0];
+  const rest = a.sev === 'ok' ? [] : (acts||[]).filter(x=>(x.slip || x.sev === 'na') && x.title !== a.title && x.sev !== 'ok'), nxt = rest[0];
   const calcT = typeof POH === 'undefined' ? Date.now() : (POH && POH.t) || null;
   el.className = 'status-line s-'+a.sev; setSec(el, true);
   const sub = a.sev === 'ok' ? plain(a.when) : [a.where, plain(a.when)].filter(Boolean).join(' · ');
   el.querySelector('.sl-main').innerHTML = '<button type="button" data-t="'+esc(a.title)+'"><span class="sl-top">'+(String(SEV[a.sev][0]).toLowerCase() === String(a.title).toLowerCase() ? '' : '<span class="badge b-'+a.sev+'">'+SEV[a.sev][0]+'</span>')+'<span class="sl-title">'+esc(a.title)+'</span></span>'
     + (sub ? '<span class="sl-sub">'+esc(sub)+'</span>' : '')+'</button>'
     + (nxt ? '<div class="sl-next">Lisäksi: '+esc(nxt.title)+(nxt.where ? ' – '+esc(nxt.where) : '')+(rest.length > 1 ? ' ja '+(rest.length-1)+' muuta' : '')+'</div>' : '')
-    + pdDiff(acts)
+    + (state.later ? '<div class="sl-next sl-later">'+esc(state.later)+'</div>' : '')
     + (calcT ? '<div class="sl-next sl-calc">Laskettu klo '+fmtT(calcT)+'</div>' : '')
-    + (a.sev === 'ok' ? '' : whyHtml(a, 'sl-why'));
+    + whyHtml(a, 'sl-why');
 }
 $('#status-line').addEventListener('click', e => {
   const g = e.target.closest('[data-go]'); if(g){ const sec = $('#'+g.dataset.go); if(sec && !sec.hidden) sec.scrollIntoView({behavior:'smooth', block:'start'}); return; }
@@ -1964,10 +1945,7 @@ $('#wallbtn').addEventListener('click', ()=>{ settings.wall = !settings.wall; sa
 applyWall();
 
 const tempCls = v => v==null ? 'na' : v<=-2 ? 'c2' : v<=0 ? 'c1' : v<=2 ? 'c0' : 'w';
-function worstSec(s){
-  const rank = {EXTREMELY_POOR_CONDITION:3, POOR_CONDITION:2, NORMAL_CONDITION:1, CONDITION_COULD_NOT_BE_RESOLVED:0};
-  return s.forecasts.reduce((a,f)=>rank[f.overallRoadCondition]>rank[a]?f.overallRoadCondition:a, 'CONDITION_COULD_NOT_BE_RESOLVED');
-}
+const secMin = s => { const v = (s.forecasts||[]).map(f=>f.roadTemperature).filter(x=>x != null); return v.length ? Math.min(...v) : null; };
 const view = {x:0, y:0, w:MAP_W, h:MAP_H};
 const boxRatio = () => { const b = $('#map-box'); return b.clientWidth && b.clientHeight ? b.clientHeight/b.clientWidth : MAP_H/MAP_W; };
 function clampView(){
@@ -2005,16 +1983,16 @@ function renderMap(){
     const g = f.geometry; if(!g) continue;
     const parts = g.type==='MultiLineString' ? g.coordinates : [g.coordinates];
     const sec = fcById[f.id];
-    const cls = sec ? (OVERALL[worstSec(sec)]||['','na'])[1] : 'other';
-    const title = sec ? esc(sec.description)+' – '+esc((OVERALL[worstSec(sec)]||['?'])[0].toLowerCase())+' (12 h huonoin)' : esc(f.properties.description);
+    const cls = sec ? 't-'+tempCls(secMin(sec)) : 'other';
+    const title = sec ? esc(sec.description)+' – alin tienpinta 12 h '+n0(secMin(sec))+' °C' : esc(f.properties.description);
     const fine = sec && state.fineBySec && state.fineBySec[f.id];
     const segs = sec ? segsWithFc().filter(g=>g.secId===f.id) : [];
     if(segs.length){
       for(const g of segs.slice().sort((a,b)=>a.bridge-b.bridge)){
-        const mn = segMin(g), wc = worstSec(g);
-        const c2 = settings.roadMode==='temp' ? 'rd-t-'+tempCls(isFinite(mn)?mn:null) : 'rd-'+((OVERALL[wc]||['','na'])[1]);
+        const mn = segMin(g);
+        const c2 = 'rd-t-'+tempCls(isFinite(mn)?mn:null);
         const gl = netClip(g.lines); if(!gl.length) continue;
-        s += '<path class="rd '+c2+(g.bridge?' br':'')+'" d="'+gl.map(lineD).join(' ')+'"><title>'+esc(segLabel(g))+'\nAlin tienpinta 12 h: '+n0(mn)+' °C · ajokeli: '+esc((OVERALL[wc]||['?'])[0].toLowerCase())+'</title></path>';
+        s += '<path class="rd '+c2+(g.bridge?' br':'')+'" d="'+gl.map(lineD).join(' ')+'"><title>'+esc(segLabel(g))+'\nAlin tienpinta 12 h: '+n0(mn)+' °C</title></path>';
       }
     } else {
       const draw = netClip(fine && fine.length ? fine : parts); if(!draw.length) continue;
@@ -2023,9 +2001,7 @@ function renderMap(){
     }
   }
   s += worksSvg();
-  $('#lg-road').innerHTML = settings.roadMode==='temp'
-    ? '<i class="ln" style="background:var(--ok)"></i><i class="ln" style="background:var(--warn)"></i><i class="ln" style="background:var(--cold)"></i><i class="ln" style="background:var(--deep)"></i>alin 12 h: yli +2 / 0…+2 / −2…0 / alle −2 °C'
-    : '<i class="ln" style="background:var(--ok)"></i><i class="ln" style="background:var(--warn)"></i><i class="ln" style="background:var(--bad)"></i>ajokeli 12 h: normaali / huono / erittäin huono';
+  $('#lg-road').innerHTML = '<i class="ln" style="background:var(--ok)"></i><i class="ln" style="background:var(--warn)"></i><i class="ln" style="background:var(--cold)"></i><i class="ln" style="background:var(--deep)"></i>tienpinta, alin 12 h: yli +2 / 0…+2 / −2…0 / alle −2 °C';
   if(netS.d) $('#lg-road').innerHTML += ' · <i class="ln" style="background:var(--muted);opacity:.5;height:2px"></i><span title="Muut urakan tiet: arvio lähimmästä ennustekohdasta; harmaa = yli 4 km, ei arviota">ohut = muut tiet (arvio)</span>';
   const stPts = state.stations.filter(st=>st.lon).map(st=>[px(st.lon), py(st.lat)]);
   for(const [n,lon,lat] of PLACES) if(inMap([lon,lat])){ const x = px(lon); let y = py(lat); const hw = n.length*PF*0.3 + R;
@@ -2133,7 +2109,7 @@ $('#radar-play').addEventListener('click', ()=>{
 $('#radar-on').addEventListener('change', e=>{ $('#radar-img').hidden = !e.target.checked; });
 $('#radar-mode').value = settings.radarMode || 'dbz';
 $('#radar-mode').addEventListener('change', e=>{ settings.radarMode = e.target.value; saveSettings(); stopRadar(); loadRadar(); });
-$('#road-mode').value = settings.roadMode || 'cond';
+$('#road-mode').value = 'temp';
 $('#road-mode').addEventListener('change', e=>{ settings.roadMode = e.target.value; saveSettings(); renderMap(); });
 $('#radar-img').addEventListener('error', ()=>{ $('#radar-img').hidden = true; $('#radar-time').textContent = 'Sadetutkaa ei saatu ladattua'; });
 
@@ -2527,10 +2503,10 @@ function netSvg(){
     if(!p.pts.some(inMap)) continue;
     let best = null, bd = 4000;
     for(const q of sp){ const dx = (q[0]-p.mid[0])*M_LON; if(dx > bd || -dx > bd) continue; const d = Math.hypot(dx, (q[1]-p.mid[1])*M_LAT); if(d < bd){ bd = d; best = q[2]; } }
-    let cls = settings.roadMode === 'temp' ? 'rd-t-na' : 'rd-na', tip = 'Tie '+p.r+' – ei ennustekohtaa 4 km säteellä';
-    if(best){ const mn = segMin(best), wc = worstSec(best);
-      cls = settings.roadMode === 'temp' ? 'rd-t-'+tempCls(isFinite(mn) ? mn : null) : 'rd-'+((OVERALL[wc]||['','na'])[1]);
-      tip = 'Tie '+p.r+' – arvio lähimmästä ennustekohdasta: '+segLabel(best)+' ('+n1(bd/1000)+' km)\nAlin tienpinta 12 h: '+n0(isFinite(mn) ? mn : null)+' °C · ajokeli: '+((OVERALL[wc]||['?'])[0]).toLowerCase(); }
+    let cls = 'rd-t-na', tip = 'Tie '+p.r+' – ei ennustekohtaa 4 km säteellä';
+    if(best){ const mn = segMin(best);
+      cls = 'rd-t-'+tempCls(isFinite(mn) ? mn : null);
+      tip = 'Tie '+p.r+' – arvio lähimmästä ennustekohdasta: '+segLabel(best)+' ('+n1(bd/1000)+' km)\nAlin tienpinta 12 h: '+n0(isFinite(mn) ? mn : null)+' °C'; }
     s += '<path class="rd net '+cls+'" d="'+lineD(p.pts)+'"><title>'+esc(tip)+'</title></path>';
   }
   return s;
