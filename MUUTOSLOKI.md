@@ -2,6 +2,19 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 24.11.2026: Tilanne keskittyy seuraaviin 10 tuntiin, yksi taso ja Digitrafficin ajokeli pois (tl2, ei sääntömuutos)
+Samulin päätös 24.11.: "Ei ole pahitteeksi jos jokin menee läpi mutta ei voi näin paljon turhaa olla." 24.11. iltapäivällä yläreunassa luki VALMISTAUDU – "Huono ajokeli ennusteessa" (Digitrafficin ajokeli: sohjoa, kova tuuli), vaikka liukkausriski oli vain seuranta, ja ruudut katsoivat sekaisin 12 ja 24 tuntia eteenpäin.
+
+- **Digitrafficin ajokeli on poistettu:** kortti "Huono ajokeli ennusteessa", ruutu "Ajokeli 12 h" ja kartan valinta "Ajokeli 12 h". Kartalla tiet väritetään aina alimman tienpinnan mukaan. Digitrafficin tienpinta- ja keliennuste liukkausindeksissä on ennallaan.
+- **Seuraavat 10 tuntia:** päätöslaatikko, Toimenpidetarve-kortit ja ruudut katsovat vain nyt…+10 h. Jos jokin kortti nousisi toimenpidetasolle vasta 10–24 tunnin päästä, päätöslaatikon alle tulee yksi rivi, esim. "Myöhemmin: Liukkaudentorjunta klo 05 (Tie 3 …)". Liukkausennuste-, Tiesääasemat- ja muut välilehdet näyttävät edelleen pidemmälle.
+- **Yksi taso:** yläreunan taso tulee vain toimenpidekorteista (liukkaus, Asemat hälyttävät nyt, auraus ja lumi, Tiedot puuttuvat). Muut kortit (esim. "Tienpinta jäähtyy nopeasti") näkyvät Toimenpidetarve-osiossa. Kun mitään ei tarvita, päätöslaatikossa lukee "Ei toimenpidetarvetta – seuraavat 10 h".
+- **Vähemmän tekstiä:** rivi "Varjokomento ehdottaa…" poistui päätöslaatikosta (vertailu näkyy Varjokomento-osiossa). Jos puhelimeen on lähtenyt toimenpideilmoitus ja sivun taso on eri, se kerrotaan päätöslaatikon Miksi?-kohdassa. Selitykset tekemättä jättämisestä (jäätävä sade, Digitraffic kuivalla tiellä, vain Digitraffic ennustaa jäätä) ovat kortin tai päätöslaatikon Miksi?-kohdassa. "Ei muita ehdotuksia" -teksti poistui.
+- **Ruudut:** "Tie alin 10 h" (mitattu nyt tai ennuste, kumpi alempi), "Liukkausriski 10 h" ja "Sade 10 h" (lumi senttimetreinä, muuten millimetreinä).
+- **Puhelin:** "Liukkausriski: toimenpide" lähtee vasta, kun aikaraja on 10 tunnin sisällä. Sama tilanne ei enää ilmoitu uudelleen saman yön aikana (ennen tila vanheni 6 tuntia aikarajan jälkeen, ja 23.–24.11. toimenpide ilmoitettiin klo 13.18, 22.18 ja 05.19). Ikkunan ulkopuolella jo olleet tiet eivät tee päivitystä, kun ne tulevat ikkunaan. Hiljaiset tunnit, "Asema mittaa liukasta" ja "Riski poistui" ennallaan.
+- **Sivun päätös** (sivupaatos.json, klo 18 ja 22) lasketaan 10 tunnin ikkunalla ja merkitään win: 10.
+- **Ei muuttunut:** varjokomento (ikkuna, yöehdotukset klo 18/22/00/02, aamuvertailu), Jälkiselvitys, Naapuriurakat, liukkausindeksi (sääntötesti 0 muutosta) ja "Asemat hälyttävät nyt".
+- **Perutaan:** laskenta.html, tunnus tl2: `computeActions` takaisin yhdeksi 24 tunnin laskennaksi (`actionsFor`, `laterLine` ja `TL_WIN` pois), kortti G "Huono ajokeli ennusteessa" ja `OVERALL` takaisin, `renderSummary`, `renderActions`/`topCard`/`phoneLine`, `renderStatusLine` ja `pdDiff` edellisestä versiosta, kartan ajokelivalinta takaisin; collect.mjs `notifyPlan`: `NT_WIN`-rajaus, `allRoads` ja yön tarkistus (`P0.night`) pois.
+
 ## 24.11.2026: Asemat ilman vesianturia käyttävät lähintä vesianturia (dk2, säännöt v22)
 Samulin päätös 24.11. Digitrafficin rajaus kuivalle tielle (dk1) ei toiminut asemilla, joilla ei ole vesianturia. Siksi esimerkiksi tie 103 (Vuosaari) jäi toimenpiteeseen pelkän Digitrafficin ennusteen takia, vaikka muut tiet laskivat seurantaan.
 
