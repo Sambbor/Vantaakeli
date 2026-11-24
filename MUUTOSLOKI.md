@@ -2,6 +2,17 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 24.11.2026: Asemat ilman vesianturia käyttävät lähintä vesianturia (dk2, säännöt v22)
+Samulin päätös 24.11. Digitrafficin rajaus kuivalle tielle (dk1) ei toiminut asemilla, joilla ei ole vesianturia. Siksi esimerkiksi tie 103 (Vuosaari) jäi toimenpiteeseen pelkän Digitrafficin ennusteen takia, vaikka muut tiet laskivat seurantaan.
+
+- **Uusi sääntö:** kun asemalla ei ole vesianturia, kuivuuden (vettä alle 0,1 mm, ei lunta eikä jäätä) ratkaisee lähin vesianturin asema enintään 10 km päässä. Muut dk1-ehdot pysyvät: ei sadetta Ilmatieteen laitoksen eikä Digitrafficin ennusteessa.
+- **Vantaalla:** Porttipuisto → Jakomäki (2,9 km), Vuosaari → Itäsalmi (3,9 km), Brobölentie → Sipoonlahti (9,9 km). Koko Suomen jälkitarkistuksessa haetaan lähin vesianturi kaikista arkiston asemista, joten Brobölentien naapuri on siellä Box (Porvoo).
+- **Ei muuttunut:** märkä tie jäätyy (vr1) lasketaan edelleen aseman omasta kelistä, joten vesianturiton asema voi yhä hälyttää märästä tiestä. Asemat, joilla on oma vesianturi, eivät muuttuneet.
+- **Kortin rivi** kertoo, minkä aseman mukaan kuivuus on arvioitu, esim. "lähimmän vesianturin mukaan tie 103: Itäsalmi 3,9 km".
+- **Vaikutus Vantaalla** (sääntötesti, 6 arkistopäivää): 74 Digitraffic-hälytystuntia jäi pois (Porttipuisto 41, Brobölentie 33), ei uusia. Näillä asemilla ei ole kitka-anturia, joten kitkavertailua ei voi tehdä.
+- **Yöt:** 23.–24.11. Porttipuisto laskee seurantaan koko yön, Brobölentie klo 22 alkaen; Brobölentie pysyy klo 02 jälkeen toimenpiteessä märän tien takia. Lumiyönä 22.–23.11. mikään ei muuttunut. Tänään klo 13.16 ajettuna urakan taso laskee toimenpiteestä seurantaan (tie 103 Itäsalmen mukaan).
+- **Perutaan:** saannot.js: `RULES_VERSION = 'v21'` ja `nearWater` palauttamaan oma `obsW` (tai kutsujat antamaan vain oman aseman lukemat: collect.mjs `obsW`, laskenta.html `stationSlipSeries`, Tiesää-arkiston retro.mjs `obsWAt`). Lopuksi `node testit/saannot.test.mjs --paivita`.
+
 ## 24.11.2026: Ohut vesikalvo ja Digitrafficin jääennuste kuivalle tielle eivät enää hälytä (vr1 ja dk1, säännöt v21)
 Samulin päätökset 24.11. Tiesää-arkiston mukaan (1.10.–21.11., koko maa, liukas = kitka alle 0,6 ja tie enintään +1 °C) ohut vesikalvo ilman sadetta liukastui harvoin: alle 0,1 mm 1–2 %, 0,1–0,2 mm 5–9 % ja 0,2–0,5 mm 10–12 % tapauksista 6 tunnin sisällä. Kun Digitraffic ennusti liukasta kuivalle tielle ilman sadetta, tie liukastui 8 tunnin sisällä 2,5–5 %:ssa tapauksista (sade-ennusteen kanssa 51 %). Yönä 23.–24.11. tiellä oli vettä 0,07–0,12 mm, ei satanut ja kitka pysyi 0,77–0,81:ssä, mutta indeksi oli koko yön 85–93.
 
