@@ -2,6 +2,18 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 24.11.2026: Ohut vesikalvo ja Digitrafficin jääennuste kuivalle tielle eivät enää hälytä (vr1 ja dk1, säännöt v21)
+Samulin päätökset 24.11. Tiesää-arkiston mukaan (1.10.–21.11., koko maa, liukas = kitka alle 0,6 ja tie enintään +1 °C) ohut vesikalvo ilman sadetta liukastui harvoin: alle 0,1 mm 1–2 %, 0,1–0,2 mm 5–9 % ja 0,2–0,5 mm 10–12 % tapauksista 6 tunnin sisällä. Kun Digitraffic ennusti liukasta kuivalle tielle ilman sadetta, tie liukastui 8 tunnin sisällä 2,5–5 %:ssa tapauksista (sade-ennusteen kanssa 51 %). Yönä 23.–24.11. tiellä oli vettä 0,07–0,12 mm, ei satanut ja kitka pysyi 0,77–0,81:ssä, mutta indeksi oli koko yön 85–93.
+
+- **Märkä tie jäätyy (vr1):** kun asemalla on vesianturi, tien märkyys mittaushetkellä riippuu vesikalvon paksuudesta: alle 0,1 mm 0,2, 0,1–0,2 mm 0,5, vähintään 0,2 mm täysi (ennen täysi aina, kun vettä oli yli 0,03 mm tai keli märkä). Ennustettu sade kastelee tien edelleen kokonaan.
+- **Digitraffic kuivalle tielle (dk1):** Digitrafficin syy (jää/kuura, lumi/sohjo, jäätävä sade) on enintään 30 eli seuranta, kun vesianturin mukaan tiellä on vettä alle 0,1 mm, anturilla ei ole lunta eikä jäätä, Ilmatieteen laitos ei ennusta sadetta nykyhetkestä kyseiseen tuntiin asti ja Digitrafficin oma sade-ennuste on poutaa. Jos sadetta ennustetaan, rajaus poistuu siitä tunnista alkaen.
+- **Rivi kortissa:** kun rajaus laskee tason, Tilanne-välilehden korttiin (samaan kohtaan kuin "Vain Digitraffic ennustaa jäätä") tulee esim. "Digitraffic ennustaa liukasta teille 3, 4, 7, 45, 50, jotka ovat nyt kuivia (vettä alle 0,1 mm), eikä sadetta ennusteta – tällaisissa tilanteissa tie on liukastunut noin 3–5 %:ssa. Taso rajattu seurantaan; jos sadetta tulee, taso nousee."
+- **Ei muuttunut:** asemat ilman vesianturia (esim. Porttipuisto ja Brobölentie), lumi tai jää anturilla, oma kuura-arvio, mitattu liukkaus ja "Asemat hälyttävät nyt", jäätävä sade (js1), lumisade (ls1) ja "Vain Digitraffic ennustaa jäätä" (dt-ero).
+- **Vaikutus Vantaalla** (sääntötesti, 6 arkistopäivää, 12 asemaa): 439 hälytystuntia jäi pois (Digitraffic 385, märkä tie jäätyy 54), ei uusia. Yhdelläkään niistä kitka ei näyttänyt liukasta.
+- **Vaikutus koko maassa** (12.10.–22.11., kitkatotuus, +6 h): turhat 40 334 → 36 370 (−10 %), osumat 10 911 → 10 854 (−0,5 %). +2 h turhat −20 %.
+- **Yöt:** 23.–24.11. vesianturin asemat putoavat seurantaan (indeksi 30), mutta Porttipuisto ja Brobölentie (ei vesianturia) pitävät tason toimenpiteenä. Lumiyönä 22.–23.11. taso pysyy toimenpiteenä kaikilla asemilla, eikä mikään muutu klo 02 jälkeen (liukastui klo 03–05).
+- **Perutaan:** saannot.js: `wetObs` palauttamaan 1 (`wGrade` pois), slipSeriesCoresta dk1-ehto pois (`DK_CAP`) ja `RULES_VERSION = 'v20'`; laskenta.html: `dk1Rivi` pois (tunnus dk1). Keruun ja jälkitarkistuksen `obsW`-syöte voi jäädä. Lopuksi `node testit/saannot.test.mjs --paivita`.
+
 ## 22.11.2026: Lumisateen vaikutus liukkausindeksiin tienpinnan mukaan (ls1, säännöt v20)
 Samulin päätös 22.11. Ennen lumisade antoi täyden indeksin aina, kun tienpinta oli enintään +2 °C. Esimerkiksi 22.11. klo 23 tie oli noin 0 °C, märkä ja suolattu ja kitka 0,7–0,8, mutta indeksi oli 80–100. Tiesää-arkiston mukaan (1.10.–21.11., 14 625 lumi- tai räntätuntia 300 asemalta, ilma 0…+1 °C) tie oli liukas 2 tunnin sisällä tienpinnan yli +0,5 °C ollessa 6–12 %:ssa, 0…+0,5 °C noin 20 %:ssa, −0,5…0 °C noin 50 %:ssa ja alle −1 °C 60–90 %:ssa tunneista.
 
