@@ -1792,10 +1792,17 @@ function dtEroRivi(C){
   const muut = [tm.length ? 'oma tienpintamalli alin '+rng(tm) : null, rs.length ? 'RoadSurf '+rng(rs) : null].filter(Boolean).join(', ');
   return {roads: ok, text: 'Vain Digitraffic ennustaa jäätä '+(ok.length > 1 ? 'teillä ' : 'tiellä ')+ok.join(', ')+': '+muut+'. Lauhoina öinä Digitraffic on usein liian kylmä, kylminä öinä se on löytänyt jäätymisen muita paremmin. Tarkista asemien tienpinta ennen lähtöä.'};
 }
+function dk1Rivi(C){
+  if(!C || !C.stations) return null;
+  const roads = [...new Set(Object.values(C.stations).filter(s=>s.dk1).map(s=>Number(s.road)))].sort((a, b)=>a - b);
+  if(!roads.length) return null;
+  return {roads, text: 'Digitraffic ennustaa liukasta '+(roads.length > 1 ? 'teille '+roads.join(', ')+', jotka ovat nyt kuivia' : 'tielle '+roads[0]+', joka on nyt kuiva')+' (vettä alle 0,1 mm), eikä sadetta ennusteta – tällaisissa tilanteissa tie on liukastunut noin 3–5 %:ssa. Taso rajattu seurantaan; jos sadetta tulee, taso nousee.'};
+}
 function dtEroKorttiin(acts){
   const K = typeof nightS !== 'undefined' && nightS.k, C = K && K.now;
   if(!C || !C.t || Date.now() - Date.parse(C.t) > 90*60e3) return acts;
-  let R = null; try{ R = dtEroRivi(C); }catch(e){ console.error(e); }
+  let R = null, D = null; try{ R = dtEroRivi(C); }catch(e){ console.error(e); } try{ D = dk1Rivi(C); }catch(e){ console.error(e); }
+  if(D) R = R ? {roads: R.roads, text: R.text+' '+D.text} : D;
   if(!R) return acts;
   const i = [acts.findIndex(a=>a.src === 'dt'), acts.findIndex(a=>a.src === 'liukkaus')].find(x=>x >= 0);
   if(i == null){ state.actNotes = (state.actNotes || []).concat([R.text]); return acts; }
