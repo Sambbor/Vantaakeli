@@ -2,6 +2,35 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 25.11.2026: Keskitytään olennaiseen – kitka ratkaisee, vajaat asemat lainaavat, vähemmän ilmoituksia ja suolanauha lyhyeksi (vh1, vh2: säännöt v23; np2, sn1: ei sääntömuutos)
+Samulin päätökset 25.11. Klo 07.07 Tilanne-välilehti näytti KIIREELLISTÄ "Asemat hälyttävät nyt" kuudesta asemasta. Viisi niistä antoi Sade-varoituksen heikosta lumikuurosta, vaikka kitka oli 0,82. Vuosaari (ei kitka-anturia) antoi Häly-varoituksen, ja sen indeksi oli 90 ("märkä tie jäätyy") pelkästään oman "kostea"-tilan takia. Itäsalmessa (3,9 km) ei ollut vettä. Tiesää-arkiston (12.10.–24.11., koko maa, tie enintään +1 °C) mukaan tie liukastui 2 tunnin sisällä varoituksen jälkeen 1–14 %:ssa ja tilan "liukas" jälkeen 7,7 %:ssa tapauksista, kun kitka oli vielä hyvä.
+
+- **Havaittu liukkaus = mitattu kitka (vh1, vh2):** asema "mittaa liukasta" vain, kun kitka on alle 0,6 (kaistojen pienin) ja tie on enintään +1 °C. Aseman varoitukset (Varo, Häly, Kuura, Sade) ja tienpinnan tila eivät enää vaikuta. Sääntö koskee korttia "Asemat hälyttävät nyt", liukkausindeksiä, varjokomentoa, puhelinta, keruuta ja Tiesää-arkiston jälkitarkistusta.
+- **Lunta tai jäätä anturilla, mutta kitka hyvä (vh2):** kun anturilla on jäätä tai lunta vähintään 0,05 mm, kitka on vähintään 0,6 ja tie enintään +1 °C, indeksi on 30 eli seuranta 2 tunnin ajan. Syynä lukee "lunta/jäätä anturilla, kitka vielä hyvä". Tämä ei tee KIIREELLISTÄ.
+- **Vajaat asemat lainaavat (vh2):** täydellä asemalla on vesi- ja kitka-anturi, ja lukema on enintään 2 tuntia vanha. Vajaasta asemasta käytetään omina vain tienpinnan lämpöä, ilman lämpöä, kastepistettä, suolaa ja jäätymispistettä. Vesi, tienpinnan tila, jää, lumi, kitka ja varoitus tulevat lähimmältä täydeltä asemalta enintään 10 km päästä. Niitä käyttävät havaittu liukkaus, märkä tie jäätyy (vr1) ja Digitrafficin rajaus kuivalle tielle (dk1). Tähän yhdistyy myös dk2:n lähin vesianturi. Vantaalla Porttipuisto lainaa Jakomäeltä (2,9 km), Vuosaari Itäsalmelta (3,9 km) ja Brobölentie Sipoonlahdelta (9,9 km). Jos täyttä asemaa ei ole 10 km sisällä, havaittua liukkautta ei tule ja märkä tie lasketaan vain ennustetusta sateesta.
+- **Kortti ja Miksi?:** "Asemat hälyttävät nyt" näyttää esim. "Tie 3 Pirkkola: tie −0,4 °C, kitka 0,52". Vajaalla asemalla se näyttää esim. "Tie 103 Vuosaari eteläinen: lähimmän kitka-anturin mukaan (Itäsalmi 3,9 km) kitka 0,52, oma tie −0,4 °C". Päätöslaatikon Miksi?-kohdassa on rivi "Asemat ilman vesi- tai kitka-anturia: Tie 103 Vuosaari eteläinen: vesi ja kitka aseman Itäsalmi mukaan (3,9 km); …". Kortti ei enää syty aseman omasta märkä- tai kuurapäätelmästä; märän tien jäätyminen ja kuura ovat edelleen indeksin ennusteosissa. Varoitukset ja vajaiden asemien omat mittaukset näkyvät Tiesääasemat-välilehdellä ja kartan asemamerkissä.
+- **Puhelin (np2):** vuorokaudessa (klo 08–08) lähtee enintään yksi "Liukkausriski" ja yksi "Asema mittaa liukasta". Jälkimmäiseen tulevat kaikki sillä hetkellä liukkaat tiet. "Päivitys"- ja "Liukkausriski poistui" -ilmoitukset on poistettu. Ennallaan: 10 tunnin ikkuna ja hiljaiset tunnit (tl2), kenttävahti ja keruun vahti, lähetyshistoria (notify.sent) ja Jälkiselvityksen puhelinrivi.
+- **Suolanauha (sn1):** tien suolarivi näkyy vain, kun tiellä on toimenpide- tai seurantariski (indeksi vähintään 30) 10 tunnin ikkunassa ja suola loppuu ikkunan aikana tai on jo loppunut, esim. "Suola loppuu tieltä 3 klo 04.00" tai "Tieltä 3 suola loppunut (arvio klo 04.00)". Muuten nauhaa ei näytetä. "Merkitse suola" jää pieneksi linkiksi.
+- **Ei muuttunut:** totuusmääritelmät, eli aamuvertailun "mitattu liukas" ja oppiminen (`obsSlippery`), Päivystyskirja ja jälkitarkistuksen kitkatotuus. Huom: aamuvertailu ja Päivystyskirja (`sensor_slip`) käyttävät edelleen aseman Häly-varoitusta ja keliä. Ennallaan ovat myös ennusteosat (märkä tie jäätyy, kuura, lumisade, jäätävä sade, Digitraffic), 10 tunnin ikkuna sekä Varjokomento-osio ja Jälkiselvitys.
+- **Vaikutus Vantaalla:**
+  - Keruun rivit 16.11. klo 14 – 25.11. klo 07: kortti oli päällä noin 66 tuntia, uudella säännöllä havaittua liukkautta on 15 tuntia (kitka alle 0,6 kylmällä tiellä 8 tuntia omilla asemilla).
+  - Sääntötesti, 6 arkistopäivää: muutoksia vain vajailla asemilla. 70 hälytystuntia jäi pois (Brobölentie ja Porttipuisto, märkä tie jäätyy oman kelin takia), uusia ei tullut.
+- **Vaikutus koko maassa** (kitkatotuus, samat päivät 12.10.–22.11.):
+  - +2 h: turhat 25 718 → 24 003 (−6,7 %), osumat 11 109 → 10 845 (−2,4 %).
+  - +6 h: turhat 36 219 → 35 919 (−0,8 %), osumat 10 853 → 10 814 (−0,4 %).
+  - +12 h: lähes ennallaan.
+- **Testit:**
+  - 25.11. klo 07: KIIREELLISTÄ ei tule; Vuosaaren havaittu liukkaus ja indeksi ovat 0 (ennen 100).
+  - Lumiyö 22.–23.11.: toimenpide-ehdotus pysyy koko yön. Mitattu liukas alkaa nyt klo 03 (kitka), ei enää 22.17 (Itäsalmen keli).
+  - Yö 23.–24.11.: havaittua liukkautta 0 tuntia.
+  - Puhelin 1.–25.11. uudelleen ajettuna (tunnin välein Tiesää-arkiston syötteillä): ennen 40, nyt 14 (Liukkausriski 12, Asema mittaa liukasta 2). Todellisuudessa lähti 62.
+- **Perutaan:**
+  - saannot.js: `RULES_VERSION = 'v22'`; `fullObs`, `slipObs`, `isFull` ja `obsLow` (slipRisk ja slipSeriesCore) pois.
+  - Kutsujat takaisin omiin mittauksiin: `slipNow = obsSlippery(...)` ja `obsW = nearWater(...)`. Kutsujat ovat laskenta.html (`stationSlipSeries`), collect.mjs (asemarivit), Tiesää-arkiston retro.mjs (`fullAt` pois, entinen haara jää) ja testit/saannot.test.mjs (haara `R.fullObs` pois). Lopuksi `node testit/saannot.test.mjs --paivita`.
+  - Kortti E (laskenta.html, tunnus vh1): edellinen versio, jossa `warnOn` ja `icy`.
+  - np2 (collect.mjs `notifyPlan`): kohdat 1–2 tl2-versioon.
+  - sn1 (laskenta.html `renderSaltStrip`): st1-versioon.
+
 ## 24.11.2026: Tilanne keskittyy seuraaviin 10 tuntiin, yksi taso ja Digitrafficin ajokeli pois (tl2, ei sääntömuutos)
 Samulin päätös 24.11.: "Ei ole pahitteeksi jos jokin menee läpi mutta ei voi näin paljon turhaa olla." 24.11. iltapäivällä yläreunassa luki VALMISTAUDU – "Huono ajokeli ennusteessa" (Digitrafficin ajokeli: sohjoa, kova tuuli), vaikka liukkausriski oli vain seuranta, ja ruudut katsoivat sekaisin 12 ja 24 tuntia eteenpäin.
 
