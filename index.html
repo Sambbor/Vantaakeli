@@ -828,7 +828,7 @@ function renderStations(){
     const iss = stationIssues(s);
     h += '<tr><td class="name"><button type="button" class="linkbtn" data-mg="'+s.id+'" title="Avaa meteogrammi">'+esc(s.name)+'</button><small>'+esc(s.municipality||'')+' · asema '+s.id+'</small>'+(iss.off?'<small class="muted">Pois käytöstä: '+esc(offTxt(iss.off))+'</small>':iss.crit.length||iss.minor.length?'<small class="fault">Tarkista: '+esc(iss.crit.concat(iss.minor).join(', '))+'</small>':'')+'</td>'
       + '<td class="num'+(t>30?' age-old':'')+'">'+(s.measured?fmtT(s.measured):'–')+'</td>'
-      + '<td class="num"><b>'+num('TIE_1')+'</b>'+(v('TIE_1') && v('TIE_1').lane && v('TIE_1').lane!==1 ? '<small class="muted" title="Tienpinta mitataan tällä asemalla anturilla '+v('TIE_1').lane+'"> a'+v('TIE_1').lane+'</small>' : '')+'</td>'
+      + '<td class="num"><b>'+num('TIE_1')+'</b>'+(v('TIE_1') && v('TIE_1').lane && v('TIE_1').lane!==1 ? '<small class="muted" title="Kaistan 1 anturi puuttuu tai on vikana: tienpinta kaistalta '+v('TIE_1').lane+'"> kaista '+v('TIE_1').lane+'</small>' : '')+'</td>'
       + (()=>{ const d = v('TIE_1_DERIVAATTA'); if(!d) return '<td class="num">–</td>'; const x = d.value; return '<td class="num '+(x<=-0.3?'trend-dn':x>=0.3?'trend-up':'')+'">'+(x<=-0.3?'↓ ':x>=0.3?'↑ ':'→ ')+n1(x)+'</td>'; })()
       + '<td>'+spark(state.hist[s.id] && state.hist[s.id].pts)+'</td>'
       + '<td class="num">'+num('ILMA')+'</td><td class="num">'+num('KASTEPISTE')+'</td>'
@@ -867,7 +867,7 @@ function renderStations(){
     c += '<article class="stc rb-'+(k.risk >= 50 ? ixc : 'lo')+(old ? ' old' : '')+(iss.ok ? '' : iss.off ? ' off' : ' flt')+'" data-mg="'+s.id+'" title="Avaa meteogrammi">'
       + '<div class="stc-h"><div><b>'+esc(String(s.name).replace(/^Tie \d+,?\s*/,''))+'</b><small>tie '+esc(String(s.road||'–'))+' · '+(s.measured ? '<span'+(old ? ' class="age-old"' : '')+'>mitattu '+fmtT(s.measured)+(old ? ' ('+ageTxt(ageMin(s.measured))+')' : '')+'</span>' : 'ei mittausta')+'</small></div>'
       + '<div class="stc-ix '+ixc+'" title="Liukkausindeksi: suurin seuraavan 12 h aikana">'+ixTxt+'</div></div>'
-      + '<div class="stc-t t-'+tempCls(iss.ok?r:null)+'">'+(iss.ok?n1(r):'?')+'<small>°C tie'+(d!=null?' '+(d<=-0.3?'↓':d>=0.3?'↑':'→')+' '+n1(d)+'/h':'')+'</small></div>'
+      + '<div class="stc-t t-'+tempCls(iss.ok?r:null)+'">'+(iss.ok?n1(r):'?')+'<small>°C tie · kaista '+((s.values.TIE_1||{}).lane||1)+(d!=null?' '+(d<=-0.3?'↓':d>=0.3?'↑':'→')+' '+n1(d)+'/h':'')+'</small></div>'
       + '<div class="stc-sp">'+stSpark(state.hist[s.id] && state.hist[s.id].pts, k.rows)+'</div>'
       + '<div class="stc-k">'+(dsc('KELI_1') ? '<span class="pill p-'+(/kuiva/i.test(dsc('KELI_1'))?'ok':/jää|kuura|lumi|sohjo/i.test(dsc('KELI_1'))?'bad':'warn')+'">'+esc(dsc('KELI_1'))+'</span>' : '')
       + (wv>0 ? ' <span class="pill p-'+(warnBad(wv)?'bad':'warn')+'">'+esc(dsc('VAROITUS_1')||'varoitus')+'</span>' : '')+'</div>'
@@ -1020,7 +1020,7 @@ function renderMg(){
   const rNow = cur('TIE_1'), fzNow = lastOf(frz);
   const kv = (k, v, cls, title) => '<div'+(cls?' class="'+cls+'"':'')+(title?' title="'+esc(title)+'"':'')+'><span>'+k+'</span><b>'+v+'</b></div>';
   const dewNow = cur('KASTEPISTE'), dGap = (rNow!=null && dewNow!=null) ? rNow - dewNow : null;
-  $('#mg-now').innerHTML = kv('Tienpinta', n1(rNow)+' °C', rNow!=null && rNow<=0 ? 'hot' : '')
+  $('#mg-now').innerHTML = kv('Tienpinta (kaista '+((sv(st,'TIE_1')||{}).lane || 1)+')', n1(rNow)+' °C', rNow!=null && rNow<=0 ? 'hot' : '')
     + kv('Jäätymispiste', fzNow!=null ? n1(fzNow)+' °C' : '–', '', 'Tienpinnan liuoksen jäätymispiste – suolaus laskee sitä nollan alle')
     + kv('Tie − kastepiste', dGap!=null ? n1(dGap)+' °C' : '–', dGap!=null ? (dGap<=0 ? 'hot' : 'ok') : '', 'Tienpinta miinus ilman kastepiste. Nolla tai alle: kosteutta tiivistyy tielle (pakkasella kuuraa).')
     + kv('Vesi / lumi / jää', [lastOf(water), lastOf(snow), lastOf(ice)].map(v=>v==null?'–':n1(v)).join(' / ')+' mm', (lastOf(ice)||0) > 0 ? 'hot' : '')
@@ -3201,7 +3201,7 @@ function normalizeStation(values){
   let lanes = [1,2,3,4].filter(okLane);
   if(!lanes.length) lanes = [1,2,3,4].filter(n=>values['TIE_'+n] && values['TIE_'+n].value!=null);
   if(!lanes.length) return values;
-  const lane = lanes.reduce((a,n)=>values['TIE_'+n].value < values['TIE_'+a].value ? n : a, lanes[0]);
+  const lane = lanes[0];
   values.TIE_1 = {...values['TIE_'+lane], name:'TIE_1', lane};
   if(values['TIE_'+lane+'_DERIVAATTA']) values.TIE_1_DERIVAATTA = {...values['TIE_'+lane+'_DERIVAATTA'], name:'TIE_1_DERIVAATTA'};
   else if(lane !== 1) delete values.TIE_1_DERIVAATTA;
