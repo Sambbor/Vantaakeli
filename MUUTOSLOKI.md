@@ -2,6 +2,48 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 26.11.2026: Testi – kuuran tienpinta omasta tienpintamallista (tm1, EI käytössä, sääntöversio ei muutu)
+Testi 1.12. säätökierrosta varten. Coworkin selvityksen (claude/kuura_ennustevirhe_2026-11-26.md) mukaan sivun ennustama kuurakertymä on noin 2,5-kertainen mitattuun verrattuna, koska kuuratunteina ennustettu tienpinta (+6 h) on 1,0–1,3 °C liian kylmä.
+
+- **Mitä tehtiin:** liukkaussääntöihin tuli variantti, joka on oletuksena pois päältä. Se ottaa tienpinnan Tiesää-arkiston omasta tienpintamallista (tm/latest.json).
+  - Pisteet ovat 0 h (aseman mittaus nyt) sekä 2, 4, 6 ja 12 h.
+  - Malli ennustaa kaistaa 1, sivu käyttää kylmintä kaistaa, joten pisteisiin lisätään kaistaero (mittaus nyt − mallin lähtöarvo), joka hiipuu 12 tunnissa.
+  - Välitunnit lasketaan sääennusteen käyrällä kuten ennenkin. Digitrafficin kiinnitystä ja opittua korjausta ei lisätä. Kastepiste on ennallaan.
+  - Jos asemaa ei ole mallissa tai ennuste on yli 75 minuuttia vanha, käytetään nykyistä laskentaa.
+  - Sivu, keruu ja puhelin toimivat kuten ennen. Sääntötestin kaikki 1 512 tapausta pysyivät ennallaan.
+- **Testiaineisto:** Vantaan 13 asemaa 2.–25.11., yksi laskenta tunnissa Tiesää-arkiston syötteillä. Tienpintamallin ennusteet tulivat tiedostosta tm/verif-2026-11.csv (lähin ajo ±20 min). Totuus on keruun rivit (obs-2026-11.csv).
+  - Laskentoja oli 6 193. Näistä 312 riviä (5 %) jäi varaketjulle, koska mallin ajoa ei löytynyt. Kaikkiaan +2 h:n kohdalla tienpintamallia käytettiin 5 567 tunnissa, ja loput 626 (nämä 312 mukaan lukien) laskettiin varaketjulla. Syynä oli puuttuva mallipiste tai puuttuva tienpinnan mittaus.
+- **Vaihtoehdot:** a) tienpintamalli vain kuurakertymään ja kuura-osaan, b) tienpintamalli koko indeksiin.
+- **Kuurakertymä +6 h** (ennuste vs. aseman mitattu): nykyinen ennustaa keskimäärin 0,70 °C·h, kun mitattu on 0,32 °C·h. Uudella tienpinnalla ennuste on 0,16 °C·h, eli nyt ennuste jää alakanttiin. Kuuratunneilla tienpinnan virhe on −1,03 °C → 0,00 °C. Vähintään 4 °C·h:n ennusteita oli 365, nyt 82. Turhat 258 → 23, ohi 66 → 114.
+- **Indeksi ≥ 50 -tunnit syittäin** (nykyinen / a / b):
+
+| Ennuste | kuura | märkä tie jäätyy | muut |
+|---|---|---|---|
+| +2 h | 88 / 60 / 60 | 83 / 83 / 51 | 175 / 175 / 177 |
+| +6 h | 293 / 78 / 78 | 88 / 96 / 28 | 277 / 282 / 307 |
+| +12 h | 378 / 72 / 72 | 92 / 95 / 25 | 384 / 461 / 459 |
+
+  Kun kuura-syy poistuu, osa tunneista näkyy seuraavan syyn alla (yleensä Digitraffic), siksi "muut" kasvaa.
+- **Olosuhdetotuus** (kuurakertymä ≥ 4 °C·h, mitattu liukas tai märkä tie pakkasella), osui / ohi / turha:
+
+| Ennuste | nykyinen | a | b |
+|---|---|---|---|
+| +2 h | 170 / 120 / 176 | 160 / 130 / 158 | 162 / 128 / 126 |
+| +6 h | 218 / 72 / 415 | 169 / 121 / 271 | 173 / 117 / 224 |
+| +12 h | 244 / 46 / 558 | 196 / 94 / 421 | 191 / 99 / 354 |
+
+- **Kitkatotuus** (kitka < 0,6): jaksolla oli vain 12 liukasta kohdetuntia, ja ne osuivat kaikilla vaihtoehdoilla (+6 h a ja b: 11/12). Turhat:
+  - +2 h: 270 / 245 / 221
+  - +6 h: 501 / 347 / 310
+  - +12 h: 634 / 478 / 418
+- **Varjokomento ja puhelin öittäin** (2.–25.11.): toimenpideöitä 12 / 12 / 11 ja Liukkausriski-ilmoituksia 12 / 12 / 11.
+  - Toimenpidetunteja oli vähemmän öinä 3.11. (5 → 4), 8.11. (4 → 1), 14.11. (8 → 6) ja b:llä 19.11. (6 → 4).
+  - 11.11. b ei tehnyt toimenpidettä eikä ilmoitusta (nykyinen: 1 tunti, ilmoitus klo 00.09).
+  - Ilmoitus siirtyi myöhemmäksi 6.11. (22.07 → 23.09) ja 8.11. (00.09 → 01.08).
+  - Muuten yöt pysyivät samoina, koska varjokomento ei jo nyt tee toimenpidettä pelkästä ennustetusta kuurasta ennen kuin kuuraa on alkanut kertyä.
+- **Tulkinta säätökierrokselle:** tienpintamalli poistaa kuuran yliennusteen. Turhat kuurahälytykset vähenevät noin 70–80 %, mutta kertymä jää nyt mitattua pienemmäksi, ja olosuhteen osumia menetetään +6 h:lla 49 (a) tai 45 (b). Ratkaistavaksi jää, otetaanko käyttöön a vai b, ja tarvitaanko kuuran rajaan (4 °C·h) tai kertymään pieni lisä.
+- **Perutaan:** variantti ei ole käytössä. Kokonaan poistettuna saannot.js:stä lähtevät `TM_MAX_AGE`, `tmAt`, `trF` ja `trK` (slipRisk), ja niiden tilalle palaa `tr`.
+
 ## 25.11.2026: Keskitytään olennaiseen – kitka ratkaisee, vajaat asemat lainaavat, vähemmän ilmoituksia ja suolanauha lyhyeksi (vh1, vh2: säännöt v23; np2, sn1: ei sääntömuutos)
 Samulin päätökset 25.11. Klo 07.07 Tilanne-välilehti näytti KIIREELLISTÄ "Asemat hälyttävät nyt" kuudesta asemasta. Viisi niistä antoi Sade-varoituksen heikosta lumikuurosta, vaikka kitka oli 0,82. Vuosaari (ei kitka-anturia) antoi Häly-varoituksen, ja sen indeksi oli 90 ("märkä tie jäätyy") pelkästään oman "kostea"-tilan takia. Itäsalmessa (3,9 km) ei ollut vettä. Tiesää-arkiston (12.10.–24.11., koko maa, tie enintään +1 °C) mukaan tie liukastui 2 tunnin sisällä varoituksen jälkeen 1–14 %:ssa ja tilan "liukas" jälkeen 7,7 %:ssa tapauksista, kun kitka oli vielä hyvä.
 
