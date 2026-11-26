@@ -2,6 +2,57 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 26.11.2026: Testi – kuuran tienpinta omasta tienpintamallista kaistan 1 pohjalla (tm1, EI käytössä)
+Sama testi kuin alla, mutta tienpinta on nyt kaistalta 1 (ka1). Kaistaeroa ei enää lisätä, koska sivu ja tienpintamalli käyttävät samaa kaistaa. Aineistona olivat Vantaan 13 asemaa 2.–26.11.: 6 289 laskentaa, joista 342 riviä (5 %) jäi varaketjulle. Nykyinen = ka1 ilman tienpintamallia, a = malli vain kuuraan, b = malli koko indeksiin.
+
+- **Kuurakertymä +6 h:** ennuste on nykyisellä keskimäärin 0,59 °C·h, a:lla ja b:llä 0,13, kun mitattu on 0,31. Kuuratuntien tienpinnan virhe on −0,91 °C → +0,03 °C. Vähintään 4 °C·h:n ennusteita oli 322 → 71, turhat 218 → 22, ohi 69 → 124.
+- **Indeksi ≥ 50, kuura-syy** (nykyinen / a / b): +2 h 66 / 41 / 41, +6 h 243 / 62 / 62, +12 h 364 / 69 / 69. Märkä tie jäätyy +6 h 73 / 77 / 24.
+- **Olosuhde, osui / ohi / turha:**
+
+| Ennuste | nykyinen | a | b |
+|---|---|---|---|
+| +2 h | 158 / 152 / 155 | 144 / 166 / 144 | 147 / 163 / 120 |
+| +6 h | 215 / 95 / 376 | 162 / 148 / 256 | 166 / 144 / 223 |
+| +12 h | 240 / 70 / 590 | 192 / 118 / 419 | 191 / 119 / 357 |
+
+- **Kitka:** 12 liukasta kohdetuntia. Osumat pysyvät, +6 h:n turhat ovat 473 / 333 / 306.
+- **Varjokomento ja puhelin** (2.–26.11.): toimenpideöitä 13 / 12 / 11, Liukkausriski-ilmoituksia 11 / 11 / 10. b jättää 11.11. pois, ja ilmoitus siirtyy myöhemmäksi 6.11. (22.07 → 00.09) ja 8.11. (00.09 → 01.08).
+- **Huom:** mitattu kertymä (totuus) on keruun riveiltä ja vielä kylmimmästä kaistasta laskettu. Kaistan 1 mukaan mitattu kertymä olisi todennäköisesti hieman pienempi, joten tienpintamallin alakanttiin jäävä ennuste on osin näennäinen.
+
+## 26.11.2026: Tienpinta on nyt kaistan 1 anturi (ka1, säännöt v24)
+Samulin päätös 26.11. Alalla katsotaan yleensä kaistan 1 anturia. Sivu ja keruu valitsivat tähän asti asemalta kylmimmän kaistan, mutta Tiesää-arkisto, oma tienpintamalli ja Päivystyskirja käyttävät kaistaa 1. Arkiston (12.10.–26.11.) mukaan kaistat olivat öisin eri puolilla nollaa vain 2,5 %:ssa (Vantaa) ja noin 1,5 %:ssa (koko maa) tunneista, eikä tie silloin juuri ollut liukas.
+
+- **Uusi tapa:** tienpinta on kaistan 1 anturi. Jos se puuttuu, on yli 2 tuntia vanha tai epäuskottava (yli 10 °C ilmaa kylmempi), käytetään kaistaa 2 (sitten 3 ja 4).
+- **Samalta kaistalta tulevat** keli tai tienpinnan tila, jäätymispiste, suolan määrä ja muutosnopeus. Jos kaistalla ei ole keliä, keli haetaan muilta kaistoilta kuten ennenkin.
+- **Ennallaan:** kitka (KITKA1/KITKA2 pienempi), vesi, lumi ja jää (anturi 1 tai 2) sekä vajaiden asemien lainaus (vh2).
+- **Kaikki tienpintaa käyttävä seuraa:** liukkausindeksi, havaittu liukkaus (tie enintään +1 °C), kuurakertymä, suolan kesto, yön yhteenveto, varjokomento ja puhelin.
+- **Kaista näkyy:** asemakortissa lukee "°C tie · kaista 1", ja meteogrammissa "Tienpinta (kaista 1)". Tiesääasemat-taulukossa on merkintä vain, jos käytössä on varakaista ("kaista 2").
+- **Oppiminen:** keruun riveille tulee uusi sarake tr_lane (käytetty kaista). Opittu tienpintakorjaus ja ilman ero lasketaan vain kaistan tienpinnasta.
+  - Vanhoille riveille kaistan 1 lukema (varalla kaista 2) haettiin Tiesää-arkistosta (lähin mittaus ±15 min) tiedostoon data/tr1-vanhat.csv.
+  - Vantaalla löytyi 18 371 riviä 27 523:sta. Puuttuvat ovat 1.–11.10. (arkisto alkaa 12.10.), Pirkkola (arkistossa ei kaistoja 1–2) ja Keimola (tienpinta rajattu jo säännöissä). Salossa löytyi 16 718 riviä 18 051:stä (salo/data/tr1-vanhat.csv). Tämän päivän rivit puuttuvat, koska arkisto päivittyy viiveellä.
+  - Kuuraennusteen tarkistus (frostFc) aloittaa alusta ka1-riveistä, koska vanhojen rivien mitattu kertymä on laskettu kylmimmästä kaistasta.
+- **Vaikutus Vantaalla** (13 asemaa, 13.10.–26.11., Tiesää-arkiston syötteet, nykyinen → ka1):
+  - Indeksi ≥ 50, kuura: +2 h 88 → 66, +6 h 301 → 248, +12 h 412 → 397.
+  - Märkä tie jäätyy: +2 h 83 → 66, +6 h 88 → 73, +12 h 92 → 86. Muut syyt pysyvät lähes ennallaan.
+  - Olosuhde (osui / ohi / turha): +2 h 170/148/176 → 158/160/155, +6 h 218/100/434 → 215/103/381, +12 h 245/72/629 → 240/77/616.
+  - Kitka < 0,6: 12 liukasta kohdetuntia, osumat pysyvät (+6 h yksi ohi). Turhat: +2 h 270 → 247, +6 h 518 → 477, +12 h 694 → 678.
+- **Vaikutus koko maassa** (12.10.–24.11., kitkatotuus):
+
+| Ennuste | Turhat | Osumat |
+|---|---|---|
+| +2 h | 27 321 → 26 099 (−4,5 %) | 13 422 → 13 367 (−0,4 %) |
+| +6 h | 39 183 → 37 998 (−3,0 %) | 12 493 → 12 405 (−0,7 %) |
+| +12 h | 46 274 → 45 752 (−1,1 %) | 12 845 → 12 786 |
+
+  Kuura-syyn hälytykset +6 h: 23 592 → 21 926.
+- **Puhelin 1.–26.11. uudelleen ajettuna:** 14 → 13 ilmoitusta. Pois jäi 4.11. klo 01.09 Liukkausriski; tuona yönä anturit hälyttivät, mutta tiet olivat kuivat. Toimenpideöitä on edelleen 13, mutta toimenpidetunteja vähemmän öinä 3.11., 8.11., 19.11. ja 23.11.
+- **Perutaan:** kaistavalinta takaisin kylmimmäksi kolmessa kohdassa ja RULES_VERSION = 'v23':
+  - collect.mjs `stObsVals` (`lane = lanes[0]` → kylmin)
+  - laskenta.html `normalizeStation`
+  - Tiesää-arkiston retro.mjs `obsOf` (tai ympäristömuuttuja RETRO_LANE=min)
+
+  Sarake tr_lane ja tiedosto tr1-vanhat.csv voivat jäädä, ja `learnFromRows` toimii myös ilman niitä.
+
 ## 26.11.2026: Testi – kuuran tienpinta omasta tienpintamallista (tm1, EI käytössä, sääntöversio ei muutu)
 Testi 1.12. säätökierrosta varten. Coworkin selvityksen (claude/kuura_ennustevirhe_2026-11-26.md) mukaan sivun ennustama kuurakertymä on noin 2,5-kertainen mitattuun verrattuna, koska kuuratunteina ennustettu tienpinta (+6 h) on 1,0–1,3 °C liian kylmä.
 
