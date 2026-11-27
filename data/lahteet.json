@@ -1,10 +1,10 @@
 {
- "t": "2026-11-27T22:18:07.881Z",
+ "t": "2026-11-27T22:48:12.560Z",
  "src": {
   "stations": {
    "name": "Asemat",
    "status": "ok",
-   "detail": "12/12 kunnossa · 2 pois käytöstä · 1 min",
+   "detail": "12/12 kunnossa · 2 pois käytöstä · 2 min",
    "title": "Kaikki käytössä olevat asemat antavat tuoretta tienpintatietoa | Pois käytöstä (ei dataa yli 7 vrk): Tie 103 Helsinki, Vuosaari eteläinen – otettu pois käytöstä 27.11.2026, Tie 103 Helsinki, Vuosaari pohjoinen – otettu pois käytöstä 27.11.2026"
   },
   "kentat": {
@@ -28,13 +28,13 @@
   "cams": {
    "name": "Kamerat",
    "status": "ok",
-   "detail": "40/40 tuoreita",
+   "detail": "41/41 tuoreita",
    "title": "Kuvat alle 30 min vanhoja"
   },
   "fmi": {
    "name": "FMI-ennuste",
    "status": "ok",
-   "detail": "haettu 00.18",
+   "detail": "haettu 00.48",
    "title": "Ilmatieteen laitoksen pisteennuste · haetaan 30 min välein"
   },
   "models": {
@@ -52,14 +52,14 @@
   "radar": {
    "name": "Sadetutka",
    "status": "ok",
-   "detail": "00.05 · 13 min",
+   "detail": "00.35 · 13 min",
    "title": "Viimeisin tutkakuva; sadetyyppi analysoitu teiden kohdalta"
   },
   "keruu": {
    "name": "Keruu",
    "status": "ok",
    "detail": "0 min sitten",
-   "title": "Liukkausdatan keruu (GitHub Actions) 30 min välein, viimeisin la 28.11. klo 00.17."
+   "title": "Liukkausdatan keruu (GitHub Actions) 30 min välein, viimeisin la 28.11. klo 00.47."
   },
   "traffic": {
    "name": "Tiedotteet",
