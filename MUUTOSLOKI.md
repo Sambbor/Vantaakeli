@@ -17,6 +17,14 @@ Samulin pyyntö 27.11.: Heinolan toimenpidekartan tapainen sivu kaikille maantei
 - **Ei muuttunut:** kelikeskus, Heinolan sivu ja kaikki laskenta.
 - **Perutaan:** poista kansio `suomi/` tästä säilöstä sekä Tiesää-arkistosta `data/urakat/`, `meta/tieverkko_suomi.json`, `.github/workflows/tieverkko-suomi.yml` ja tieverkko.py:n funktio `suomi()` (tunnus tv2).
 
+## 27.11.2026: Vuosaaren asemat pois käytöstä (po2, ei sääntömuutos)
+Samulin päätös 27.11.: tie 103:n asemat Vuosaari eteläinen (1071) ja Vuosaari pohjoinen (1073) on otettu pois käytöstä.
+
+- **Keruu:** asemista ei tehdä rivejä, eivätkä ne ole mukana varjokomennossa, puhelinilmoituksissa, suolan seurannassa eivätkä vajaiden asemien lainauksessa.
+- **Sivu:** asemat näkyvät harmaana merkinnällä "otettu pois käytöstä 27.11.2026". Ne eivät ole mukana liukkausennusteessa, korteissa eivätkä päätöksessä, eikä niitä lasketa vioiksi.
+- **Liukkausennuste-taulukko** jättää nyt pois myös asemat, jotka ovat automaattisesti pois käytöstä (ei mittauksia yli 7 vrk:een, po1). Ennen ne laskettiin Digitrafficin tiekohtaennusteella.
+- **Perutaan:** poista `offSt` Vantaan urakan tiedoista (collect.mjs ja laskenta.html `URAKAT.vantaa`). Asemat palaavat seuraavassa keruussa.
+
 ## 26.11.2026: Testi – kuuran tienpinta omasta tienpintamallista kaistan 1 pohjalla (tm1, EI käytössä)
 Sama testi kuin alla, mutta tienpinta on nyt kaistalta 1 (ka1). Kaistaeroa ei enää lisätä, koska sivu ja tienpintamalli käyttävät samaa kaistaa. Aineistona olivat Vantaan 13 asemaa 2.–26.11.: 6 289 laskentaa, joista 342 riviä (5 %) jäi varaketjulle. Nykyinen = ka1 ilman tienpintamallia, a = malli vain kuuraan, b = malli koko indeksiin.
 
