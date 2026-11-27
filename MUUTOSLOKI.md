@@ -2,6 +2,11 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 27.11.2026: Toimenpidekartassa urakat nimellä (ts2)
+Samulin päätös 27.11. Koko Suomen toimenpidekartassa urakat näkyvät nyt nimellä (esim. "Heinola 22-27") koodin sijaan: valintalistassa, urakkalistassa, kartan korostuksessa ja urakan otsikossa. Nimet tulevat Väyläviraston hoitourakoiden aineistosta (Tiesää-arkisto `data/urakat/`, tieverkko.py tv3). Urakoitsijoita ei näytetä. Osoite toimii edelleen urakkakoodilla (`suomi/?u=149`). Koko Suomen yökooste pysyy ennallaan ilman nimiä.
+
+- **Perutaan:** suomi/index.html, tunnus ts2: `u.nimi` takaisin `u.k`.
+
 ## 27.11.2026: Koko Suomen toimenpidekartta (ts1, uusi sivu, ei sääntömuutos)
 Samulin pyyntö 27.11.: Heinolan toimenpidekartan tapainen sivu kaikille maanteiden hoitourakoille, ilman tiesääasemia, pelkät ajot kelattavaksi. Sivu: https://sambbor.github.io/Vantaakeli/suomi/
 

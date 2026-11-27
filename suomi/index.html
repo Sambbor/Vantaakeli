@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
 <!-- ts1 (27.11.2026, Samuli: "Heinolan tapainen ilman tiesääasemia, pelkästään ajot kelattavaksi"): Heinolan toimenpidekartta (hk1) kaikille
      maanteiden hoitourakoille. Tieverkot Tiesää-arkistosta (tieverkko.py --suomi → data/urakat/), ajot suoraan Digitrafficista.
-     Urakat koodeina ja ELY-alueina, ei nimiä eikä urakoitsijoita (su1-linja). -->
+     ts2 (27.11.2026, Samuli: "Urakat voisi mainita oikealla nimellä"): urakat nimellä (Väylän aineisto, tieverkko.py tv3), ei urakoitsijoita. -->
 <style>
 :root{
   color-scheme: light;
@@ -196,7 +196,7 @@ footer{color:var(--muted);font-size:13px;margin-top:18px}
 
 <footer>
   Lähteet: <a href="https://www.digitraffic.fi/tieliikenne/" target="_blank" rel="noopener">Fintraffic / Digitraffic</a>, kunnossapidon seuranta (Harja), ja Väylävirasto, Maanteiden hoitourakan tiet (CC BY 4.0).
-  Kartalla näytetään kirjaukset, jotka kulkevat alle 150 m päässä valitun urakan teistä; naapuriurakoiden koneet jäävät pois. Urakat ovat urakkakoodeina ja ELY-alueina. Kirjauksen sisällä koneen kulku piirretään tasaisena kirjauksen alusta loppuun.
+  Kartalla näytetään kirjaukset, jotka kulkevat alle 150 m päässä valitun urakan teistä; naapuriurakoiden koneet jäävät pois. Urakoiden nimet ja tiet: Väylävirasto. Kirjauksen sisällä koneen kulku piirretään tasaisena kirjauksen alusta loppuun.
   Tieto tulee urakoitsijan Harja-järjestelmästä, joten kattavuus riippuu koneiden raportoinnista.
 </footer>
 </div>
@@ -573,14 +573,14 @@ let IX = null;
 async function loadIndex(){
   if(IX) return IX;
   const r = await fetch(ARK+'index.json', {cache:'no-cache'}); if(!r.ok) throw new Error('HTTP '+r.status);
-  IX = await r.json(); IX.u.sort((a,b)=>a.ely.localeCompare(b.ely, 'fi') || a.k.localeCompare(b.k)); return IX;
+  IX = await r.json(); IX.u.forEach(u=>{ u.nimi = u.nimi || u.k; }); IX.u.sort((a,b)=>a.ely.localeCompare(b.ely, 'fi') || a.nimi.localeCompare(b.nimi, 'fi')); return IX;
 }
-const uLabel = u => u.k+' · '+u.ely+' ELY · '+u.km.toLocaleString('fi-FI')+' km';
+const uLabel = u => u.nimi+' · '+u.ely+' ELY · '+u.km.toLocaleString('fi-FI')+' km tietä';
 async function fillSelect(){
   try{ const ix = await loadIndex(), sel = $('#u-sel'), by = {};
     for(const u of ix.u) (by[u.ely] = by[u.ely] || []).push(u);
     sel.innerHTML = '<option value="">Valitse urakka…</option>' + Object.keys(by).map(e=>'<optgroup label="'+esc(e)+' ELY">'
-      + by[e].map(u=>'<option value="'+esc(u.k)+'">'+esc(u.k)+' · '+u.km.toLocaleString('fi-FI')+' km tietä</option>').join('')+'</optgroup>').join('');
+      + by[e].map(u=>'<option value="'+esc(u.k)+'">'+esc(u.nimi)+'</option>').join('')+'</optgroup>').join('');
     sel.value = UK; sel.onchange = ()=>{ if(sel.value) location.search = '?u='+encodeURIComponent(sel.value); };
   }catch(e){ $('#u-sel').innerHTML = '<option value="">Urakkaluetteloa ei saatu</option>'; }
 }
@@ -588,7 +588,7 @@ async function urakkaInfo(){
   $('#u-all').hidden = false; $('#plate').hidden = false; $('#plate').textContent = UK;
   await fillSelect();
   const u = IX && IX.u.find(x=>x.k === UK);
-  if(u){ $('#plate').textContent = UK+' · '+u.ely.toUpperCase(); document.title = 'Toimenpidekartta '+UK; }
+  if(u){ $('#plate').textContent = u.nimi.toUpperCase(); $('#plate').title = 'Urakkakoodi '+u.k+' · '+u.ely+' ELY'; document.title = u.nimi+' – toimenpidekartta'; }
 }
 async function overview(){
   $('#ov').hidden = false; fillSelect();
@@ -610,14 +610,14 @@ async function overview(){
   fsz(); let rzo = null; window.addEventListener('resize', ()=>{ clearTimeout(rzo); rzo = setTimeout(fsz, 150); });
   const by = {}; for(const u of ix.u) (by[u.ely] = by[u.ely] || []).push(u);
   $('#ov-list').innerHTML = Object.keys(by).map(e=>'<h4><span class="esw" style="background:'+eCol(e)+'"></span>'+esc(e)+' ELY</h4><table><tbody>'
-    + by[e].map(u=>'<tr class="cl" data-k="'+esc(u.k)+'"><td><a href="?u='+encodeURIComponent(u.k)+'">'+esc(u.k)+'</a></td><td class="n">'+u.km.toLocaleString('fi-FI')+' km tietä</td></tr>').join('')+'</tbody></table>').join('');
+    + by[e].map(u=>'<tr class="cl" data-k="'+esc(u.k)+'"><td><a href="?u='+encodeURIComponent(u.k)+'">'+esc(u.nimi)+'</a></td><td class="n">'+u.km.toLocaleString('fi-FI')+' km tietä</td></tr>').join('')+'</tbody></table>').join('');
   const hi = k => { const u = k && ix.u.find(x=>x.k === k);
     svg.querySelectorAll('g[data-k]').forEach(g=>{ g.classList.toggle('on', g.dataset.k === k); g.classList.toggle('dim', !!k && g.dataset.k !== k); });
     document.querySelectorAll('#ov-list tr[data-k]').forEach(tr=>tr.classList.toggle('on', tr.dataset.k === k));
     const lb = $('#ov-lbl');
     if(u){ const g = svg.querySelector('g[data-k="'+k+'"]'); if(g) svg.appendChild(g); svg.appendChild(lb);
-      lb.setAttribute('x', px((u.bb[0] + u.bb[2])/2)); lb.setAttribute('y', py(u.bb[3])); lb.textContent = u.k;
-      $('#ov-info').innerHTML = '<b>'+esc(u.k)+'</b> · '+esc(u.ely)+' ELY · '+u.km.toLocaleString('fi-FI')+' km tietä<br><span class="muted">Klikkaa avataksesi urakan toimenpidekartan.</span>'; }
+      lb.setAttribute('x', px((u.bb[0] + u.bb[2])/2)); lb.setAttribute('y', py(u.bb[3])); lb.textContent = u.nimi;
+      $('#ov-info').innerHTML = '<b>'+esc(u.nimi)+'</b> · '+esc(u.ely)+' ELY · '+u.km.toLocaleString('fi-FI')+' km tietä<br><span class="muted">Klikkaa avataksesi urakan toimenpidekartan.</span>'; }
     else { lb.textContent = ''; $('#ov-info').textContent = 'Valitse urakka kartalta tai listasta. Kartalla on urakoiden valta-, kanta- ja seututiet, väri kertoo ELY-alueen.'; } };
   svg.addEventListener('pointerover', e=>{ const g = e.target.closest('g[data-k]'); if(g) hi(g.dataset.k); });
   svg.addEventListener('pointerleave', ()=>hi(null));
