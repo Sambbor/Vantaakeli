@@ -680,7 +680,7 @@ const slipExcl = (st, k) => !!(st != null && SLIP_EXCL[st] && SLIP_EXCL[st][k]);
 'use strict';
 const fetch = (u, o) => window.fetch(u, (o && o.signal) || typeof AbortSignal === 'undefined' || !AbortSignal.timeout ? o : {...(o||{}), signal: AbortSignal.timeout(25000)});
 const URAKAT = {
-  vantaa: {id:'vantaa', name:'Vantaa', gen:'Vantaan', ade:'Vantaalla', code:301, extraSt:{1193:50, 1049:50},
+  vantaa: {id:'vantaa', name:'Vantaa', gen:'Vantaan', ade:'Vantaalla', code:301, extraSt:{1193:50, 1049:50}, offSt:{1071:'27.11.2026', 1073:'27.11.2026'},
     bbox:{xMin:24.55, yMin:60.15, xMax:25.45, yMax:60.50}, fcBbox:'xMin=24.7&yMin=60.18&xMax=25.3&yMax=60.42',
     fcSections:['00003_101_000_0','00003_101_001_0','00004_101_000_0','00004_103_000_0','00007_001_000_0',
       '00045_001_000_0','00045_002_000_0','00050_003_000_0','00050_006_000_0','00101_001_000_0','00101_006_000_0'], fineRoads:null,
@@ -1227,7 +1227,7 @@ function agreeAt(r, i){ const v = (r.models||[]).map(m=>m.rows[i]).filter(c=>c &
 const slipCls = v => v == null ? 'na' : v >= 80 ? 's3' : v >= 50 ? 's2' : v >= 20 ? 's1' : 's0';
 function renderSlip(){
   const el = $('#slip-grid'); if(!el) return;
-  const list = state.stations.filter(s=>s.lon).map(stationSlipSeries).filter(Boolean);
+  const list = state.stations.filter(s=>s.lon && !stationIssues(s).off).map(stationSlipSeries).filter(Boolean);
   for(const r of list){ try{ r.models = modelAgreement(r); }catch(e){ r.models = []; } }
   if(!list.length){ el.innerHTML = '<div class="status">Ennustetta ei voitu laskea (FMI-ennuste puuttuu).</div>'; return; }
   const maxOf = r => Math.max(-1, ...r.rows.map(c=>c.idx ?? -1));
@@ -3134,6 +3134,8 @@ function renderSrc(){
 $('#srcbar').addEventListener('click', e=>{ if(e.target.closest('.src-tg')){ srcOpen = !srcOpen; renderSrc(); return; } const b = e.target.closest('.src'); if(b){ const t = document.querySelector(b.dataset.target); if(t){ if(t.id === 'works') $('#works-det').open = true; const sec = t.closest('[data-tab]'); if(sec) showTab(sec.dataset.tab, true); t.scrollIntoView({behavior:'smooth'}); } } });
 const ageTxt = m => m < 90 ? m+' min' : (Math.round(m/6)/10).toLocaleString('fi-FI')+' h';
 function stationIssues(s){
+  const mo = (U.offSt || {})[s.id];
+  if(mo) return {crit:['otettu pois käytöstä '+mo], minor:[], ok:false, off:{manual:mo}};
   const crit = [], minor = [];
   if(!s.measured) crit.push('ei mittausdataa');
   else if(ageMin(s.measured) > 60) crit.push('viimeisin mittaus '+ageTxt(ageMin(s.measured))+' sitten');
@@ -3158,7 +3160,7 @@ function stationOff(s){
   if(t == null || !isFinite(t) || Date.now() - t <= OFF_DAYS*864e5) return null;
   return {t, known};
 }
-const offTxt = o => o.known ? 'viimeisin mittaus '+new Date(o.t).toLocaleDateString('fi-FI',{timeZone:TZ}) : 'ei mittauksia keruun alun ('+new Date(o.t).toLocaleDateString('fi-FI',{timeZone:TZ})+') jälkeen';
+const offTxt = o => o.manual ? 'otettu pois käytöstä '+o.manual : o.known ? 'viimeisin mittaus '+new Date(o.t).toLocaleDateString('fi-FI',{timeZone:TZ}) : 'ei mittauksia keruun alun ('+new Date(o.t).toLocaleDateString('fi-FI',{timeZone:TZ})+') jälkeen';
 const okStations = () => state.stations.filter(s=>stationIssues(s).ok);
 function updateSources(ctx){
   const {fcRes, fcFine, wsData, camData, fmi, works, models, errs} = ctx;
