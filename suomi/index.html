@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="fi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b5aa6">
+<title>Toimenpidekartta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<!-- ts1 (27.11.2026, Samuli: "Heinolan tapainen ilman tiesääasemia, pelkästään ajot kelattavaksi"): Heinolan toimenpidekartta (hk1) kaikille
+     maanteiden hoitourakoille. Tieverkot Tiesää-arkistosta (tieverkko.py --suomi → data/urakat/), ajot suoraan Digitrafficista.
+     Urakat koodeina ja ELY-alueina, ei nimiä eikä urakoitsijoita (su1-linja). -->
+<style>
+:root{
+  color-scheme: light;
+  --bg:#eef1f4; --panel:#ffffff; --ink:#15202b; --muted:#5b6876; --line:#d5dbe2; --soft:#e4e9ee;
+  --accent:#0b5aa6; --accent-ink:#ffffff; --bad:#c0392b; --ok:#2f8f4e;
+  --mapbg:#e8ecef; --net:#9aa7b4; --net-main:#6f7d8b;
+  --salt:#8e44ad; --plow:#1f6fd1; --sand:#9a6b2f; --level:#0f8a8a; --check:#5b6876;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Source Sans 3","Segoe UI",Roboto,Arial,sans-serif;
+  --f-mono:"JetBrains Mono",Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#0f151c; --panel:#17202a; --ink:#e6ebf0; --muted:#98a5b3; --line:#2a3642; --soft:#1f2a35;
+    --accent:#4b9be8; --accent-ink:#0f151c; --bad:#ef6b5c; --ok:#5cc47c;
+    --mapbg:#121a22; --net:#3b4957; --net-main:#5a6a7a;
+    --salt:#c58af0; --plow:#5aa2ff; --sand:#d2a064; --level:#3fd0c9; --check:#98a5b3;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#0f151c; --panel:#17202a; --ink:#e6ebf0; --muted:#98a5b3; --line:#2a3642; --soft:#1f2a35;
+  --accent:#4b9be8; --accent-ink:#0f151c; --bad:#ef6b5c; --ok:#5cc47c;
+  --mapbg:#121a22; --net:#3b4957; --net-main:#5a6a7a;
+  --salt:#c58af0; --plow:#5aa2ff; --sand:#d2a064; --level:#3fd0c9; --check:#98a5b3;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body);padding:0 16px 40px}
+.wrap{max-width:1400px;margin:0 auto}
+a{color:var(--accent)}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px;padding:16px 0 12px;border-bottom:1px solid var(--line);margin-bottom:14px}
+h1{font:700 28px/1.1 var(--f-display);margin:0;letter-spacing:.2px}
+h1 .plate{display:inline-block;font:600 14px var(--f-mono);background:var(--accent);color:var(--accent-ink);border-radius:4px;padding:3px 8px;vertical-align:middle;margin-left:6px}
+header .sub{color:var(--muted);font-size:14px}
+button,select,input{font:inherit;color:inherit}
+button,select{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+input[type=date]{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.ctl .grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.ctl .sep{width:1px;height:26px;background:var(--line);margin:0 4px}
+.chk{display:inline-flex;align-items:center;gap:5px;font-size:14px;cursor:pointer;user-select:none}
+.chk i{width:18px;height:4px;border-radius:2px;display:inline-block}
+.play{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.play input[type=range]{flex:1;min-width:180px;accent-color:var(--accent)}
+.play b{font:600 20px var(--f-mono);min-width:150px;text-align:right}
+.strip{margin:6px 0 2px;position:relative}
+.strip svg{width:100%;height:54px;display:block;cursor:pointer}
+.strip .ticks{position:relative;height:16px;font:12px var(--f-mono);color:var(--muted)}
+.strip .ticks span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.strip .ticks span.f{transform:none}.strip .ticks span.l{transform:translateX(-100%)}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;margin-top:10px}
+.mapbox{position:relative;background:var(--mapbg);border-radius:8px;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;height:min(78vh,820px)}
+.mapbox.drag{cursor:grabbing}
+#map{width:100%;height:100%;display:block}
+#map .nt{fill:none;stroke:var(--net);stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;stroke-width:1.6px}
+#map .nt.mn{stroke:var(--net-main);stroke-width:3px}
+#map .wk{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;stroke-width:4px}
+#map .c-salt{stroke:var(--salt)} #map .c-plow{stroke:var(--plow)} #map .c-sand{stroke:var(--sand);stroke-dasharray:6 4} #map .c-level{stroke:var(--level)} #map .c-check{stroke:var(--check);stroke-dasharray:2 4}
+#map .hd circle{vector-effect:non-scaling-stroke;stroke:var(--panel);stroke-width:2px}
+#map .hd .rg{fill:none;stroke-width:2px;opacity:.5}
+#map .f-salt{fill:var(--salt)} #map .f-plow{fill:var(--plow)} #map .f-sand{fill:var(--sand)} #map .f-level{fill:var(--level)} #map .f-check{fill:var(--check)}
+#map .hd .rg.f-salt{stroke:var(--salt);fill:none} #map .hd .rg.f-plow{stroke:var(--plow);fill:none} #map .hd .rg.f-sand{stroke:var(--sand);fill:none} #map .hd .rg.f-level{stroke:var(--level);fill:none} #map .hd .rg.f-check{stroke:var(--check);fill:none}
+#map text{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var(--mapbg);stroke-width:3px;stroke-linejoin:round}
+#map text.pl{font-weight:600}
+#map text.rn{font:600 1px var(--f-mono);fill:var(--muted)}
+.zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:6px;z-index:2}
+.zoom button{width:38px;height:38px;padding:0;font:700 20px/1 var(--f-body);box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.hint{position:absolute;left:10px;bottom:8px;font-size:12px;color:var(--muted);background:var(--panel);padding:2px 8px;border-radius:4px;opacity:.92;pointer-events:none}
+.mlg{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);margin-top:6px;align-items:center}
+.mlg i{width:18px;height:4px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:4px}
+.side{min-width:0} .grid>div{min-width:0}
+#mach{overflow-x:auto}
+.side h3{font:600 18px var(--f-display);margin:0 0 6px}
+.side .blk{margin-bottom:14px}
+.now{font-size:14px;margin:4px 0 0}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.tile{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.tile .k{font-size:12px;color:var(--muted)} .tile .v{font:600 22px var(--f-display)} .tile .d{font-size:12px;color:var(--muted)}
+.tile.salt{border-left:4px solid var(--salt)} .tile.plow{border-left:4px solid var(--plow)} .tile.sand{border-left:4px solid var(--sand)} .tile.mach{border-left:4px solid var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:4px 5px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:600;color:var(--muted);font-size:12px}
+td.n{text-align:right;font-family:var(--f-mono);font-size:12.5px}
+tr.cl{cursor:pointer} tr.cl:hover td{background:var(--soft)} tr.on td{background:var(--soft)}
+.bar{display:inline-block;height:6px;border-radius:3px;vertical-align:middle;background:var(--soft);width:34px;position:relative;overflow:hidden;margin-left:4px}
+.bar i{position:absolute;left:0;top:0;bottom:0}
+.bar i.salt{background:var(--salt)} .bar i.plow{background:var(--plow)}
+.tblwrap{max-height:340px;overflow:auto}
+.status{color:var(--muted);font-size:14px;margin-top:8px}
+.err{color:var(--bad)}
+.muted{color:var(--muted)}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;vertical-align:middle;margin-right:4px}
+.d-salt{background:var(--salt)} .d-plow{background:var(--plow)} .d-sand{background:var(--sand)} .d-level{background:var(--level)} .d-check{background:var(--check)}
+footer{color:var(--muted);font-size:13px;margin-top:18px}
+.usel{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px}
+.usel select{max-width:100%}
+.ovgrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,1fr);gap:14px}
+.ovmap{background:var(--mapbg);border-radius:8px;overflow:hidden;height:min(82vh,900px)}
+#ovmap{width:100%;height:100%;display:block}
+#ovmap .ol{fill:none;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;stroke-width:1.8px;opacity:.85}
+#ovmap .oh{fill:none;stroke:transparent;stroke-linecap:round;vector-effect:non-scaling-stroke;stroke-width:14px;cursor:pointer;pointer-events:stroke}
+#ovmap g.on .ol{stroke-width:4px;opacity:1}
+#ovmap g.dim .ol{opacity:.35}
+#ovmap text{font-family:var(--f-body);fill:var(--ink);paint-order:stroke;stroke:var(--mapbg);stroke-width:3px;stroke-linejoin:round;font-size:12px;pointer-events:none}
+#ovmap text.uc{font:600 13px var(--f-mono)}
+.ovinfo{min-height:44px;font-size:14px;margin-bottom:8px}
+.ovlist{max-height:min(74vh,820px);overflow:auto}
+.ovlist h4{font:600 15px var(--f-display);margin:10px 0 4px}
+.esw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px}
+@media (max-width:980px){ .ovgrid{grid-template-columns:minmax(0,1fr)} .ovmap{height:72vh} .ovlist{max-height:none} }
+@media (max-width:980px){ .grid{grid-template-columns:minmax(0,1fr)} .mapbox{height:68vh} }
+@media (max-width:600px){ h1{font-size:22px} .play b{min-width:0;font-size:17px} .ctl .sep{display:none} body{padding:0 12px 32px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1>Toimenpidekartta <span class="plate" id="plate" hidden></span></h1>
+  <div class="sub">Maanteiden hoitourakoiden suolaus, auraus ja hiekoitus kartalla sitä mukaa kuin Harjaan tulee kirjauksia · <a href="../">Kelikeskus</a></div>
+  <div class="usel"><select id="u-sel" aria-label="Urakka"><option value="">Valitse urakka…</option></select><a href="./" id="u-all" hidden>Kaikki urakat kartalla</a></div></div>
+  <div class="sub" id="upd"></div>
+</header>
+
+<div class="panel" id="ov" hidden>
+  <div class="ovgrid">
+    <div class="ovmap"><svg id="ovmap" role="img" aria-label="Suomen maanteiden hoitourakat: valitse urakka kartalta"></svg></div>
+    <div>
+      <div class="ovinfo" id="ov-info">Valitse urakka kartalta tai listasta. Kartalla on urakoiden valta-, kanta- ja seututiet, väri kertoo ELY-alueen.</div>
+      <div class="ovlist" id="ov-list">Ladataan urakoita…</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" id="main" hidden>
+  <div class="ctl">
+    <div class="grp"><button type="button" id="b-live" aria-pressed="true" title="Viimeiset 12 h, päivittyy 2 min välein">● Nyt</button>
+      <label class="chk">Päivä <input type="date" id="d-day"></label>
+      <select id="d-span" aria-label="Jakso"><option value="night">yö 18–08</option><option value="day">päivä 06–18</option><option value="full">vuorokausi 00–24</option></select></div>
+    <span class="sep"></span>
+    <div class="grp" id="cats">
+      <label class="chk"><input type="checkbox" data-c="salt" checked><i style="background:var(--salt)"></i>suolaus</label>
+      <label class="chk"><input type="checkbox" data-c="plow" checked><i style="background:var(--plow)"></i>auraus</label>
+      <label class="chk"><input type="checkbox" data-c="sand" checked><i style="background:var(--sand)"></i>hiekoitus</label>
+      <label class="chk"><input type="checkbox" data-c="level"><i style="background:var(--level)"></i>tasaus</label>
+      <label class="chk"><input type="checkbox" data-c="check"><i style="background:var(--check)"></i>kelintarkastus</label>
+    </div>
+    <span class="sep"></span>
+    <label class="chk" title="Kuinka kauan tehty työ näkyy kartalla täysin värein"><span>Jälki</span>
+      <select id="trail"><option value="1">1 h</option><option value="3">3 h</option><option value="6" selected>6 h</option><option value="0">koko jakso</option></select></label>
+  </div>
+  <div class="play">
+    <button type="button" id="p-play" aria-pressed="false">▶ Toista</button>
+    <select id="p-speed" aria-label="Toistonopeus"><option value="5">5 min / askel</option><option value="10" selected>10 min / askel</option><option value="30">30 min / askel</option></select>
+    <button type="button" id="p-prev" aria-label="Taaksepäin">‹</button><button type="button" id="p-next" aria-label="Eteenpäin">›</button>
+    <input type="range" id="p-t" min="0" max="0" value="0" aria-label="Kellonaika">
+    <b id="p-time">–</b>
+  </div>
+  <div class="strip"><svg id="strip" viewBox="0 0 600 54" preserveAspectRatio="none" role="img" aria-label="Aikajana: työssä olleet koneet työlajeittain"></svg><div class="ticks" id="ticks"></div></div>
+  <div class="status" id="status">Ladataan tieverkkoa…</div>
+
+  <div class="grid">
+    <div>
+      <div class="mapbox" id="mapbox">
+        <svg id="map" role="img" aria-label="Urakan tieverkko ja tehdyt työt valittuun hetkeen mennessä"></svg>
+        <div class="zoom"><button type="button" id="z-in" aria-label="Lähennä">+</button><button type="button" id="z-out" aria-label="Loitonna">−</button><button type="button" id="z-fit" aria-label="Koko urakka" style="font-size:14px">⤢</button></div>
+        <div class="hint">Vieritä tai nipistä zoomataksesi, vedä siirtääksesi</div>
+      </div>
+      <div class="mlg"><span><i style="background:var(--salt)"></i>suolaus</span><span><i style="background:var(--plow)"></i>auraus</span><span><i style="background:var(--sand)"></i>hiekoitus</span>
+        <span><span class="dot" style="background:var(--accent)"></span>kone ja sen viimeisin kohta</span><span>haalea = vanhempi kuin jälki-asetus</span><span><i style="background:var(--net-main);height:3px"></i>urakan tiet</span></div>
+    </div>
+    <div class="side">
+      <div class="blk"><h3 id="s-h">Tilanne</h3><div class="tiles" id="tiles"></div></div>
+      <div class="blk"><h3>Koneet liikkeellä</h3><div class="muted" style="font-size:12.5px;margin-bottom:4px">Ajo = yhtäjaksoinen koneen kirjausketju. Klikkaa riviä siirtyäksesi koneen kohdalle.</div><div id="mach"></div></div>
+      <div class="blk"><h3>Tiet</h3><div class="muted" style="font-size:12.5px;margin-bottom:4px">Osuus tiestä, jolla on kirjaus jakson alusta valittuun hetkeen. Klikkaa tietä korostaaksesi sen.</div><div class="tblwrap" id="roads"></div></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Lähteet: <a href="https://www.digitraffic.fi/tieliikenne/" target="_blank" rel="noopener">Fintraffic / Digitraffic</a>, kunnossapidon seuranta (Harja), ja Väylävirasto, Maanteiden hoitourakan tiet (CC BY 4.0).
+  Kartalla näytetään kirjaukset, jotka kulkevat alle 150 m päässä valitun urakan teistä; naapuriurakoiden koneet jäävät pois. Urakat ovat urakkakoodeina ja ELY-alueina. Kirjauksen sisällä koneen kulku piirretään tasaisena kirjauksen alusta loppuun.
+  Tieto tulee urakoitsijan Harja-järjestelmästä, joten kattavuus riippuu koneiden raportoinnista.
+</footer>
+</div>
+
+<script>
+(() => {
+'use strict';
+const ARK = 'https://raw.githubusercontent.com/Sambbor/Tiesaa-arkisto/main/data/urakat/';
+const QS = new URLSearchParams(location.search), UK = (QS.get('u') || '').replace(/[^A-Za-z0-9]/g, '');
+const NET_URLS = UK ? [ARK+UK+'.json'] : [];
+const DT = 'https://tie.digitraffic.fi';
+const TZ = 'Europe/Helsinki';
+const M_LAT = 111320; let M_LON = 111320*Math.cos(61.3*Math.PI/180);   // ts1: M_LON urakan keskileveyden mukaan (prepNet)
+const CATS = {SALTING:'salt', PLOUGHING_AND_SLUSH_REMOVAL:'plow', PLOUGHING_OF_SLUSH_DITCH:'plow', LOWERING_OF_SNOWBANKS:'plow', REMOVAL_OF_BULGE_ICE:'plow',
+  TRANSFER_OF_SNOW:'plow', SPOT_SANDING:'sand', LINE_SANDING:'sand', LEVELLING_OF_ROAD_SURFACE:'level', ROAD_STATE_CHECKING:'check'};
+const CAT_ORDER = ['salt','plow','sand','level','check'];
+const CAT_FI = {salt:'Suolaus', plow:'Auraus', sand:'Hiekoitus', level:'Pinnan tasaus', check:'Kelintarkastus'};
+const TASK_FI = {SALTING:'suolaus', PLOUGHING_AND_SLUSH_REMOVAL:'auraus ja sohjonpoisto', PLOUGHING_OF_SLUSH_DITCH:'sohjo-ojien teko', LOWERING_OF_SNOWBANKS:'lumivallien madaltaminen',
+  REMOVAL_OF_BULGE_ICE:'polanteen poisto', TRANSFER_OF_SNOW:'lumensiirto', SPOT_SANDING:'pistehiekoitus', LINE_SANDING:'linjahiekoitus', LEVELLING_OF_ROAD_SURFACE:'pinnan tasaus', ROAD_STATE_CHECKING:'kelintarkastus'};
+// ts1: paikannimet kartalle (taso 1 aina, taso 2 vasta lähempänä). Sijainnit likimääräisiä (keskusta).
+const PLACES = [
+  ['Helsinki',24.94,60.17,1],['Espoo',24.66,60.21,1],['Vantaa',25.04,60.29,1],['Porvoo',25.66,60.39,1],['Loviisa',26.23,60.46,1],['Kotka',26.94,60.47,1],
+  ['Hamina',27.20,60.57,1],['Kouvola',26.70,60.87,1],['Lahti',25.66,60.98,1],['Hyvinkää',24.86,60.63,1],['Riihimäki',24.77,60.74,1],['Hämeenlinna',24.46,61.00,1],
+  ['Forssa',23.62,60.81,1],['Lohja',24.07,60.25,1],['Tammisaari',23.43,59.97,1],['Hanko',22.95,59.83,1],['Salo',23.13,60.38,1],['Turku',22.27,60.45,1],
+  ['Uusikaupunki',21.41,60.80,1],['Rauma',21.51,61.13,1],['Pori',21.80,61.48,1],['Loimaa',23.06,60.85,1],['Huittinen',22.70,61.18,1],['Kankaanpää',22.39,61.80,1],
+  ['Tampere',23.76,61.50,1],['Valkeakoski',24.03,61.27,1],['Sastamala',22.92,61.34,1],['Orivesi',24.36,61.68,1],['Mänttä',24.62,62.03,1],['Parkano',23.02,62.01,1],
+  ['Jyväskylä',25.73,62.24,1],['Jämsä',25.19,61.86,1],['Keuruu',24.71,62.26,1],['Äänekoski',25.73,62.60,1],['Viitasaari',25.86,63.07,1],['Saarijärvi',25.26,62.71,1],
+  ['Heinola',26.04,61.20,1],['Mikkeli',27.27,61.69,1],['Savonlinna',28.88,61.87,1],['Pieksämäki',27.13,62.30,1],['Varkaus',27.87,62.32,1],['Kuopio',27.68,62.89,1],
+  ['Iisalmi',27.19,63.56,1],['Lappeenranta',28.19,61.06,1],['Imatra',28.77,61.17,1],['Joensuu',29.76,62.60,1],['Lieksa',30.02,63.32,1],['Nurmes',29.14,63.54,1],
+  ['Kitee',30.14,62.10,1],['Kajaani',27.73,64.22,1],['Kuhmo',29.52,64.13,1],['Suomussalmi',28.90,64.88,1],['Vaasa',21.62,63.10,1],['Seinäjoki',22.84,62.79,1],
+  ['Kokkola',23.13,63.84,1],['Pietarsaari',22.70,63.67,1],['Kristiinankaupunki',21.37,62.27,1],['Kauhajoki',22.18,62.43,1],['Lapua',23.01,62.97,1],['Alavus',23.62,62.59,1],
+  ['Ylivieska',24.55,64.08,1],['Nivala',24.97,63.92,1],['Oulu',25.47,65.01,1],['Raahe',24.48,64.68,1],['Kalajoki',24.27,64.26,1],['Pudasjärvi',26.99,65.36,1],
+  ['Kuusamo',29.19,65.97,1],['Taivalkoski',28.25,65.57,1],['Kemi',24.56,65.74,1],['Tornio',24.15,65.85,1],['Rovaniemi',25.73,66.50,1],['Kemijärvi',27.43,66.71,1],
+  ['Sodankylä',26.59,67.42,1],['Kittilä',24.91,67.66,1],['Muonio',23.68,67.96,1],['Hetta',23.64,68.38,1],['Ivalo',27.54,68.66,1],['Inari',27.03,68.91,1],
+  ['Utsjoki',27.03,69.91,1],['Salla',28.66,66.83,1],['Pello',23.97,66.78,1],['Ylitornio',23.67,66.32,1],['Posio',28.17,66.11,1],['Ranua',26.52,65.93,1],
+  ['Haapajärvi',25.32,63.75,2],['Pyhäjärvi',25.98,63.67,2],['Närpiö',21.34,62.47,2],['Uusikaarlepyy',22.53,63.52,2],['Mäntsälä',25.32,60.63,2],['Nurmijärvi',24.81,60.47,2],
+  ['Kerava',25.11,60.40,2],['Kirkkonummi',24.44,60.12,2],['Karkkila',24.21,60.53,2],['Somero',23.51,60.63,2],['Nastola',25.93,60.95,2],['Orimattila',25.73,60.80,2],
+  ['Hollola',25.52,61.05,2],['Padasjoki',25.28,61.35,2],['Kuhmoinen',25.18,61.56,2],['Sysmä',25.68,61.50,2],['Hartola',26.02,61.58,2],['Joutsa',26.11,61.74,2],
+  ['Pertunmaa',26.48,61.50,2],['Mäntyharju',26.88,61.42,2],['Juva',27.86,61.90,2],['Rantasalmi',28.30,62.06,2],['Parikkala',29.50,61.55,2],['Suonenjoki',27.12,62.62,2],
+  ['Leppävirta',27.78,62.49,2],['Siilinjärvi',27.66,63.07,2],['Nilsiä',28.08,63.21,2],['Pielavesi',26.76,63.24,2],['Kiuruvesi',26.62,63.65,2],['Outokumpu',29.02,62.73,2],
+  ['Ilomantsi',30.93,62.67,2],['Juuka',29.25,63.24,2],['Sotkamo',28.39,64.13,2],['Paltamo',27.84,64.41,2],['Puolanka',27.67,64.87,2],['Hyrynsalmi',28.49,64.68,2],
+  ['Muhos',25.99,64.81,2],['Utajärvi',26.42,64.76,2],['Vaala',26.84,64.56,2],['Liminka',25.42,64.81,2],['Ii',25.37,65.32,2],['Simo',25.06,65.66,2],
+  ['Keminmaa',24.54,65.80,2],['Tervola',24.81,66.08,2],['Ikaalinen',23.07,61.77,2],['Virrat',23.77,62.24,2],['Ruovesi',24.07,61.99,2],['Toijala',23.87,61.17,2],
+  ['Urjala',23.55,61.08,2],['Kangasala',24.07,61.46,2],['Lempäälä',23.75,61.31,2],['Nokia',23.51,61.48,2],['Ylöjärvi',23.60,61.55,2],['Kaarina',22.50,60.41,2],
+  ['Paimio',22.69,60.46,2],['Mynämäki',22.03,60.68,2],['Laitila',21.69,60.88,2],['Eura',22.13,61.13,2],['Harjavalta',22.14,61.31,2],['Kokemäki',22.35,61.26,2],
+  ['Merikarvia',21.50,61.86,2],['Kurikka',22.41,62.62,2],['Ilmajoki',22.58,62.73,2],['Kauhava',23.07,63.10,2],['Alajärvi',23.82,63.00,2],['Kausala',26.35,60.89,2],
+  ['Virolahti',27.70,60.58,2],['Taavetti',27.57,60.92,2],['Savitaipale',27.68,61.20,2],['Pyhtää',26.54,60.49,2],['Sipoo',25.27,60.38,2],['Turenki',24.64,60.92,2],
+  ['Loppi',24.44,60.72,2],['Nummela',24.32,60.33,2],['Inkoo',23.99,60.05,2],['Kemiö',22.73,60.16,2],['Parainen',22.30,60.30,2],['Naantali',22.03,60.47,2],
+  ['Vierumäki',25.99,61.11,2],['Vääksy',25.55,61.17,2]];
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtT = t => new Date(t).toLocaleTimeString('fi-FI',{hour:'2-digit', minute:'2-digit', timeZone:TZ});
+const fmtDT = t => new Date(t).toLocaleString('fi-FI',{weekday:'short', day:'numeric', month:'numeric', hour:'2-digit', minute:'2-digit', timeZone:TZ});
+const isoZ = d => new Date(d).toISOString().replace(/\.\d+Z$/,'Z');
+const km = m => (m/1000).toLocaleString('fi-FI',{maximumFractionDigits: m < 10000 ? 1 : 0});
+const dist = (a, b) => Math.hypot((a[0]-b[0])*M_LON, (a[1]-b[1])*M_LAT);
+
+/* ---------- tila ---------- */
+const S = {net:null, box:null, recs:[], chains:[], from:0, to:0, live:true, steps:[], i:0, play:null, cats:new Set(['salt','plow','sand']),
+  trail:6, selRoad:null, vb:null, tok:0, loading:false, lastLoad:0};
+
+/* ---------- projektio ---------- */
+const X = lon => (lon - S.box.w)*M_LON/1000;
+const Y = lat => (S.box.n - lat)*M_LAT/1000;
+
+/* ---------- tieverkko ---------- */
+async function loadNet(){
+  for(const u of NET_URLS){
+    try{ const r = await fetch(u, {cache:'no-cache'}); if(!r.ok) continue; const d = await r.json(); if(d && d.roads && d.roads.length) return d; }catch(e){}
+  }
+  throw new Error('tieverkkoa ei saatu');
+}
+function densify(l, step){ const out = [l[0]];
+  for(let i = 1; i < l.length; i++){ const a = l[i-1], b = l[i], n = Math.ceil(dist(a,b)/step);
+    for(let k = 1; k <= n; k++) out.push([a[0]+(b[0]-a[0])*k/n, a[1]+(b[1]-a[1])*k/n]); }
+  return out; }
+function prepNet(d){
+  let w = 99, e = -99, s = 99, n = -99;
+  for(const rd of d.roads) for(const l of rd.l) for(const c of l){ w = Math.min(w, c[0]); e = Math.max(e, c[0]); s = Math.min(s, c[1]); n = Math.max(n, c[1]); }
+  S.box = {w: w-0.02, e: e+0.02, s: s-0.01, n: n+0.01};
+  M_LON = M_LAT*Math.cos((s + n)/2*Math.PI/180);
+  // 100 m solut: tie → solujen määrä; ruudukko lähimmän solun hakuun
+  const G = 0.004, idx = new Map(), roads = {};
+  let cid = 0;
+  for(const rd of d.roads){ const R = roads[rd.r] = roads[rd.r] || {r: rd.r, n: 0, len: 0};
+    for(const l of rd.l){ for(let i = 1; i < l.length; i++) R.len += dist(l[i-1], l[i]);
+      for(const c of densify(l, 100)){ const k = Math.floor(c[0]/G)+':'+Math.floor(c[1]/G); let a = idx.get(k); if(!a) idx.set(k, a = []); a.push([c[0], c[1], rd.r, cid++]); R.n++; } } }
+  S.net = {d, idx, G, roads, nCells: cid};
+}
+function nearCell(c, tol){
+  const {idx, G} = S.net, cx = Math.floor(c[0]/G), cy = Math.floor(c[1]/G); let best = null, bd = tol;
+  for(let dx = -1; dx <= 1; dx++) for(let dy = -1; dy <= 1; dy++){ const a = idx.get((cx+dx)+':'+(cy+dy)); if(!a) continue;
+    for(const q of a){ const dd = dist(q, c); if(dd < bd){ bd = dd; best = q; } } }
+  return best;
+}
+
+/* ---------- toteumat ---------- */
+async function getJSON(u){ const r = await fetch(u, {headers:{'Accept':'application/json'}}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }
+function geoLines(g){ if(!g) return []; if(g.type === 'LineString') return [g.coordinates]; if(g.type === 'MultiLineString') return g.coordinates; if(g.type === 'Point') return [[g.coordinates]]; return []; }
+async function fetchRoutes(from, to){
+  const b = S.box, base = DT+'/api/maintenance/v1/tracking/routes?domain=state-roads&xMin='+b.w.toFixed(3)+'&yMin='+b.s.toFixed(3)+'&xMax='+b.e.toFixed(3)+'&yMax='+b.n.toFixed(3)
+    + Object.keys(CATS).map(t=>'&taskId='+t).join('');
+  const parts = []; for(let t = from; t < to; t += 12*36e5) parts.push([t, Math.min(to, t + 12*36e5)]);
+  const res = await Promise.all(parts.map(([a, z])=>getJSON(base+'&endFrom='+isoZ(a)+'&endBefore='+isoZ(z + 60e3))));
+  const seen = new Set(), out = [];
+  for(const d of res) for(const f of (d.features||[])){ const p = f.properties||{}; if(p.id != null){ if(seen.has(p.id)) continue; seen.add(p.id); } out.push(f); }
+  return out;
+}
+function prepRecs(feats){
+  const recs = [], prevAll = new Map();
+  for(const f of feats){ const p = f.properties||{}; if(p.id != null && p.previousId != null) prevAll.set(p.id, p.previousId); }
+  for(const f of feats){
+    const p = f.properties||{}, tasks = (p.tasks||[]).filter(t=>CATS[t]);
+    if(!tasks.length) continue;
+    const cs = tasks.map(t=>CATS[t]), cat = CAT_ORDER.find(c=>cs.includes(c));
+    const lines = geoLines(f.geometry).filter(l=>l.length);
+    const pts = lines.flat(); if(!pts.length) continue;
+    const s = Date.parse(p.startTime || p.endTime), e = Date.parse(p.endTime || p.startTime);
+    if(!(e >= s)) continue;
+    // pelkkä piste tai alle 30 m liike = paikallaan (varikko, tauko)
+    let ext = 0; for(const c of pts) ext = Math.max(ext, dist(c, pts[0]));
+    if(ext < 30) continue;
+    // urakan tiellä? ainakin kolmannes pisteistä alle 150 m tiestä
+    let onN = 0; const cells = new Set();
+    const dens = []; for(const l of lines) dens.push(...(l.length > 1 ? densify(l, 50) : l));
+    for(const c of dens){ const q = nearCell(c, 150); if(q){ onN++; if(dist(q, c) < 60) cells.add(q[3]); } }
+    if(onN < Math.max(1, dens.length/3)) continue;
+    // kumulatiivinen pituus osittaista piirtoa varten
+    const segs = []; let L = 0;
+    for(const l of lines){ const acc = [L]; for(let i = 1; i < l.length; i++){ L += dist(l[i-1], l[i]); acc.push(L); } segs.push({l, acc}); }
+    // tie lasketaan kirjaukselle vasta, kun sitä on ajettu vähintään 400 m (risteysten roiskeet pois)
+    const roadOf = {}; for(const cId of cells){ const r = S.net.cellRoad[cId]; roadOf[r] = (roadOf[r]||0) + 1; }
+    for(const r in roadOf) if(roadOf[r] < 4) delete roadOf[r];
+    recs.push({id: p.id, prev: p.previousId, tasks, cat, s, e, lines, segs, L, cells: [...cells], roads: roadOf, first: pts[0], last: pts[pts.length-1]});
+  }
+  recs.sort((a,b)=>a.s-b.s);
+  // koneketjut: previousId tai jatkuvuus (sama työlaji, alle 3 min ja 300 m)
+  const byId = new Map(recs.map(r=>[r.id, r])), chains = []; let open = [];
+  for(const r of recs){
+    let c = null;
+    // previousId voi osoittaa pois karsittuun kirjaukseen (paikallaan, toisen urakan tie): kuljetaan ketjua taaksepäin
+    for(let id = r.prev, k = 0; id != null && k < 30 && !c; id = prevAll.get(id), k++){ const pr = byId.get(id); if(pr && pr.chain) c = pr.chain; }
+    if(!c){ open = open.filter(x=>r.s - x.e <= 20*60e3);
+      let bd = 500; for(const x of open){ if(x.cat !== r.cat || r.s - x.e > 10*60e3 || r.s < x.e - 60e3) continue; const dd = dist(x.lastPt, r.first); if(dd < bd){ bd = dd; c = x; } } }
+    if(!c){ c = {n: chains.length + 1, recs: [], cat: r.cat, s: r.s, e: r.e}; chains.push(c); open.push(c); }
+    r.chain = c; c.recs.push(r); c.e = Math.max(c.e, r.e); c.lastPt = r.last; c.cats = c.cats || new Set(); c.cats.add(r.cat);
+  }
+  // nimetään koneet aikajärjestyksessä työlajeittain
+  chains.forEach((c, i)=>{ c.name = 'Ajo '+(i+1); });
+  return {recs, chains};
+}
+
+/* ---------- jakso ---------- */
+function helMs(y, m, d, h){
+  let t = Date.UTC(y, m, d, h) - 2*36e5;
+  for(let k = 0; k < 2; k++){ const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:TZ, year:'numeric', month:'numeric', day:'numeric', hour:'numeric', hourCycle:'h23'}).formatToParts(new Date(t)).map(x=>[x.type, x.value]));
+    t += Date.UTC(y, m, d, h) - Date.UTC(+p.year, +p.month-1, +p.day, +p.hour); }
+  return t;
+}
+function todayKey(t){ const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:TZ, year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(new Date(t)).map(x=>[x.type, x.value])); return p.year+'-'+p.month+'-'+p.day; }
+function windowFor(){
+  if(S.live){ const to = Date.now(); return {from: Math.floor((to - 12*36e5)/(5*60e3))*5*60e3, to}; }
+  const [y, m, d] = $('#d-day').value.split('-').map(Number), sp = $('#d-span').value;
+  if(sp === 'night') return {from: helMs(y, m-1, d, 18), to: helMs(y, m-1, d+1, 8)};
+  if(sp === 'day') return {from: helMs(y, m-1, d, 6), to: helMs(y, m-1, d, 18)};
+  return {from: helMs(y, m-1, d, 0), to: helMs(y, m-1, d+1, 0)};
+}
+
+async function load(keepT){
+  const tok = ++S.tok; const w = windowFor(); const to = Math.min(w.to, Date.now());
+  S.loading = true; $('#status').innerHTML = 'Haetaan toteumia '+fmtDT(w.from)+' – '+fmtDT(to)+'…';
+  let feats;
+  try{ feats = await fetchRoutes(w.from - 30*60e3, to); }
+  catch(e){ if(tok !== S.tok) return; S.loading = false; $('#status').innerHTML = '<span class="err">Toteumia ei saatu haettua ('+esc(e.message)+'). Yritä hetken päästä uudelleen.</span>'; return; }
+  if(tok !== S.tok) return;
+  const wasEnd = S.steps.length && S.i >= S.steps.length - 1;
+  const prevT = S.steps[S.i];
+  const {recs, chains} = prepRecs(feats);
+  S.recs = recs; S.chains = chains; S.from = w.from; S.to = w.to; S.loading = false; S.lastLoad = Date.now();
+  const step = 5*60e3, end = Math.min(w.to, Math.ceil(Date.now()/step)*step);
+  S.steps = []; for(let t = w.from; t <= end; t += step) S.steps.push(t);
+  if(!S.steps.length) S.steps = [w.from];
+  $('#p-t').max = S.steps.length - 1;
+  if(keepT && !wasEnd && prevT != null) S.i = Math.max(0, S.steps.findIndex(t=>t >= prevT));
+  else S.i = S.steps.length - 1;   // näytetään jakson lopputilanne; Toista aloittaa alusta
+  $('#p-t').value = S.i;
+  const nW = recs.filter(r=>S.cats.has(r.cat)).length;
+  $('#status').innerHTML = (recs.length ? recs.length+' urakan kirjausta ('+chains.length+' koneajoa) · ' : '')
+    + (nW ? '' : '<b>Valituilla työlajeilla ei kirjauksia tällä jaksolla.</b> ') + 'Jakso '+fmtDT(w.from)+' – '+fmtDT(w.to)
+    + (w.to > Date.now() ? ' · kesken'+(S.live ? ', päivittyy 2 min välein' : '') : '');
+  $('#upd').textContent = 'Haettu klo '+fmtT(Date.now());
+  renderStrip(); render();
+}
+
+/* ---------- piirto ---------- */
+function pathOf(lines){ let d = '';
+  for(const l of lines){ if(l.length < 2) continue; d += 'M'+X(l[0][0]).toFixed(2)+' '+Y(l[0][1]).toFixed(2); for(let i = 1; i < l.length; i++) d += 'L'+X(l[i][0]).toFixed(2)+' '+Y(l[i][1]).toFixed(2); d += ' '; }
+  return d; }
+function partial(r, frac){ // viivat 0..frac*L ja kärjen piste
+  const lim = frac*r.L, out = []; let head = r.first;
+  for(const sg of r.segs){ const {l, acc} = sg; if(acc[0] >= lim) break; const part = [l[0]];
+    for(let i = 1; i < l.length; i++){ if(acc[i] <= lim){ part.push(l[i]); head = l[i]; continue; }
+      const f = (lim - acc[i-1])/((acc[i] - acc[i-1]) || 1), p = [l[i-1][0]+(l[i][0]-l[i-1][0])*f, l[i-1][1]+(l[i][1]-l[i-1][1])*f]; part.push(p); head = p; break; }
+    out.push(part); }
+  return {lines: out, head}; }
+let baseSvg = '';
+function buildBase(){
+  let s = '';
+  const mainR = r => r < 100;
+  for(const rd of S.net.d.roads){ const d = pathOf(rd.l); s += '<path class="nt'+(mainR(rd.r) ? ' mn' : '')+'" data-r="'+rd.r+'" d="'+d+'"/>'; }
+  baseSvg = s;
+}
+function labels(){
+  const vb = S.vb, z = vb.w/ ( $('#map').clientWidth || 800 ); // km / px
+  const fs = 13*z; let s = '';
+  for(const [nm, lon, lat, tier] of PLACES){ if(lon < S.box.w || lon > S.box.e || lat < S.box.s || lat > S.box.n) continue; if(tier === 2 && z > 0.16) continue;
+    s += '<text class="pl" style="font-size:'+fs.toFixed(3)+'px;stroke-width:'+(3*z).toFixed(3)+'px" x="'+X(lon).toFixed(2)+'" y="'+Y(lat).toFixed(2)+'" text-anchor="middle">'+esc(nm)+'</text>'; }
+  // päätienumerot
+  for(const rd of S.net.d.roads){ if(rd.r >= 1000 && z > 0.03) continue; if(rd.r >= 100 && z > 0.12) continue;
+    const l = rd.l.slice().sort((a,b)=>b.length-a.length)[0]; if(!l || l.length < 2) continue; const c = l[Math.floor(l.length/2)];
+    s += '<text class="rn" style="font-size:'+(11*z).toFixed(3)+'px;stroke-width:'+(3*z).toFixed(3)+'px" x="'+X(c[0]).toFixed(2)+'" y="'+Y(c[1]).toFixed(2)+'" text-anchor="middle">'+rd.r+'</text>'; }
+  return s;
+}
+function render(){
+  if(!S.net) return;
+  const T = S.steps[S.i] != null ? S.steps[S.i] : Date.now();
+  $('#p-time').textContent = S.steps.length ? fmtDT(T) : '–';
+  const trailMs = S.trail ? S.trail*36e5 : Infinity;
+  const vis = S.recs.filter(r=>S.cats.has(r.cat) && r.s <= T);
+  // ryhmitellään polut työlajin ja haaleuden mukaan (vähemmän elementtejä)
+  const groups = {};
+  const heads = new Map();
+  for(const r of vis){
+    let lines = r.lines, head = r.last;
+    if(r.e > T){ const p = partial(r, (T - r.s)/((r.e - r.s) || 1)); lines = p.lines; head = p.head; }
+    const end = Math.min(r.e, T), age = T - end;
+    const op = age <= trailMs ? (age <= 30*60e3 ? 1 : 0.8) : 0.22;
+    const k = r.cat+'|'+op; (groups[k] = groups[k] || []).push(...lines);
+    // kone liikkeellä, jos kirjaus kesken tai päättyi alle 10 min sitten
+    if(r.e >= T - 10*60e3){ const c = r.chain, h = heads.get(c); if(!h || r.s >= h.s) heads.set(c, {s: r.s, pt: head, r}); }
+  }
+  let s = baseSvg;
+  if(S.selRoad != null) s += '<path class="nt" style="stroke:var(--accent);stroke-width:6px;opacity:.35" d="'+pathOf((S.net.d.roads.find(x=>x.r === S.selRoad)||{l:[]}).l)+'"/>';
+  const order = Object.keys(groups).sort((a,b)=>parseFloat(a.split('|')[1]) - parseFloat(b.split('|')[1]));
+  for(const k of order){ const [cat, op] = k.split('|'); s += '<path class="wk c-'+cat+'" opacity="'+op+'" d="'+pathOf(groups[k])+'"/>'; }
+  const z = S.vb.w/($('#map').clientWidth || 800), R = 6*z;
+  for(const [c, h] of heads){ const x = X(h.pt[0]).toFixed(2), y = Y(h.pt[1]).toFixed(2);
+    s += '<g class="hd"><circle class="rg f-'+h.r.cat+'" cx="'+x+'" cy="'+y+'" r="'+(R*2).toFixed(3)+'"/><circle class="f-'+h.r.cat+'" cx="'+x+'" cy="'+y+'" r="'+R.toFixed(3)+'"><title>'+esc(c.name)+' · '+esc(h.r.tasks.map(t=>TASK_FI[t]||t).join(', '))+' · kirjaus '+fmtT(h.r.s)+'–'+fmtT(h.r.e)+'</title></circle></g>'; }
+  s += labels();
+  $('#map').innerHTML = s;
+  renderSide(T, vis, heads);
+  // aikajanan kursori
+  const cur = $('#strip .cur'); if(cur && S.steps.length){ const W = 600, span = (S.steps[S.steps.length-1] - S.from) || 1; cur.setAttribute('x', ((T - S.from)/span*W - 1).toFixed(1)); }
+}
+function renderSide(T, vis, heads){
+  // kattavuus tie kerrallaan: solut, joilla kirjaus jakson alusta hetkeen T
+  const cov = {salt: new Set(), plow: new Set(), sand: new Set()}, lastBy = {}, distBy = {salt:0, plow:0, sand:0};
+  for(const r of vis){ if(r.e < S.from) continue;
+    const frac = r.e > T ? (T - r.s)/((r.e - r.s) || 1) : 1;
+    if(cov[r.cat]){ const n = Math.round(r.cells.length*frac); for(let i = 0; i < n; i++) cov[r.cat].add(r.cells[i]); distBy[r.cat] += r.L*frac; }
+    for(const rd in r.roads){ const L = lastBy[rd] = lastBy[rd] || {}; const e = Math.min(r.e, T); if(!L[r.cat] || e > L[r.cat]) L[r.cat] = e; } }
+  const roadCov = {};
+  for(const cat of ['salt','plow','sand']) for(const cId of cov[cat]){ const r = S.net.cellRoad[cId]; const o = roadCov[r] = roadCov[r] || {salt:0, plow:0, sand:0}; o[cat]++; }
+  const tot = S.net.nCells;
+  const pc = (n, d) => d ? Math.round(n/d*100) : 0;
+  const lastOf = cat => { let m = null; for(const r of vis) if(r.cat === cat){ const e = Math.min(r.e, T); if(m == null || e > m) m = e; } return m; };
+  const tile = (cat, lbl) => { const l = lastOf(cat); return '<div class="tile '+cat+'"><div class="k">'+lbl+'</div><div class="v">'+pc(cov[cat].size, tot)+' %</div><div class="d">urakan teistä · '+km(distBy[cat])+' km ajoa'+(l ? ' · viim. '+fmtT(l) : '')+'</div></div>'; };
+  $('#s-h').textContent = 'Tilanne klo '+fmtT(T);
+  $('#tiles').innerHTML = (S.cats.has('salt') ? tile('salt','Suolattu') : '') + (S.cats.has('plow') ? tile('plow','Aurattu') : '') + (S.cats.has('sand') ? tile('sand','Hiekoitettu') : '')
+    + '<div class="tile mach"><div class="k">Koneita liikkeellä</div><div class="v">'+heads.size+'</div><div class="d">'+[...new Set([...heads.values()].map(h=>h.r.cat))].map(c=>CAT_FI[c].toLowerCase()).join(', ')+'</div></div>';
+  // koneet
+  const hs = [...heads.entries()].sort((a,b)=>CAT_ORDER.indexOf(a[1].r.cat)-CAT_ORDER.indexOf(b[1].r.cat) || a[0].n-b[0].n);
+  $('#mach').innerHTML = hs.length ? '<table><thead><tr><th>Ajo</th><th>Tie</th><th class="n">Ajettu</th><th class="n">Alkoi</th></tr></thead><tbody>'
+    + hs.map(([c, h])=>{ const rc = {}; for(const r of c.recs) if(r.s <= T && r.e >= T - 20*60e3) for(const k in r.roads) rc[k] = (rc[k]||0) + r.roads[k];
+      const rd = Object.keys(rc).sort((a,b)=>rc[b]-rc[a])[0]; const done = c.recs.filter(r=>r.s <= T).reduce((m,r)=>m + r.L*Math.min(1, (T - r.s)/((r.e - r.s)||1)), 0);
+      return '<tr class="cl" data-x="'+h.pt[0]+'" data-y="'+h.pt[1]+'"><td><span class="dot d-'+h.r.cat+'"></span>'+esc(c.name)+' <small class="muted">'+esc(CAT_FI[h.r.cat].toLowerCase())+'</small></td><td>'+(rd ? 'tie '+rd : '–')+'</td><td class="n">'+km(done)+' km</td><td class="n">'+fmtT(c.s)+'</td></tr>'; }).join('')+'</tbody></table>'
+    : '<div class="muted" style="font-size:14px">Ei koneita liikkeellä tällä hetkellä'+(S.cats.size ? ' valituilla työlajeilla' : '')+'.</div>';
+  // tiet
+  const rows = Object.values(S.net.roads).map(R=>({R, c: roadCov[R.r] || {salt:0, plow:0, sand:0}, l: lastBy[R.r] || {}}))
+    .filter(x=>x.R.len > 300).sort((a,b)=>{ const la = Math.max(0, ...Object.values(a.l)), lb = Math.max(0, ...Object.values(b.l)); return (lb - la) || (a.R.r - b.R.r); });
+  const showSalt = S.cats.has('salt'), showPlow = S.cats.has('plow');
+  $('#roads').innerHTML = '<table><thead><tr><th>Tie</th><th class="n">Pituus</th>'+(showSalt ? '<th>Suolattu</th>' : '')+(showPlow ? '<th>Aurattu</th>' : '')+'<th class="n">Viim.</th></tr></thead><tbody>'
+    + rows.map(x=>{ const ls = Math.max(0, ...Object.values(x.l)); const cell = cat => { const p = pc(x.c[cat], x.R.n); return '<td><span style="font:12.5px var(--f-mono)">'+String(p).padStart(3,' ')+' %</span><span class="bar"><i class="'+cat+'" style="width:'+p+'%"></i></span></td>'; };
+      return '<tr class="cl'+(S.selRoad === x.R.r ? ' on' : '')+'" data-r="'+x.R.r+'"><td>tie '+x.R.r+'</td><td class="n">'+km(x.R.len)+' km</td>'+(showSalt ? cell('salt') : '')+(showPlow ? cell('plow') : '')+'<td class="n">'+(ls ? fmtT(ls) : '–')+'</td></tr>'; }).join('')+'</tbody></table>';
+}
+function renderStrip(){
+  const W = 600, H = 54, N = 120; if(!S.steps.length){ $('#strip').innerHTML = ''; return; }
+  const span = (S.steps[S.steps.length-1] - S.from) || 1, bw = span/N;
+  const rows = CAT_ORDER.filter(c=>S.cats.has(c) && S.recs.some(r=>r.cat === c)), rh = rows.length ? (H - 6)/rows.length : 10;
+  let s = '<rect x="0" y="0" width="'+W+'" height="'+H+'" fill="var(--soft)"/>';
+  rows.forEach((cat, ri)=>{ const cnt = new Array(N).fill(0);
+    for(const c of S.chains){ const seen = new Set();
+      for(const r of c.recs){ if(r.cat !== cat) continue; const a = Math.max(0, Math.floor((r.s - S.from)/bw)), b = Math.min(N-1, Math.floor((r.e - S.from)/bw)); for(let k = a; k <= b; k++) seen.add(k); }
+      for(const k of seen) cnt[k]++; }
+    const mx = Math.max(1, ...cnt), y0 = 3 + ri*rh;
+    cnt.forEach((v, k)=>{ if(!v) return; const h = Math.max(2, (rh - 2)*v/mx); s += '<rect fill="var(--'+cat+')" x="'+(k*W/N).toFixed(1)+'" y="'+(y0 + rh - 2 - h).toFixed(1)+'" width="'+(W/N - 0.6).toFixed(1)+'" height="'+h.toFixed(1)+'"><title>'+CAT_FI[cat]+' '+fmtT(S.from + k*bw)+': '+v+' konetta</title></rect>'; }); });
+  s += '<rect class="cur" x="0" y="0" width="2" height="'+H+'" fill="var(--accent)"/>';
+  $('#strip').innerHTML = s;
+  const ticks = []; const first = Math.ceil(S.from/36e5)*36e5, narrow = ($('#strip').clientWidth || 600) < 520, every = span > 16*36e5 ? (narrow ? 6 : 3) : span > 8*36e5 ? (narrow ? 4 : 2) : (narrow ? 2 : 1);
+  for(let t = first; t <= S.from + span; t += 36e5){ const h = +new Date(t).toLocaleString('en-GB',{hour:'numeric', hourCycle:'h23', timeZone:TZ}); if(h % every) continue;
+    const pos = (t - S.from)/span; ticks.push('<span'+(pos < 0.03 ? ' class="f"' : pos > 0.97 ? ' class="l"' : '')+' style="left:'+((t - S.from)/span*100).toFixed(2)+'%">'+fmtT(t)+'</span>'); }
+  $('#ticks').innerHTML = ticks.join('');
+}
+
+function fitTo(pts){ if(!pts.length) return; const xs = pts.map(c=>X(c[0])), ys = pts.map(c=>Y(c[1]));
+  let x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys); const pad = 4; x0 -= pad; x1 += pad; y0 -= pad; y1 += pad;
+  const el = $('#mapbox'), ar = el.clientWidth/el.clientHeight || 1; let w = x1 - x0, h = y1 - y0; if(w/h < ar) w = h*ar; else h = w/ar;
+  S.vb = {x: (x0 + x1)/2 - w/2, y: (y0 + y1)/2 - h/2, w, h}; applyVb(); render(); }
+
+/* ---------- kartan zoomaus ---------- */
+function fitVb(){ const w = X(S.box.e), h = Y(S.box.s), el = $('#mapbox'), ar = el.clientWidth/el.clientHeight || 1;
+  let vw = w, vh = h; if(vw/vh < ar) vw = vh*ar; else vh = vw/ar;
+  S.vb = {x: (w - vw)/2, y: (h - vh)/2, w: vw, h: vh}; applyVb(); }
+function applyVb(){ const v = S.vb; if(!v) return; $('#map').setAttribute('viewBox', v.x.toFixed(3)+' '+v.y.toFixed(3)+' '+v.w.toFixed(3)+' '+v.h.toFixed(3)); }
+let lblTimer = null;
+function zoomAt(f, cx, cy){ if(!S.vb) return; const v = S.vb, el = $('#mapbox'), r = el.getBoundingClientRect();
+  const fx = cx == null ? 0.5 : (cx - r.left)/r.width, fy = cy == null ? 0.5 : (cy - r.top)/r.height;
+  const nw = Math.max(1.5, Math.min(X(S.box.e)*1.6, v.w*f)), nh = nw*v.h/v.w;
+  v.x += (v.w - nw)*fx; v.y += (v.h - nh)*fy; v.w = nw; v.h = nh; applyVb();
+  clearTimeout(lblTimer); lblTimer = setTimeout(render, 120); }
+function centerOn(lon, lat){ const v = S.vb; v.x = X(lon) - v.w/2; v.y = Y(lat) - v.h/2; if(v.w > 25){ const nw = 20, nh = nw*v.h/v.w; v.x = X(lon) - nw/2; v.y = Y(lat) - nh/2; v.w = nw; v.h = nh; } applyVb(); render(); }
+function initZoom(){
+  const el = $('#mapbox'), ptrs = new Map(); let last = null, pinch = null;
+  el.addEventListener('wheel', e=>{ e.preventDefault(); zoomAt(Math.exp(e.deltaY*0.0015), e.clientX, e.clientY); }, {passive:false});
+  el.addEventListener('pointerdown', e=>{ if(e.target.closest('.zoom')) return; el.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); el.classList.add('drag'); last = [e.clientX, e.clientY];
+    if(ptrs.size === 2){ const [a, b] = [...ptrs.values()]; pinch = {d: Math.hypot(a[0]-b[0], a[1]-b[1])}; } });
+  el.addEventListener('pointermove', e=>{ if(!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    const r = el.getBoundingClientRect(), v = S.vb;
+    if(ptrs.size === 2 && pinch){ const [a, b] = [...ptrs.values()], d = Math.hypot(a[0]-b[0], a[1]-b[1]); if(d > 0){ zoomAt(pinch.d/d, (a[0]+b[0])/2, (a[1]+b[1])/2); pinch.d = d; } return; }
+    if(ptrs.size === 1 && last && v){ v.x -= (e.clientX - last[0])*v.w/r.width; v.y -= (e.clientY - last[1])*v.h/r.height; last = [e.clientX, e.clientY]; applyVb(); } });
+  const up = e=>{ ptrs.delete(e.pointerId); if(ptrs.size < 2) pinch = null; if(!ptrs.size){ el.classList.remove('drag'); last = null; } else last = [...ptrs.values()][0]; };
+  el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  $('#z-in').onclick = ()=>zoomAt(0.6); $('#z-out').onclick = ()=>zoomAt(1/0.6); $('#z-fit').onclick = ()=>{ fitVb(); render(); };
+  let rz = null; window.addEventListener('resize', ()=>{ clearTimeout(rz); rz = setTimeout(()=>{ if(!S.vb) return; const v = S.vb, el2 = $('#mapbox'), ar = el2.clientWidth/el2.clientHeight || 1, cx = v.x + v.w/2, cy = v.y + v.h/2; v.h = v.w/ar; v.y = cy - v.h/2; v.x = cx - v.w/2; applyVb(); render(); }, 150); });
+}
+
+/* ---------- ohjaimet ---------- */
+function stop(){ if(S.play){ clearInterval(S.play); S.play = null; } const b = $('#p-play'); b.textContent = '▶ Toista'; b.setAttribute('aria-pressed','false'); }
+function go(i){ S.i = Math.max(0, Math.min(S.steps.length - 1, i)); $('#p-t').value = S.i; render(); }
+function setLive(on){ S.live = on; $('#b-live').setAttribute('aria-pressed', on ? 'true' : 'false'); }
+function init(){
+  const now = Date.now(), y = new Date(now - 24*36e5);
+  $('#d-day').value = todayKey(y); $('#d-day').max = todayKey(now); $('#d-day').min = todayKey(now - 60*864e5);   // ts1: Digitraffic antaa ajot ainakin 2 kk taaksepäin (testattu 27.11.)
+  // URL: ?u=PR00054056&pv=2026-11-13&jakso=night
+  const q = QS;
+  if(q.get('pv')){ $('#d-day').value = q.get('pv'); setLive(false); }
+  if(['night','day','full'].includes(q.get('jakso'))) $('#d-span').value = q.get('jakso');
+  $('#b-live').onclick = ()=>{ stop(); setLive(true); history.replaceState(null, '', '?u='+UK); load(); };
+  const pick = ()=>{ stop(); setLive(false); history.replaceState(null, '', '?u='+UK+'&pv='+$('#d-day').value+'&jakso='+$('#d-span').value); load(); };
+  $('#d-day').onchange = pick; $('#d-span').onchange = pick;
+  $('#cats').addEventListener('change', e=>{ const c = e.target.dataset.c; if(!c) return; if(e.target.checked) S.cats.add(c); else S.cats.delete(c); renderStrip(); render(); });
+  $('#trail').onchange = e=>{ S.trail = Number(e.target.value); render(); };
+  $('#p-t').oninput = e=>{ stop(); go(Number(e.target.value)); };
+  $('#p-prev').onclick = ()=>{ stop(); go(S.i - 1); }; $('#p-next').onclick = ()=>{ stop(); go(S.i + 1); };
+  $('#p-play').onclick = ()=>{ if(S.play){ stop(); return; }
+    if(S.i >= S.steps.length - 1) go(0);
+    $('#p-play').textContent = '❚❚ Tauko'; $('#p-play').setAttribute('aria-pressed','true');
+    S.play = setInterval(()=>{ const k = Number($('#p-speed').value)/5; if(S.i >= S.steps.length - 1){ stop(); return; } go(S.i + k); }, 450); };
+  $('#strip').addEventListener('click', e=>{ const r = e.currentTarget.getBoundingClientRect(); stop(); go(Math.round((e.clientX - r.left)/r.width*(S.steps.length - 1))); });
+  $('#roads').addEventListener('click', e=>{ const tr = e.target.closest('tr[data-r]'); if(!tr) return; const r = Number(tr.dataset.r); S.selRoad = S.selRoad === r ? null : r;
+    if(S.selRoad != null){ const rd = S.net.d.roads.find(x=>x.r === r); const pts = rd.l.flat(); const c = pts[Math.floor(pts.length/2)]; centerOn(c[0], c[1]); } else render(); });
+  $('#mach').addEventListener('click', e=>{ const tr = e.target.closest('tr[data-x]'); if(tr) centerOn(Number(tr.dataset.x), Number(tr.dataset.y)); });
+  document.addEventListener('keydown', e=>{ if(e.target.matches('input,select')) return; if(e.key === 'ArrowLeft'){ stop(); go(S.i - 1); } else if(e.key === 'ArrowRight'){ stop(); go(S.i + 1); } else if(e.key === ' '){ e.preventDefault(); $('#p-play').click(); } });
+  setInterval(()=>{ if(S.live && !S.loading && !S.play && Date.now() - S.lastLoad > 115e3) load(true); }, 20e3);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && S.live && Date.now() - S.lastLoad > 60e3) load(true); });
+}
+
+/* ---------- ts1: urakan valinta ja yleiskartta ---------- */
+const ELY_COL = {'Uudenmaan':'#d1495b','Varsinais-Suomen':'#2a9d8f','Kaakkois-Suomen':'#e09f3e','Pirkanmaan':'#3d7dd8','Pohjois-Savon':'#8f5bd6',
+  'Keski-Suomen':'#6a994e','Etelä-Pohjanmaan':'#c05299','Pohjois-Pohjanmaan':'#7a6c5d','Lapin':'#1b998b'};
+const eCol = e => ELY_COL[e] || '#6f7d8b';
+let IX = null;
+async function loadIndex(){
+  if(IX) return IX;
+  const r = await fetch(ARK+'index.json', {cache:'no-cache'}); if(!r.ok) throw new Error('HTTP '+r.status);
+  IX = await r.json(); IX.u.sort((a,b)=>a.ely.localeCompare(b.ely, 'fi') || a.k.localeCompare(b.k)); return IX;
+}
+const uLabel = u => u.k+' · '+u.ely+' ELY · '+u.km.toLocaleString('fi-FI')+' km';
+async function fillSelect(){
+  try{ const ix = await loadIndex(), sel = $('#u-sel'), by = {};
+    for(const u of ix.u) (by[u.ely] = by[u.ely] || []).push(u);
+    sel.innerHTML = '<option value="">Valitse urakka…</option>' + Object.keys(by).map(e=>'<optgroup label="'+esc(e)+' ELY">'
+      + by[e].map(u=>'<option value="'+esc(u.k)+'">'+esc(u.k)+' · '+u.km.toLocaleString('fi-FI')+' km tietä</option>').join('')+'</optgroup>').join('');
+    sel.value = UK; sel.onchange = ()=>{ if(sel.value) location.search = '?u='+encodeURIComponent(sel.value); };
+  }catch(e){ $('#u-sel').innerHTML = '<option value="">Urakkaluetteloa ei saatu</option>'; }
+}
+async function urakkaInfo(){
+  $('#u-all').hidden = false; $('#plate').hidden = false; $('#plate').textContent = UK;
+  await fillSelect();
+  const u = IX && IX.u.find(x=>x.k === UK);
+  if(u){ $('#plate').textContent = UK+' · '+u.ely.toUpperCase(); document.title = 'Toimenpidekartta '+UK; }
+}
+async function overview(){
+  $('#ov').hidden = false; fillSelect();
+  let ix; try{ ix = await loadIndex(); }catch(e){ $('#ov-list').innerHTML = '<span class="err">Urakoita ei saatu ladattua ('+esc(e.message)+').</span>'; return; }
+  const W0 = 19.2, E0 = 31.8, S0 = 59.6, N0 = 70.2, kx = 111.32*Math.cos(64.5*Math.PI/180), ky = 111.32;
+  const px = lon => ((lon - W0)*kx).toFixed(1), py = lat => ((N0 - lat)*ky).toFixed(1);
+  const d = ls => ls.map(l=>'M'+l.map(c=>px(c[0])+' '+py(c[1])).join('L')).join('');
+  let s = '';
+  for(const u of ix.u){ const dd = d(u.yl); if(!dd) continue;
+    s += '<g data-k="'+esc(u.k)+'"><path class="ol" stroke="'+eCol(u.ely)+'" d="'+dd+'"/><path class="oh" d="'+dd+'"><title>'+esc(uLabel(u))+'</title></path></g>'; }
+  for(const [nm, lon, lat, tier] of PLACES) if(tier === 1 && /^(Helsinki|Turku|Tampere|Lahti|Kouvola|Lappeenranta|Mikkeli|Jyväskylä|Pori|Vaasa|Seinäjoki|Kuopio|Joensuu|Kokkola|Oulu|Kajaani|Rovaniemi|Kemi|Kuusamo|Sodankylä|Ivalo|Kittilä|Savonlinna|Kotka|Iisalmi|Ylivieska)$/.test(nm))
+    s += '<text x="'+px(lon)+'" y="'+py(lat)+'" text-anchor="middle">'+esc(nm)+'</text><circle cx="'+px(lon)+'" cy="'+py(lat)+'" r="2.5" fill="var(--ink)"/>';
+  s += '<text class="uc" id="ov-lbl" x="0" y="0" text-anchor="middle"></text>';
+  const svg = $('#ovmap'), vbW = (E0 - W0)*kx, vbH = (N0 - S0)*ky; svg.setAttribute('viewBox', '0 0 '+vbW.toFixed(0)+' '+vbH.toFixed(0)); svg.innerHTML = s;
+  // tekstit näytön pikseleinä: käyttäjäyksikkö = km, joten koko skaalataan kartan näkyvän koon mukaan
+  const fsz = ()=>{ const r = svg.getBoundingClientRect(), k = Math.max(vbW/(r.width || 600), vbH/(r.height || 800));
+    svg.querySelectorAll('text').forEach(t=>{ const px0 = t.classList.contains('uc') ? 14 : 12; t.style.fontSize = (px0*k).toFixed(2)+'px'; t.style.strokeWidth = (3*k).toFixed(2)+'px'; t.setAttribute('dy', (-5*k).toFixed(2)); });
+    svg.querySelectorAll('circle').forEach(c=>c.setAttribute('r', (2.5*k).toFixed(2))); };
+  fsz(); let rzo = null; window.addEventListener('resize', ()=>{ clearTimeout(rzo); rzo = setTimeout(fsz, 150); });
+  const by = {}; for(const u of ix.u) (by[u.ely] = by[u.ely] || []).push(u);
+  $('#ov-list').innerHTML = Object.keys(by).map(e=>'<h4><span class="esw" style="background:'+eCol(e)+'"></span>'+esc(e)+' ELY</h4><table><tbody>'
+    + by[e].map(u=>'<tr class="cl" data-k="'+esc(u.k)+'"><td><a href="?u='+encodeURIComponent(u.k)+'">'+esc(u.k)+'</a></td><td class="n">'+u.km.toLocaleString('fi-FI')+' km tietä</td></tr>').join('')+'</tbody></table>').join('');
+  const hi = k => { const u = k && ix.u.find(x=>x.k === k);
+    svg.querySelectorAll('g[data-k]').forEach(g=>{ g.classList.toggle('on', g.dataset.k === k); g.classList.toggle('dim', !!k && g.dataset.k !== k); });
+    document.querySelectorAll('#ov-list tr[data-k]').forEach(tr=>tr.classList.toggle('on', tr.dataset.k === k));
+    const lb = $('#ov-lbl');
+    if(u){ const g = svg.querySelector('g[data-k="'+k+'"]'); if(g) svg.appendChild(g); svg.appendChild(lb);
+      lb.setAttribute('x', px((u.bb[0] + u.bb[2])/2)); lb.setAttribute('y', py(u.bb[3])); lb.textContent = u.k;
+      $('#ov-info').innerHTML = '<b>'+esc(u.k)+'</b> · '+esc(u.ely)+' ELY · '+u.km.toLocaleString('fi-FI')+' km tietä<br><span class="muted">Klikkaa avataksesi urakan toimenpidekartan.</span>'; }
+    else { lb.textContent = ''; $('#ov-info').textContent = 'Valitse urakka kartalta tai listasta. Kartalla on urakoiden valta-, kanta- ja seututiet, väri kertoo ELY-alueen.'; } };
+  svg.addEventListener('pointerover', e=>{ const g = e.target.closest('g[data-k]'); if(g) hi(g.dataset.k); });
+  svg.addEventListener('pointerleave', ()=>hi(null));
+  svg.addEventListener('click', e=>{ const g = e.target.closest('g[data-k]'); if(g) location.search = '?u='+encodeURIComponent(g.dataset.k); });
+  $('#ov-list').addEventListener('pointerover', e=>{ const tr = e.target.closest('tr[data-k]'); if(tr) hi(tr.dataset.k); });
+  $('#ov-list').addEventListener('click', e=>{ const tr = e.target.closest('tr[data-k]'); if(tr && !e.target.closest('a')) location.search = '?u='+encodeURIComponent(tr.dataset.k); });
+}
+(async () => {
+  if(!UK){ overview(); return; }
+  $('#main').hidden = false; init(); initZoom(); urakkaInfo();
+  try{ const d = await loadNet(); prepNet(d);
+    S.net.cellRoad = []; for(const a of S.net.idx.values()) for(const q of a) S.net.cellRoad[q[3]] = q[2]; }
+  catch(e){ $('#status').innerHTML = '<span class="err">Urakan '+esc(UK)+' tieverkkoa ei saatu ladattua ('+esc(e.message)+'). Tarkista urakka <a href="./">urakkakartalta</a>.</span>'; return; }
+  fitVb(); buildBase(); render();
+  await load();
+})();
+})();
+</script>
+</body>
+</html>

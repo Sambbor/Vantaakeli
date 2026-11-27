@@ -2,6 +2,16 @@
 
 Kelikeskuksen (tämä sivu) ja Päivystyskirjan muutokset selkokielellä, uusin ensin.
 
+## 27.11.2026: Koko Suomen toimenpidekartta (ts1, uusi sivu, ei sääntömuutos)
+Samulin pyyntö 27.11.: Heinolan toimenpidekartan tapainen sivu kaikille maanteiden hoitourakoille, ilman tiesääasemia, pelkät ajot kelattavaksi. Sivu: https://sambbor.github.io/Vantaakeli/suomi/
+
+- **Urakan valinta:** Suomen kartalta (väri = ELY-alue) tai listasta. Urakat ovat urakkakoodeina ja ELY-alueina, ei nimiä eikä urakoitsijoita, kuten koko Suomen yökoosteessa. Osoite `suomi/?u=<koodi>&pv=<päivä>&jakso=night|day|full` avaa suoraan urakan ja jakson.
+- **Kelaus kuten Heinolassa:** suolaus, auraus, hiekoitus, tasaus ja kelintarkastus kartalla, aikajana, toisto, koneet liikkeellä ja tiet (osuus urakan teistä, viimeisin kirjaus). Nyt-tila päivittyy 2 minuutin välein. Päivän voi valita 60 vuorokautta taaksepäin (Digitraffic antoi 27.11. ajoja ainakin 2 kk ajalta).
+- **Ajoja ei tallenneta:** ne haetaan suoraan Digitrafficista. Tiesää-arkistoon tallennetaan vain urakoiden tieverkot (`data/urakat/`, noin 8 Mt, päivitys kerran kuukaudessa, tiedosto muuttuu vain tieverkon muuttuessa).
+- **Erot Heinolan sivuun:** päätellyt suolausreitit puuttuvat (ne lasketaan vain Heinolalle). Paikannimet ovat likimääräisiä kuntakeskuksia.
+- **Ei muuttunut:** kelikeskus, Heinolan sivu ja kaikki laskenta.
+- **Perutaan:** poista kansio `suomi/` tästä säilöstä sekä Tiesää-arkistosta `data/urakat/`, `meta/tieverkko_suomi.json`, `.github/workflows/tieverkko-suomi.yml` ja tieverkko.py:n funktio `suomi()` (tunnus tv2).
+
 ## 26.11.2026: Testi – kuuran tienpinta omasta tienpintamallista kaistan 1 pohjalla (tm1, EI käytössä)
 Sama testi kuin alla, mutta tienpinta on nyt kaistalta 1 (ka1). Kaistaeroa ei enää lisätä, koska sivu ja tienpintamalli käyttävät samaa kaistaa. Aineistona olivat Vantaan 13 asemaa 2.–26.11.: 6 289 laskentaa, joista 342 riviä (5 %) jäi varaketjulle. Nykyinen = ka1 ilman tienpintamallia, a = malli vain kuuraan, b = malli koko indeksiin.
 
