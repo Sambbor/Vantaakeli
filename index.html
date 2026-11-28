@@ -774,13 +774,13 @@ async function loadMeta(){
   const detail = (path, list) => Promise.all(list.map(f => getJSON(DT+path+f.id).catch(()=>null)));
   const [camDet, wsDet] = await Promise.all([detail('/api/weathercam/v1/stations/', camCand), detail('/api/weather/v1/stations/', wsCand)]);
   const inContract = d => d && d.properties.roadAddress && d.properties.roadAddress.contractAreaCode===CONTRACT_CODE;
-  const cams = camDet.filter(inContract).map(d => ({
+  const cams = camDet.filter(d => inContract(d) && !(U.offSt||{})[d.properties.nearestWeatherStationId]).map(d => ({
     id:d.id, name:(d.properties.names&&d.properties.names.fi)||d.properties.name, road:d.properties.roadAddress.roadNumber,
     municipality:d.properties.municipality, nearestWs:d.properties.nearestWeatherStationId,
     lon:d.geometry&&d.geometry.coordinates[0], lat:d.geometry&&d.geometry.coordinates[1],
     presets:d.properties.presets.filter(p=>p.inCollection).map(p=>({id:p.id, name:p.presentationName||'', url:p.imageUrl||('https://weathercam.digitraffic.fi/'+p.id+'.jpg')}))
   })).filter(c=>c.presets.length).sort((a,b)=>a.road-b.road || a.name.localeCompare(b.name,'fi'));
-  const stations = wsDet.filter(d => inContract(d) || (d && (U.extraSt||{})[d.id] != null)).map(d => ({
+  const stations = wsDet.filter(d => d && !(U.offSt||{})[d.id] && (inContract(d) || (U.extraSt||{})[d.id] != null)).map(d => ({
     id:d.id, name:(d.properties.names&&d.properties.names.fi)||d.properties.name, road:(U.extraSt||{})[d.id] || d.properties.roadAddress.roadNumber, municipality:d.properties.municipality,
     lon:d.geometry&&d.geometry.coordinates[0], lat:d.geometry&&d.geometry.coordinates[1]
   })).sort((a,b)=>a.road-b.road || a.name.localeCompare(b.name,'fi'));
