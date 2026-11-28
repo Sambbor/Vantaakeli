@@ -23,7 +23,15 @@ Samulin päätös 27.11.: tie 103:n asemat Vuosaari eteläinen (1071) ja Vuosaar
 - **Keruu:** asemista ei tehdä rivejä, eivätkä ne ole mukana varjokomennossa, puhelinilmoituksissa, suolan seurannassa eivätkä vajaiden asemien lainauksessa.
 - **Sivu:** asemat näkyvät harmaana merkinnällä "otettu pois käytöstä 27.11.2026". Ne eivät ole mukana liukkausennusteessa, korteissa eivätkä päätöksessä, eikä niitä lasketa vioiksi.
 - **Liukkausennuste-taulukko** jättää nyt pois myös asemat, jotka ovat automaattisesti pois käytöstä (ei mittauksia yli 7 vrk:een, po1). Ennen ne laskettiin Digitrafficin tiekohtaennusteella.
-- **Perutaan:** poista `offSt` Vantaan urakan tiedoista (collect.mjs ja laskenta.html `URAKAT.vantaa`). Asemat palaavat seuraavassa keruussa.
+- **28.11. lisäys (Samuli: "nämä asemat pois kaikesta datasta, tie ei ole käytössä"):** Vuosaari näkyi vielä Jälkiselvityksessä (yön kelaus luki vanhoja keruun rivejä) ja näytti siellä liukasta. Nyt asemat ja niiden lähikamerat eivät ole sivulla lainkaan, ei edes harmaana. Keruu poistaa ne kerran kaikista tallennetuista tiedostoista:
+  - keruun rivit (obs, seg, roadsurf ja tr1-vanhat)
+  - yöt ja yön yhteenveto (asemamäärät laskettu uudelleen)
+  - varjokomennot, learn.json, roadsurf, stations.json ja index.json
+  - Päivystyskirjan paketit (data/kirja)
+  - tien 103 rivit
+
+  Koekopiossa poistui 942 riviä ja 35 tiedostoa. Päivystyskirjan rakentaja (rakenna.py) ja RoadSurf-vertailu eivät enää ota asemia mukaan. Koko maan Tiesää-arkistoon asemat jäävät, ja Päivystyskirjan koko maan urakkakoodi 1073 (Etelä-Pohjanmaa) ei ole asema.
+- **Perutaan:** poista `offSt` Vantaan urakan tiedoista (collect.mjs ja laskenta.html `URAKAT.vantaa`) ja `OFF_ST` rakenna.py:stä. Asemat palaavat seuraavassa keruussa, mutta poistettuja vanhoja rivejä ei palauteta (ne löytyvät git-historiasta).
 
 ## 26.11.2026: Testi – kuuran tienpinta omasta tienpintamallista kaistan 1 pohjalla (tm1, EI käytössä)
 Sama testi kuin alla, mutta tienpinta on nyt kaistalta 1 (ka1). Kaistaeroa ei enää lisätä, koska sivu ja tienpintamalli käyttävät samaa kaistaa. Aineistona olivat Vantaan 13 asemaa 2.–26.11.: 6 289 laskentaa, joista 342 riviä (5 %) jäi varaketjulle. Nykyinen = ka1 ilman tienpintamallia, a = malli vain kuuraan, b = malli koko indeksiin.
